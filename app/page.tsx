@@ -103,33 +103,18 @@ export default function HomePage() {
       <div style={{ background: '#fff', fontFamily: font }}>
         <VisionProNav />
 
-        <div id="overview" style={{ height: '150vh' }}>
-          <section style={{ position: 'sticky', top: '68px', height: 'calc(100vh - 68px)', background: '#FBF9FA', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            {/* 영상 — 섹션 꽉 채우기 */}
-            <video
-              autoPlay muted loop playsInline
-              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
-            >
-              <source src="/hero-model.mp4" type="video/mp4" />
-            </video>
+        <section
+          id="overview"
+          style={{ position: 'relative', height: 'calc(100vh - 52px)', minHeight: '500px', background: '#f5f5f7', overflow: 'hidden' }}
+        >
+          <img
+            src="/hero.png"
+            alt="모스픽 사용 모습"
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }}
+          />
+        </section>
 
-            {/* 왼쪽 텍스트 */}
-            <div style={{ position: 'absolute', top: '44%', left: '6%', pointerEvents: 'none' }}>
-              <p style={{ fontSize: 17, fontWeight: 700, color: '#1d1d1f', marginBottom: 6, letterSpacing: '-0.01em' }}>모스픽</p>
-              <p style={{ fontSize: 17, fontWeight: 400, color: '#1d1d1f', lineHeight: 1.4, letterSpacing: '-0.02em', whiteSpace: 'pre-line' }}>
-                {'눈 깜빡임 하나로,\n당신의 하루가 다시 움직입니다.'}
-              </p>
-            </div>
-
-            {/* 오른쪽 텍스트 */}
-            <div style={{ position: 'absolute', top: '60%', right: '4%', textAlign: 'left', maxWidth: 280, pointerEvents: 'none' }}>
-              <p style={{ fontSize: 18, fontWeight: 700, color: '#1d1d1f', marginBottom: 6, letterSpacing: '-0.02em' }}>하나씩, 다시 일상으로</p>
-              <p style={{ fontSize: 17, fontWeight: 400, color: 'rgba(0,0,0,0.55)', lineHeight: 1.4, letterSpacing: '-0.01em' }}>
-                말을 건네고, 불을 켜고, 영상을 보는 일들.<br />모스픽과 함께 차근차근 되찾아가요.
-              </p>
-            </div>
-          </section>
-        </div>
+        <StickyTextReveal />
 
         <FullscreenVideoSection
           id="entertainment"

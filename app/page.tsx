@@ -134,8 +134,6 @@ export default function HomePage() {
           </div>
         </section>
 
-        <StickyTextReveal />
-
         <FullscreenVideoSection
           id="entertainment"
           eyebrow="환우를 위한"

@@ -316,43 +316,53 @@ export default function ScreeningPage() {
       }
     >
       <h1 style={{ fontSize: 28, fontWeight: 700, color: lbl, letterSpacing: '-0.4px', marginBottom: 6 }}>정보 입력</h1>
-      <p style={{ fontSize: 15, color: lbl2, marginBottom: 28 }}>보호자가 입력해주세요.</p>
+      <p style={{ fontSize: 15, color: lbl2, marginBottom: 24 }}>보호자가 입력해주세요.</p>
 
-      {[
-        { label: '환우 이름', key: 'patientName', placeholder: '홍길동', type: 'text' },
-        { label: '보호자 이름', key: 'caregiverName', placeholder: '홍보호', type: 'text' },
-        { label: '보호자 연락처', key: 'caregiverContact', placeholder: '010-0000-0000', type: 'tel' },
-      ].map(({ label: l, key, placeholder, type }) => (
-        <div key={key} style={{ marginBottom: 14 }}>
-          <label style={{ display: 'block', fontSize: 14, fontWeight: 500, color: lbl2, marginBottom: 6 }}>{l}</label>
-          <input type={type} placeholder={placeholder} value={(form as any)[key]}
-            onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} style={inputStyle} />
+      {/* 필수 정보 — 하나의 카드로 묶기 */}
+      <div style={{ background: '#fff', border: `1px solid ${sep}`, borderRadius: 20, overflow: 'hidden', marginBottom: 14 }}>
+        {[
+          { label: '환우 이름', key: 'patientName', placeholder: '홍길동', type: 'text' },
+          { label: '보호자 이름', key: 'caregiverName', placeholder: '홍보호', type: 'text' },
+          { label: '보호자 연락처', key: 'caregiverContact', placeholder: '010-0000-0000', type: 'tel' },
+        ].map(({ label: l, key, placeholder, type }, i) => (
+          <div key={key}>
+            <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px' }}>
+              <label style={{ fontSize: 15, color: lbl2, width: 96, flexShrink: 0 }}>{l}</label>
+              <input type={type} placeholder={placeholder} value={(form as any)[key]}
+                onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                style={{ flex: 1, border: 'none', outline: 'none', fontSize: 16, color: lbl, padding: '15px 0', background: 'transparent', fontFamily: font }} />
+            </div>
+            {i < 2 && <div style={{ height: 1, background: sep, margin: '0 16px' }} />}
+          </div>
+        ))}
+        {/* 거주 지역 */}
+        <div style={{ height: 1, background: sep, margin: '0 16px' }} />
+        <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px' }}>
+          <label style={{ fontSize: 15, color: lbl2, width: 96, flexShrink: 0 }}>거주 지역</label>
+          <select value={form.region} onChange={e => setForm(f => ({ ...f, region: e.target.value }))}
+            style={{ flex: 1, border: 'none', outline: 'none', fontSize: 16, color: form.region ? lbl : lbl2, padding: '15px 0', background: 'transparent', fontFamily: font, appearance: 'none' as const, cursor: 'pointer' }}>
+            <option value="">선택</option>
+            {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+          </select>
         </div>
-      ))}
-
-      <div style={{ marginBottom: 14 }}>
-        <label style={{ display: 'block', fontSize: 14, fontWeight: 500, color: lbl2, marginBottom: 6 }}>거주 지역</label>
-        <select value={form.region} onChange={e => setForm(f => ({ ...f, region: e.target.value }))}
-          style={{ ...inputStyle, color: form.region ? lbl : lbl2, appearance: 'none' as const }}>
-          <option value="">선택해주세요</option>
-          {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
-        </select>
       </div>
 
-      <div style={{ marginBottom: 14 }}>
-        <label style={{ display: 'block', fontSize: 14, fontWeight: 500, color: lbl2, marginBottom: 6 }}>현재 소통 방법 (선택)</label>
-        <select value={form.communicationMethod} onChange={e => setForm(f => ({ ...f, communicationMethod: e.target.value }))}
-          style={{ ...inputStyle, color: form.communicationMethod ? lbl : lbl2, appearance: 'none' as const }}>
-          <option value="">선택해주세요</option>
-          {COMM_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
-        </select>
-      </div>
-
-      <div style={{ marginBottom: 8 }}>
-        <label style={{ display: 'block', fontSize: 14, fontWeight: 500, color: lbl2, marginBottom: 6 }}>메모 (선택)</label>
-        <textarea placeholder="특이사항이 있으면 적어주세요" value={form.note}
-          onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
-          style={{ ...inputStyle, minHeight: 80, resize: 'none' as const, borderRadius: 20 }} />
+      {/* 선택 정보 */}
+      <div style={{ background: '#fff', border: `1px solid ${sep}`, borderRadius: 20, overflow: 'hidden', marginBottom: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px' }}>
+          <label style={{ fontSize: 15, color: lbl2, width: 96, flexShrink: 0 }}>소통 방법</label>
+          <select value={form.communicationMethod} onChange={e => setForm(f => ({ ...f, communicationMethod: e.target.value }))}
+            style={{ flex: 1, border: 'none', outline: 'none', fontSize: 16, color: form.communicationMethod ? lbl : lbl2, padding: '15px 0', background: 'transparent', fontFamily: font, appearance: 'none' as const, cursor: 'pointer' }}>
+            <option value="">선택 (선택사항)</option>
+            {COMM_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </div>
+        <div style={{ height: 1, background: sep, margin: '0 16px' }} />
+        <div style={{ padding: '4px 0' }}>
+          <textarea placeholder="메모 (선택사항)" value={form.note}
+            onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
+            style={{ width: '100%', border: 'none', outline: 'none', fontSize: 16, color: lbl, padding: '11px 16px', background: 'transparent', fontFamily: font, resize: 'none' as const, minHeight: 72, boxSizing: 'border-box' as const }} />
+        </div>
       </div>
     </Layout>
   );

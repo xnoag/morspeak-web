@@ -167,8 +167,8 @@ export default function ScreeningPage() {
   }, [form, recordedMimeType]);
 
   const isFormValid = !!(form.patientName && form.caregiverName && form.caregiverContact && form.region);
-  const primaryBtn = (disabled?: boolean): React.CSSProperties => ({ padding: '16px', borderRadius: 14, border: 'none', background: disabled ? 'rgba(60,60,67,0.12)' : blue, color: disabled ? lbl2 : '#fff', fontSize: 17, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: font });
-  const prevBtn: React.CSSProperties = { padding: '16px 20px', borderRadius: 14, border: `1.5px solid ${sep}`, background: '#fff', color: lbl2, fontSize: 17, fontWeight: 500, cursor: 'pointer', fontFamily: font };
+  const primaryBtn = (disabled?: boolean): React.CSSProperties => ({ padding: '16px', borderRadius: 980, border: 'none', background: disabled ? 'rgba(60,60,67,0.12)' : blue, color: disabled ? lbl2 : '#fff', fontSize: 17, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: font });
+  const prevBtn: React.CSSProperties = { padding: '16px 20px', borderRadius: 980, border: `1.5px solid ${sep}`, background: '#fff', color: lbl2, fontSize: 17, fontWeight: 500, cursor: 'pointer', fontFamily: font };
   const inputStyle: React.CSSProperties = { width: '100%', padding: '14px 18px', border: `1px solid ${sep}`, borderRadius: 980, fontSize: 17, color: lbl, outline: 'none', background: '#fff', boxSizing: 'border-box', fontFamily: font };
 
   // ── INTRO ─────────────────────────────────────────────────────
@@ -361,7 +361,7 @@ export default function ScreeningPage() {
           <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.7)', marginBottom: 8, lineHeight: 1.6 }}>환우의 얼굴이 카메라 정면을 향하도록 기기를 놓아주세요.</p>
           <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginBottom: 24 }}>화면은 흐리게 표시되지만 녹화는 선명하게 저장됩니다</p>
           {error && <p style={{ color: '#FF6B6B', fontSize: 14, marginBottom: 12 }}>{error}</p>}
-          <button onClick={startRecording} style={{ width: '100%', padding: '16px', borderRadius: 14, border: 'none', background: '#fff', color: '#000', fontSize: 17, fontWeight: 600, cursor: 'pointer', fontFamily: font }}>테스트 시작</button>
+          <button onClick={startRecording} style={{ width: '100%', padding: '16px', borderRadius: 980, border: 'none', background: '#fff', color: '#000', fontSize: 17, fontWeight: 600, cursor: 'pointer', fontFamily: font }}>테스트 시작</button>
         </div>
       </div>
     </div>

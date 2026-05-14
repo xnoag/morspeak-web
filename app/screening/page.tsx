@@ -178,12 +178,12 @@ export default function ScreeningPage() {
         <Image src="/morspeak-logo2.svg" alt="Morspeak" width={148} height={42} priority style={{ marginBottom: 40 }} />
         <h1 style={{ fontSize: 32, fontWeight: 700, color: lbl, letterSpacing: '-0.5px', marginBottom: 16 }}>눈 깜빡임 테스트</h1>
         <p style={{ fontSize: 17, color: lbl2, lineHeight: 1.7 }}>
-          모스픽 앱 사용 가능 여부를 원격으로 확인합니다. 카메라로 짧은 영상이 녹화되며, 모스픽 팀 외에는 공유되지 않습니다.
+          모스픽 앱 사용 가능 여부를 원격으로 확인합니다.<br />카메라로 짧은 영상이 녹화되며, 모스픽 팀 외에는 공유되지 않습니다.
         </p>
         <p style={{ fontSize: 14, color: lbl2, marginTop: 12 }}>약 3분 소요</p>
       </div>
       <div style={{ padding: '16px 28px 36px', maxWidth: 480, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
-        <button style={primaryBtn()} onClick={() => setStep('consent')}>시작하기</button>
+        <button style={{ ...primaryBtn(), borderRadius: 980, width: '100%' }} onClick={() => setStep('consent')}>시작하기</button>
       </div>
     </div>
   );
@@ -198,12 +198,12 @@ export default function ScreeningPage() {
       {
         key: 'privacy' as const, required: true, title: '개인정보 수집·이용 동의',
         rows: [
-          ['수집 항목', '환자 이름, 보호자 이름·연락처, 거주 지역, 소통 방법, 메모'],
+          ['수집 항목', '환우 이름, 보호자 이름·연락처, 거주 지역, 소통 방법, 메모'],
           ['수집 목적', '모스픽 앱 적합성 평가 및 결과 안내'],
           ['보유 기간', '평가 완료 후 1년, 이후 즉시 파기'],
           ['제3자 제공', '없음'],
         ],
-        fullText: `모스픽(이하 "회사")은 눈 깜빡임 테스트 서비스 제공을 위해 아래와 같이 개인정보를 수집·이용합니다.\n\n수집하는 개인정보 항목은 환자 이름, 보호자 이름, 보호자 연락처, 거주 지역, 현재 소통 방법, 메모이며, 이는 모스픽 앱 적합성 평가 및 결과 안내 연락 목적으로만 활용됩니다.\n\n수집된 개인정보는 평가 완료 후 1년간 보관되며, 보유 기간 만료 시 즉시 파기됩니다. 제3자 제공 및 처리 위탁은 없습니다.\n\n귀하는 개인정보 수집·이용에 동의하지 않으실 권리가 있으나, 동의하지 않으실 경우 테스트 참여가 어렵습니다. 수집된 개인정보에 대한 열람, 정정, 삭제, 처리 정지 요청은 contact@morspeak.com으로 연락해주세요.`,
+        fullText: `모스픽(이하 "회사")은 눈 깜빡임 테스트 서비스 제공을 위해 아래와 같이 개인정보를 수집·이용합니다.\n\n수집하는 개인정보 항목은 환우 이름, 보호자 이름, 보호자 연락처, 거주 지역, 현재 소통 방법, 메모이며, 이는 모스픽 앱 적합성 평가 및 결과 안내 연락 목적으로만 활용됩니다.\n\n수집된 개인정보는 평가 완료 후 1년간 보관되며, 보유 기간 만료 시 즉시 파기됩니다. 제3자 제공 및 처리 위탁은 없습니다.\n\n귀하는 개인정보 수집·이용에 동의하지 않으실 권리가 있으나, 동의하지 않으실 경우 테스트 참여가 어렵습니다. 수집된 개인정보에 대한 열람, 정정, 삭제, 처리 정지 요청은 contact@morspeak.com으로 연락해주세요.`,
       },
       {
         key: 'video' as const, required: true, title: '영상 수집·이용 동의',
@@ -213,7 +213,7 @@ export default function ScreeningPage() {
           ['보유 기간', '평가 완료 후 1년, 이후 즉시 삭제'],
           ['제3자 제공', '없음'],
         ],
-        fullText: `본 테스트 과정에서 환자의 얼굴이 포함된 눈 깜빡임 영상(약 30초)이 녹화됩니다. 녹화된 영상은 모스픽 앱 사용 가능 여부를 판단하기 위한 목적으로만 활용되며, 모스픽 내부 담당자 외에는 접근이 불가합니다.\n\n영상은 암호화된 클라우드 스토리지에 안전하게 저장되며, 평가 완료 후 1년이 경과하면 즉시 삭제됩니다. 제3자 제공은 없습니다.\n\n화면에는 흐린 처리된 영상만 표시되며, 실제 녹화 파일은 서버에 안전하게 저장됩니다. 영상 삭제를 원하시는 경우 contact@morspeak.com으로 연락해주시면 즉시 처리해드립니다.`,
+        fullText: `본 테스트 과정에서 환우의 얼굴이 포함된 눈 깜빡임 영상(약 30초)이 녹화됩니다. 녹화된 영상은 모스픽 앱 사용 가능 여부를 판단하기 위한 목적으로만 활용되며, 모스픽 내부 담당자 외에는 접근이 불가합니다.\n\n영상은 암호화된 클라우드 스토리지에 안전하게 저장되며, 평가 완료 후 1년이 경과하면 즉시 삭제됩니다. 제3자 제공은 없습니다.\n\n화면에는 흐린 처리된 영상만 표시되며, 실제 녹화 파일은 서버에 안전하게 저장됩니다. 영상 삭제를 원하시는 경우 contact@morspeak.com으로 연락해주시면 즉시 처리해드립니다.`,
       },
       {
         key: 'marketing' as const, required: false, title: '서비스 연락 동의 (선택)',
@@ -312,7 +312,7 @@ export default function ScreeningPage() {
       <p style={{ fontSize: 15, color: lbl2, marginBottom: 28 }}>보호자가 입력해주세요.</p>
 
       {[
-        { label: '환자 이름', key: 'patientName', placeholder: '홍길동', type: 'text' },
+        { label: '환우 이름', key: 'patientName', placeholder: '홍길동', type: 'text' },
         { label: '보호자 이름', key: 'caregiverName', placeholder: '홍보호', type: 'text' },
         { label: '보호자 연락처', key: 'caregiverContact', placeholder: '010-0000-0000', type: 'tel' },
       ].map(({ label: l, key, placeholder, type }) => (
@@ -358,7 +358,7 @@ export default function ScreeningPage() {
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'blur(22px)', transform: 'scaleX(-1) scale(1.12)' }} />
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '0 24px 32px' }}>
           <p style={{ fontSize: 26, fontWeight: 700, color: '#fff', letterSpacing: '-0.3px', marginBottom: 8 }}>카메라를 설정해주세요</p>
-          <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.7)', marginBottom: 8, lineHeight: 1.6 }}>환자의 얼굴이 카메라 정면을 향하도록 기기를 놓아주세요.</p>
+          <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.7)', marginBottom: 8, lineHeight: 1.6 }}>환우의 얼굴이 카메라 정면을 향하도록 기기를 놓아주세요.</p>
           <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginBottom: 24 }}>화면은 흐리게 표시되지만 녹화는 선명하게 저장됩니다</p>
           {error && <p style={{ color: '#FF6B6B', fontSize: 14, marginBottom: 12 }}>{error}</p>}
           <button onClick={startRecording} style={{ width: '100%', padding: '16px', borderRadius: 14, border: 'none', background: '#fff', color: '#000', fontSize: 17, fontWeight: 600, cursor: 'pointer', fontFamily: font }}>테스트 시작</button>
@@ -415,7 +415,7 @@ export default function ScreeningPage() {
       <p style={{ fontSize: 15, color: lbl2, marginBottom: 24 }}>아래 정보를 확인하고 제출해주세요.</p>
 
       <div style={{ background: '#fff', border: `1px solid ${sep}`, borderRadius: 14, overflow: 'hidden', marginBottom: 8 }}>
-        {[['환자', form.patientName], ['보호자', form.caregiverName], ['연락처', form.caregiverContact], ['지역', form.region]].map(([l, v], i, arr) => (
+        {[['환우', form.patientName], ['보호자', form.caregiverName], ['연락처', form.caregiverContact], ['지역', form.region]].map(([l, v], i, arr) => (
           <div key={l}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px' }}>
               <span style={{ fontSize: 16, color: lbl2 }}>{l}</span>

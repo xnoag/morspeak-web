@@ -116,16 +116,6 @@ export default function HomePage() {
 
         <StickyTextReveal />
 
-        <div style={{ height: '150vh' }}>
-          <section style={{ position: 'sticky', top: '68px', height: 'calc(100vh - 68px)', background: '#000', overflow: 'hidden' }}>
-            <video autoPlay muted loop playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}>
-              <source src={`${VID25KR}/foundation/large.mp4`} type="video/mp4" />
-            </video>
-          </section>
-        </div>
-
-        <DesignGallery />
-
         <FullscreenVideoSection
           id="entertainment"
           eyebrow="엔터테인먼트"

@@ -74,7 +74,7 @@ const glassBtnBlue: React.CSSProperties = {
 const pageBg: React.CSSProperties = {
   minHeight: '100svh',
   fontFamily: font,
-  background: 'linear-gradient(145deg, #0f0c29 0%, #302b63 40%, #24243e 70%, #0f3460 100%)',
+  background: 'linear-gradient(145deg, #1a1a1a 0%, #2c2c2e 40%, #1c1c1e 70%, #111111 100%)',
   position: 'relative',
   overflow: 'hidden',
 };
@@ -83,9 +83,9 @@ const pageBg: React.CSSProperties = {
 function Blobs() {
   return (
     <>
-      <div style={{ position: 'fixed', top: '-20%', left: '-10%', width: '60vw', height: '60vw', borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.35) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 0 }} />
-      <div style={{ position: 'fixed', bottom: '-10%', right: '-10%', width: '50vw', height: '50vw', borderRadius: '50%', background: 'radial-gradient(circle, rgba(14,165,233,0.3) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 0 }} />
-      <div style={{ position: 'fixed', top: '40%', right: '20%', width: '30vw', height: '30vw', borderRadius: '50%', background: 'radial-gradient(circle, rgba(168,85,247,0.2) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 0 }} />
+      <div style={{ position: 'fixed', top: '-20%', left: '-10%', width: '60vw', height: '60vw', borderRadius: '50%', background: 'radial-gradient(circle, rgba(120,120,128,0.2) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 0 }} />
+      <div style={{ position: 'fixed', bottom: '-10%', right: '-10%', width: '50vw', height: '50vw', borderRadius: '50%', background: 'radial-gradient(circle, rgba(100,100,108,0.15) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 0 }} />
+      <div style={{ position: 'fixed', top: '40%', right: '20%', width: '30vw', height: '30vw', borderRadius: '50%', background: 'radial-gradient(circle, rgba(80,80,88,0.12) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 0 }} />
     </>
   );
 }

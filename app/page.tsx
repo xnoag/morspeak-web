@@ -117,22 +117,20 @@ export default function HomePage() {
             </video>
           </div>
 
-          {/* 하단 텍스트 */}
-          <div style={{ position: 'absolute', bottom: 48, left: 0, right: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', padding: '0 56px', pointerEvents: 'none' }}>
-            {/* 왼쪽 */}
-            <div>
-              <p style={{ fontSize: 13, fontWeight: 600, color: '#1d1d1f', marginBottom: 10, letterSpacing: '-0.01em' }}>모스픽</p>
-              <p style={{ fontSize: 'clamp(18px, 2.2vw, 28px)', fontWeight: 400, color: '#1d1d1f', lineHeight: 1.4, letterSpacing: '-0.02em', whiteSpace: 'pre-line' }}>
-                {'눈 깜빡임 하나로,\n당신의 하루가 다시 움직입니다.'}
-              </p>
-            </div>
-            {/* 오른쪽 */}
-            <div style={{ textAlign: 'right', maxWidth: 320 }}>
-              <p style={{ fontSize: 'clamp(14px, 1.4vw, 18px)', fontWeight: 600, color: '#1d1d1f', marginBottom: 8, letterSpacing: '-0.02em' }}>하나씩, 다시 일상으로</p>
-              <p style={{ fontSize: 'clamp(12px, 1.1vw, 15px)', color: 'rgba(0,0,0,0.55)', lineHeight: 1.6, letterSpacing: '-0.01em' }}>
-                말을 건네고, 불을 켜고, 영상을 보는 일들.<br />모스픽과 함께 차근차근 되찾아가요.
-              </p>
-            </div>
+          {/* 왼쪽 상단 텍스트 */}
+          <div style={{ position: 'absolute', top: '8%', left: '4%', pointerEvents: 'none' }}>
+            <p style={{ fontSize: 14, fontWeight: 700, color: '#1d1d1f', marginBottom: 8, letterSpacing: '-0.01em' }}>모스픽</p>
+            <p style={{ fontSize: 15, fontWeight: 400, color: '#1d1d1f', lineHeight: 1.6, letterSpacing: '-0.02em', whiteSpace: 'pre-line' }}>
+              {'눈 깜빡임 하나로,\n당신의 하루가 다시 움직입니다.'}
+            </p>
+          </div>
+
+          {/* 오른쪽 중앙 텍스트 */}
+          <div style={{ position: 'absolute', top: '42%', right: '4%', textAlign: 'right', maxWidth: 280, pointerEvents: 'none' }}>
+            <p style={{ fontSize: 14, fontWeight: 700, color: '#1d1d1f', marginBottom: 6, letterSpacing: '-0.02em' }}>하나씩, 다시 일상으로</p>
+            <p style={{ fontSize: 14, fontWeight: 400, color: 'rgba(0,0,0,0.55)', lineHeight: 1.65, letterSpacing: '-0.01em' }}>
+              말을 건네고, 불을 켜고, 영상을 보는 일들.<br />모스픽과 함께 차근차근 되찾아가요.
+            </p>
           </div>
         </section>
 

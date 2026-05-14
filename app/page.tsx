@@ -126,7 +126,7 @@ export default function HomePage() {
           </div>
 
           {/* 오른쪽 중앙 텍스트 */}
-          <div style={{ position: 'absolute', top: '42%', right: '4%', textAlign: 'right', maxWidth: 280, pointerEvents: 'none' }}>
+          <div style={{ position: 'absolute', top: '42%', right: '4%', textAlign: 'left', maxWidth: 280, pointerEvents: 'none' }}>
             <p style={{ fontSize: 14, fontWeight: 700, color: '#1d1d1f', marginBottom: 6, letterSpacing: '-0.02em' }}>하나씩, 다시 일상으로</p>
             <p style={{ fontSize: 14, fontWeight: 400, color: 'rgba(0,0,0,0.55)', lineHeight: 1.65, letterSpacing: '-0.01em' }}>
               말을 건네고, 불을 켜고, 영상을 보는 일들.<br />모스픽과 함께 차근차근 되찾아가요.

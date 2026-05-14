@@ -105,15 +105,13 @@ export default function HomePage() {
 
         <div id="overview" style={{ height: '150vh' }}>
           <section style={{ position: 'sticky', top: '68px', height: 'calc(100vh - 68px)', background: '#FBF9FA', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            {/* 영상 — 중앙 */}
-            <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'flex-end' }}>
-              <video
-                autoPlay muted loop playsInline
-                style={{ height: '100%', width: 'auto', objectFit: 'contain', display: 'block' }}
-              >
-                <source src="/hero-model.mp4" type="video/mp4" />
-              </video>
-            </div>
+            {/* 영상 — 섹션 꽉 채우기 */}
+            <video
+              autoPlay muted loop playsInline
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+            >
+              <source src="/hero-model.mp4" type="video/mp4" />
+            </video>
 
             {/* 왼쪽 텍스트 */}
             <div style={{ position: 'absolute', top: '44%', left: '6%', pointerEvents: 'none' }}>

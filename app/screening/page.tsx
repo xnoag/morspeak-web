@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { upload } from '@vercel/blob/client';
 import Image from 'next/image';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '@/lib/firebase';
 
 type Step = 'intro' | 'consent' | 'form' | 'camera' | 'recording' | 'review' | 'complete';
 
@@ -179,15 +181,27 @@ export default function ScreeningPage() {
   const submitResult = useCallback(async () => {
     setIsUploading(true);
     try {
+      // 영상 Firebase Storage 업로드
       const blob = new Blob(chunksRef.current, { type: recordedMimeType });
       const ext = recordedMimeType.includes('mp4') ? 'mp4' : 'webm';
-      let videoUrl: string | null = null;
-      try {
-        const r = await upload(`screening/${Date.now()}_${form.patientName.replace(/\s/g, '_')}.${ext}`, blob, { access: 'public', handleUploadUrl: '/api/screening/upload' });
-        videoUrl = r.url;
-      } catch (e) { console.warn('Blob 업로드 실패:', e); }
+      const storageRef = ref(storage, `screening/${Date.now()}_${form.patientName.replace(/\s/g, '_')}.${ext}`);
+      await uploadBytes(storageRef, blob);
+      const videoUrl = await getDownloadURL(storageRef);
+
+      // Firestore 저장
       const deviceType = /Mobi|Android/i.test(navigator.userAgent) ? 'mobile' : /Tablet|iPad/i.test(navigator.userAgent) ? 'tablet' : 'desktop';
-      await fetch('/api/screening', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, videoUrl, blinkDetected: null, deviceType, userAgent: navigator.userAgent }) });
+      await addDoc(collection(db, 'screening_results'), {
+        patientName: form.patientName,
+        caregiverName: form.caregiverName,
+        caregiverContact: form.caregiverContact,
+        region: form.region,
+        subRegion: form.subRegion ?? '',
+        communicationMethod: form.communicationMethod ?? '',
+        videoUrl,
+        deviceType,
+        createdAt: serverTimestamp(),
+      });
+
       streamRef.current?.getTracks().forEach(t => t.stop());
       setStep('complete');
     } catch (e) { console.error(e); setError('제출 중 오류가 발생했습니다.'); }

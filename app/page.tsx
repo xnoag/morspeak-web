@@ -118,7 +118,7 @@ export default function HomePage() {
 
         <FullscreenVideoSection
           id="entertainment"
-          eyebrow="환우"
+          eyebrow="환우에게는"
           headline={"말을 건네고, 불을 켜고, 영상을 보는 일들.\n모스픽과 함께 차근차근 되찾아가요."}
           heroVideo={`${VID25US}/experience-entertainment/large.mp4`}
           heroImage={`${IMG}/experiences/entertainment/entertainment_a_startframe__eqosxjbd3xua_large.jpg`}

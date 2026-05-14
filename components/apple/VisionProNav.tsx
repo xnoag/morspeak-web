@@ -79,10 +79,6 @@ export default function VisionProNav() {
               onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
               onMouseLeave={e => (e.currentTarget.style.opacity = '0.75')}
             >
-              <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-                <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.3"/>
-                <path d="M7 1c-2 2-2 8 0 12M7 1c2 2 2 8 0 12M1 7h12" stroke="currentColor" strokeWidth="1.3"/>
-              </svg>
               <span>{currentLabel}</span>
               <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                 <path d="M2.5 4L5 6.5L7.5 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>

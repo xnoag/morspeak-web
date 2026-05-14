@@ -31,9 +31,9 @@ const SEQUENCE: { text: string; duration: number; beep?: boolean }[] = [
 const TOTAL_DURATION = SEQUENCE.reduce((s, x) => s + x.duration, 0);
 
 const font = '-apple-system, "SF Pro Display", "SF Pro Text", BlinkMacSystemFont, "Helvetica Neue", sans-serif';
-const blue = '#007AFF';
-const green = '#34C759';
-const red = '#FF3B30';
+const blue = '#1C1C1E';
+const green = '#3A3A3C';
+const red = 'rgba(60,60,67,0.5)';
 const lbl = '#000';
 const lbl2 = 'rgba(60,60,67,0.6)';
 const sep = 'rgba(60,60,67,0.18)';
@@ -238,6 +238,13 @@ export default function ScreeningPage() {
         <h1 style={{ fontSize: 28, fontWeight: 700, color: lbl, letterSpacing: '-0.4px', marginBottom: 6 }}>동의 및 개인정보</h1>
         <p style={{ fontSize: 15, color: lbl2, marginBottom: 24 }}>테스트 진행을 위해 아래 항목을 확인해주세요.</p>
 
+        {/* 보호자 대리 동의 안내 */}
+        <div style={{ background: 'rgba(60,60,67,0.05)', borderRadius: 12, padding: '12px 16px', marginBottom: 16 }}>
+          <p style={{ fontSize: 13, color: lbl2, lineHeight: 1.6, margin: 0 }}>
+            환우분이 직접 동의하기 어려운 경우, <strong style={{ color: lbl }}>보호자가 환우를 대신하여 동의</strong>할 수 있습니다. 보호자는 환우의 의사를 확인한 후 동의해주세요.
+          </p>
+        </div>
+
         {/* 전체 동의 */}
         <button onClick={toggleAll} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', border: `1px solid ${sep}`, borderRadius: 14, padding: '15px 16px', cursor: 'pointer', marginBottom: 12, fontFamily: font }}>
           <span style={{ fontSize: 17, fontWeight: 600, color: lbl }}>전체 동의</span>
@@ -253,7 +260,7 @@ export default function ScreeningPage() {
               onClick={() => setConsents(c => ({ ...c, [item.key]: !c[item.key] }))}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' as const }}>
                 <span style={{ fontSize: 16, fontWeight: 600, color: lbl }}>{item.title}</span>
-                <span style={{ fontSize: 11, fontWeight: 600, color: item.required ? red : lbl2, background: item.required ? 'rgba(255,59,48,0.1)' : 'rgba(60,60,67,0.08)', padding: '2px 7px', borderRadius: 20 }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: lbl2, background: 'rgba(60,60,67,0.08)', padding: '2px 7px', borderRadius: 20 }}>
                   {item.required ? '필수' : '선택'}
                 </span>
                 <button onClick={e => { e.stopPropagation(); setExpanded(ex => ({ ...ex, [item.key]: !ex[item.key] })); }}

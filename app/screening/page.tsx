@@ -222,10 +222,11 @@ export default function ScreeningPage() {
       <div style={{ flex: 1, padding: '64px 28px 0', maxWidth: 480, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
         <Image src="/morspeak-logo2.svg" alt="Morspeak" width={148} height={42} priority style={{ marginBottom: 40 }} />
         <h1 style={{ fontSize: 32, fontWeight: 700, color: lbl, letterSpacing: '-0.5px', marginBottom: 16 }}>모스픽 사용 적합성 검사</h1>
-        <p style={{ fontSize: 18, color: lbl2, lineHeight: 1.75 }}>
+        <p style={{ fontSize: 18, fontWeight: 600, color: lbl2, lineHeight: 1.75 }}>
           모스픽을 활용하려면 눈 깜빡임이 원활해야 합니다. 짧은 테스트 후 사용 가능 여부를 안내해드릴게요.
         </p>
-        <p style={{ fontSize: 14, color: lbl2, marginTop: 12 }}>약 3분 소요 · 눈 깜빡임 하는 모습은 모스픽 내부적으로만 검토됩니다.</p>
+        <p style={{ fontSize: 14, color: lbl2, marginTop: 12 }}>약 3분 소요</p>
+        <p style={{ fontSize: 14, color: lbl2, marginTop: 6 }}>영상은 모스픽 내부에서만 확인합니다.</p>
       </div>
       <div style={{ padding: '16px 28px 36px', maxWidth: 480, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
         <button style={{ ...primaryBtn(), borderRadius: 980, width: '100%' }} onClick={() => setStep('consent')}>시작하기</button>

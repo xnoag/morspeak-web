@@ -48,7 +48,7 @@ const formatPhone = (value: string) => {
 };
 
 const SEQUENCE: { text: string; duration: number; beep?: boolean }[] = [
-  { text: '시작합니다.', duration: 3000 },
+  { text: '카메라를 보고 신호에 맞춰서 눈을 감아주시면 됩니다.', duration: 5000 },
   { text: '눈을 감아주세요.', duration: 3500, beep: true },
   { text: '눈을 떠주세요.', duration: 3500 },
   { text: '눈을 감아주세요.', duration: 3500, beep: true },

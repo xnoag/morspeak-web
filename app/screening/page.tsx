@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { upload } from '@vercel/blob/client';
+import Image from 'next/image';
 
 type Step = 'intro' | 'consent' | 'form' | 'camera' | 'recording' | 'review' | 'complete';
 
@@ -258,17 +259,8 @@ export default function ScreeningPage() {
       <Blobs />
       <div style={{ position: 'relative', zIndex: 1, minHeight: '100svh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
         <div style={{ ...glass, padding: '40px 32px', maxWidth: 400, width: '100%' }}>
-          {/* 앱 아이콘 */}
-          <div style={{ width: 72, height: 72, borderRadius: 20, background: 'linear-gradient(145deg, rgba(52,199,89,0.9), rgba(36,138,61,0.9))', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24, boxShadow: '0 8px 24px rgba(52,199,89,0.4), inset 0 1px 0 rgba(255,255,255,0.3)' }}>
-            <svg width="36" height="28" viewBox="0 0 36 28" fill="none">
-              <ellipse cx="10" cy="14" rx="6.5" ry="8.5" stroke="white" strokeWidth="2.5"/>
-              <ellipse cx="26" cy="14" rx="6.5" ry="8.5" stroke="white" strokeWidth="2.5"/>
-              <circle cx="10" cy="14" r="3" fill="white"/>
-              <circle cx="26" cy="14" r="3" fill="white"/>
-            </svg>
-          </div>
+          <Image src="/morspeak-logo2.svg" alt="Morspeak" width={140} height={40} priority style={{ marginBottom: 28 }} />
 
-          <p style={{ fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.6)', marginBottom: 6, letterSpacing: '0.05em' }}>MORSPEAK</p>
           <h1 style={{ fontSize: 32, fontWeight: 700, color: '#fff', letterSpacing: '-0.5px', lineHeight: 1.2, marginBottom: 16 }}>눈 깜빡임<br />테스트</h1>
           <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.7)', lineHeight: 1.65, marginBottom: 36 }}>
             모스픽 앱이 도움이 될 수 있는지 원격으로 확인합니다. 카메라로 짧은 영상이 녹화되며, 모스픽 팀 외에는 공유되지 않습니다.

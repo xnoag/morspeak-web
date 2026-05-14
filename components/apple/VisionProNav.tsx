@@ -60,8 +60,8 @@ export default function VisionProNav() {
         gap: '16px',
       }}>
         {/* 왼쪽: 로고 */}
-        <a href="/" style={{ textDecoration: 'none', display: 'inline-flex', transition: 'transform 0.2s ease', transformOrigin: 'left center' }}
-          onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.05)')}
+        <a href="/" style={{ textDecoration: 'none', display: 'inline-flex', transition: 'transform 0.2s ease' }}
+          onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.025)')}
           onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
         >
           <Image src="/morspeak-logo2.png" alt="Morspeak" width={129} height={36} priority />
@@ -137,7 +137,7 @@ export default function VisionProNav() {
             whiteSpace: 'nowrap', height: '34px', display: 'inline-flex', alignItems: 'center',
             transition: 'transform 0.2s ease, background 0.2s ease',
           }}
-            onMouseEnter={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.background = '#FF9230'; el.style.transform = 'scale(1.05)'; }}
+            onMouseEnter={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.background = '#FF9230'; el.style.transform = 'scale(1.025)'; }}
             onMouseLeave={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.background = '#FF8D28'; el.style.transform = 'scale(1)'; }}
           >
             기부하기
@@ -148,7 +148,7 @@ export default function VisionProNav() {
             height: '34px', display: 'inline-flex', alignItems: 'center',
             transition: 'transform 0.2s ease, background 0.2s ease',
           }}
-            onMouseEnter={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.background = '#0077ed'; el.style.transform = 'scale(1.05)'; }}
+            onMouseEnter={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.background = '#0077ed'; el.style.transform = 'scale(1.025)'; }}
             onMouseLeave={e => { const el = e.currentTarget as HTMLAnchorElement; el.style.background = '#0071e3'; el.style.transform = 'scale(1)'; }}
           >
             사용신청

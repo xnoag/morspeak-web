@@ -95,7 +95,7 @@ const footnotes = [
 
 /* ── 페이지 ──────────────────────────────────────────────────────── */
 
-export default function HomePage() {
+export default function AvpPage() {
   const font = '-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif';
 
   return (
@@ -103,29 +103,71 @@ export default function HomePage() {
       <div style={{ background: '#fff', fontFamily: font }}>
         <VisionProNav />
 
+        {/* ── 히어로 ────────────────────────────────────────────
+            AppleNav(44px) + VisionProNav(52px) = 96px 차감하여 뷰포트 하단까지 정확히 맞춤 */}
         <section
           id="overview"
           style={{ position: 'relative', height: 'calc(100vh - 52px)', minHeight: '500px', background: '#f5f5f7', overflow: 'hidden' }}
         >
           <img
-            src="/hero.png"
-            alt="모스픽 사용 모습"
+            src={`${IMG}/hero/hero__cvgr5aj1ttsi_large.jpg`}
+            alt="Apple Vision Pro 착용 모습"
             style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }}
           />
+          {/* 하단 텍스트 + 버튼 */}
+          <div style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0,
+            maxWidth: '980px', margin: '0 auto', padding: '0 22px 44px',
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px',
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '8px' }}>
+                <svg width="22" height="27" viewBox="0 0 814 1000" fill="#1d1d1f">
+                  <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105-57.8-155.5-127.4C46 790.7 0 663 0 541.8c0-207.5 134.4-317.3 266.8-317.3 99.8 0 165.6 67.6 239.8 67.6 70.9 0 144.7-72.5 248.4-72.5zm-194.3-87.9c32.1-36.7 55.9-88.4 55.9-140.1 0-7.1-.6-14.3-1.9-20.1-53.3 2-116.8 35.4-154.6 77.6-28.2 31.6-55.2 83.3-55.2 135.7 0 7.7 1.3 15.5 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 47.8 0 109.7-31.9 140.3-72.5z"/>
+                </svg>
+                <span style={{ fontSize: '36px', fontWeight: 700, color: '#1d1d1f', letterSpacing: '-0.02em', lineHeight: 1 }}>
+                  Vision Pro
+                </span>
+              </div>
+              <p style={{ fontSize: '19px', color: '#1d1d1f', letterSpacing: '-0.015em', lineHeight: 1.4 }}>
+                새롭고 강력한 M5 칩. 여기에 편안한 듀얼 니트 밴드까지.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', flexShrink: 0 }}>
+              <a href="/kr/retail/instore-shopping-session/apple-vision-pro" style={{
+                fontSize: '15px', color: '#1d1d1f', textDecoration: 'none',
+                border: '1.5px solid rgba(0,0,0,0.3)', padding: '10px 22px', borderRadius: '980px',
+                background: 'rgba(255,255,255,0.6)', backdropFilter: 'blur(12px)',
+                fontWeight: 500, whiteSpace: 'nowrap',
+              }}>
+                체험 예약하기
+              </a>
+              <a href="/kr/shop/goto/buy_vision/apple_vision_pro" style={{
+                fontSize: '15px', color: '#fff', textDecoration: 'none',
+                background: 'rgba(0,0,0,0.75)', padding: '10px 22px', borderRadius: '980px',
+                backdropFilter: 'blur(12px)', fontWeight: 500, whiteSpace: 'nowrap',
+              }}>
+                구입하기
+              </a>
+            </div>
+          </div>
         </section>
 
+        {/* ── 스크롤 텍스트 리빌 ──────────────────────────────── */}
         <StickyTextReveal />
 
-        <div style={{ height: '150vh' }}>
-          <section style={{ position: 'sticky', top: '68px', height: 'calc(100vh - 68px)', background: '#000', overflow: 'hidden' }}>
-            <video autoPlay muted loop playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}>
-              <source src={`${VID25KR}/foundation/large.mp4`} type="video/mp4" />
-            </video>
-          </section>
-        </div>
+        {/* ── 디자인 비디오 ───────────────────────────────────── */}
+        <section style={{ background: '#000', overflow: 'hidden', lineHeight: 0 }}>
+          <video autoPlay muted loop playsInline style={{ width: '100%', maxHeight: '85vh', objectFit: 'cover', display: 'block' }}>
+            <source src={`${VID25KR}/foundation/large.mp4`} type="video/mp4" />
+          </video>
+        </section>
 
+        {/* ── 보다 자세히 들여다보기 (수평 카드 갤러리) ───────── */}
         <DesignGallery />
 
+        {/* ── 엔터테인먼트 ─────────────────────────────────────
+            풀스크린 영상 + 텍스트 오버레이, 그 다음에 카드 */}
         <FullscreenVideoSection
           id="entertainment"
           eyebrow="엔터테인먼트"
@@ -137,6 +179,7 @@ export default function HomePage() {
           cards={entertainmentCards}
         />
 
+        {/* ── 업무 역량 ─────────────────────────────────────── */}
         <FullscreenVideoSection
           eyebrow="업무 역량"
           headline="무한하게 펼쳐내는 작업 공간."
@@ -147,6 +190,7 @@ export default function HomePage() {
           cards={productivityCards}
         />
 
+        {/* ── 사진 및 비디오 ────────────────────────────────── */}
         <FullscreenVideoSection
           eyebrow="사진 및 비디오"
           headline="아름다운 순간, 다시 그 한가운데로."
@@ -156,6 +200,7 @@ export default function HomePage() {
           cards={photosCards}
         />
 
+        {/* ── 소통 ─────────────────────────────────────────── */}
         <FullscreenVideoSection
           eyebrow="소통"
           headline="양질의 시간 그리고 공간을 함께하다."
@@ -165,6 +210,7 @@ export default function HomePage() {
           cards={connectionCards}
         />
 
+        {/* ── 앱 ───────────────────────────────────────────── */}
         <FullscreenVideoSection
           eyebrow="앱"
           headline="좋아하는 일을 완전히 새로운 방식으로."
@@ -175,6 +221,7 @@ export default function HomePage() {
           cards={appsCards}
         />
 
+        {/* ── visionOS ─────────────────────────────────────── */}
         <FullscreenVideoSection
           id="visionos"
           eyebrow="visionOS"
@@ -186,10 +233,12 @@ export default function HomePage() {
           cards={visionOSCards}
         />
 
+        {/* ── 기술 ─────────────────────────────────────────── */}
         <div style={{ borderTop: '1px solid #d2d2d7' }}>
           <TechSection />
         </div>
 
+        {/* ── 가치관 ───────────────────────────────────────── */}
         <section style={{ background: '#fff', padding: '80px 0', borderTop: '1px solid #d2d2d7' }}>
           <div style={{ maxWidth: '980px', marginLeft: 'auto', marginRight: 'auto', marginBottom: '48px', padding: '0 22px' }}>
             <p style={{ fontSize: '17px', color: '#6e6e73', marginBottom: '8px' }}>가치관</p>
@@ -206,6 +255,7 @@ export default function HomePage() {
           <FeatureCarousel cards={valuesCards} />
         </section>
 
+        {/* ── 액세서리 ─────────────────────────────────────── */}
         <section style={{ background: '#fff', padding: '80px 22px', borderTop: '1px solid #d2d2d7' }}>
           <div style={{ maxWidth: '980px', margin: '0 auto' }}>
             <h2 style={{ fontSize: 'clamp(28px, 4.5vw, 48px)', fontWeight: 700, color: '#1d1d1f', letterSpacing: '-0.022em', marginBottom: '32px', lineHeight: 1.1 }}>
@@ -218,6 +268,7 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ── 개발자 ───────────────────────────────────────── */}
         <section style={{ background: '#fff', padding: '80px 22px', borderTop: '1px solid #d2d2d7' }}>
           <div style={{ maxWidth: '980px', margin: '0 auto' }}>
             <h2 style={{ fontSize: 'clamp(24px, 4vw, 44px)', fontWeight: 700, color: '#1d1d1f', letterSpacing: '-0.022em', marginBottom: '24px', lineHeight: 1.2, maxWidth: '700px' }}>
@@ -233,6 +284,7 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ── 각주 ─────────────────────────────────────────── */}
         <section style={{ background: '#fff', borderTop: '1px solid #d2d2d7', padding: '40px 22px' }}>
           <div style={{ maxWidth: '980px', margin: '0 auto' }}>
             <p style={{ fontSize: '12px', color: '#6e6e73', lineHeight: 1.7, marginBottom: '16px' }}>

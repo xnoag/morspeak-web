@@ -6,8 +6,8 @@ import { useCarouselPadLeft } from '@/lib/useCarouselPadLeft';
 
 interface Props {
   id?: string;
-  eyebrow: string;
-  headline: string;
+  eyebrow?: string;
+  headline?: string;
   heroVideo: string;
   heroImage?: string;
   body?: string;
@@ -54,19 +54,8 @@ export default function FullscreenVideoSection({
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           textAlign: 'center', padding: '0 40px',
         }}>
-          <p style={{
-            fontSize: '15px', color: 'rgba(255,255,255,0.8)',
-            marginBottom: '16px', letterSpacing: '0.02em',
-          }}>
-            {eyebrow}
-          </p>
-          <h2 style={{
-            fontSize: 'clamp(36px, 6.5vw, 76px)', fontWeight: 700,
-            color: '#fff', letterSpacing: '-0.022em', lineHeight: 1.08,
-            maxWidth: '700px', wordBreak: 'keep-all', whiteSpace: 'pre-line',
-          }}>
-            {headline}
-          </h2>
+          {eyebrow && <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.8)', marginBottom: '16px', letterSpacing: '0.02em' }}>{eyebrow}</p>}
+          {headline && <h2 style={{ fontSize: 'clamp(36px, 6.5vw, 76px)', fontWeight: 700, color: '#fff', letterSpacing: '-0.022em', lineHeight: 1.08, maxWidth: '700px', wordBreak: 'keep-all', whiteSpace: 'pre-line' }}>{headline}</h2>}
         </div>
 
         {/* 일시정지/재생 버튼 - 우상단 */}

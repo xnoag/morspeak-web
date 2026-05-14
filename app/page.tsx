@@ -119,7 +119,7 @@ export default function HomePage() {
         <FullscreenVideoSection
           id="entertainment"
           eyebrow="환우에게는"
-          headline={"몸이 자유롭지 않아도,\n일상을 이어갈 수 있도록 돕습니다."}
+          headline={"몸은 멈춰도,\n일상은 멈추지 않도록."}
           heroVideo={`${VID25US}/experience-entertainment/large.mp4`}
           heroImage={`${IMG}/experiences/entertainment/entertainment_a_startframe__eqosxjbd3xua_large.jpg`}
           citation="구독 후 Apple TV에서 '울프스' - Wolfs 시청하기"

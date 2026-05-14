@@ -206,36 +206,31 @@ export default function ScreeningPage() {
     const items = [
       {
         key: 'privacy' as const, required: true, title: '개인정보 수집·이용 동의',
-        summary: '환자·보호자 정보 수집, 평가 완료 후 1년 보유',
-        detail: [
-          ['수집 항목', '환자 이름, 보호자 이름·연락처, 거주 지역, 현재 소통 방법, 메모'],
-          ['수집 목적', '모스픽 앱 적합성 평가 및 결과 안내 연락'],
+        rows: [
+          ['수집 항목', '환자 이름, 보호자 이름·연락처, 거주 지역, 소통 방법, 메모'],
+          ['수집 목적', '모스픽 앱 적합성 평가 및 결과 안내'],
           ['보유 기간', '평가 완료 후 1년, 이후 즉시 파기'],
           ['제3자 제공', '없음'],
-          ['처리 위탁', '없음'],
-          ['이용자 권리', '수집된 개인정보에 대해 열람, 정정, 삭제, 처리 정지를 요청할 수 있습니다.'],
         ],
+        fullText: `모스픽(이하 "회사")은 눈 깜빡임 테스트 서비스 제공을 위해 아래와 같이 개인정보를 수집·이용합니다.\n\n수집하는 개인정보 항목은 환자 이름, 보호자 이름, 보호자 연락처, 거주 지역, 현재 소통 방법, 메모이며, 이는 모스픽 앱 적합성 평가 및 결과 안내 연락 목적으로만 활용됩니다.\n\n수집된 개인정보는 평가 완료 후 1년간 보관되며, 보유 기간 만료 시 즉시 파기됩니다. 제3자 제공 및 처리 위탁은 없습니다.\n\n귀하는 개인정보 수집·이용에 동의하지 않으실 권리가 있으나, 동의하지 않으실 경우 테스트 참여가 어렵습니다. 수집된 개인정보에 대한 열람, 정정, 삭제, 처리 정지 요청은 contact@morspeak.com으로 연락해주세요.`,
       },
       {
         key: 'video' as const, required: true, title: '영상 수집·이용 동의',
-        summary: '눈 깜빡임 영상 수집, 평가 완료 후 1년 보유',
-        detail: [
+        rows: [
           ['수집 항목', '얼굴이 포함된 눈 깜빡임 영상 (약 30초)'],
           ['수집 목적', '모스픽 팀의 앱 사용 가능 여부 평가'],
           ['보유 기간', '평가 완료 후 1년, 이후 즉시 삭제'],
           ['제3자 제공', '없음'],
-          ['저장 방식', 'Vercel Blob (암호화 저장), 모스픽 팀 외 접근 불가'],
-          ['이용자 권리', '영상 삭제를 요청하실 경우 즉시 처리합니다. contact@morspeak.com으로 연락해주세요.'],
         ],
+        fullText: `본 테스트 과정에서 환자의 얼굴이 포함된 눈 깜빡임 영상(약 30초)이 녹화됩니다. 녹화된 영상은 모스픽 앱 사용 가능 여부를 판단하기 위한 목적으로만 활용되며, 모스픽 내부 담당자 외에는 접근이 불가합니다.\n\n영상은 암호화된 클라우드 스토리지에 안전하게 저장되며, 평가 완료 후 1년이 경과하면 즉시 삭제됩니다. 제3자 제공은 없습니다.\n\n화면에는 흐린 처리된 영상만 표시되며, 실제 녹화 파일은 서버에 안전하게 저장됩니다. 영상 삭제를 원하시는 경우 contact@morspeak.com으로 연락해주시면 즉시 처리해드립니다.`,
       },
       {
-        key: 'marketing' as const, required: false, title: '서비스 연락 동의',
-        summary: '모스픽 업데이트 및 기능 안내 수신',
-        detail: [
-          ['내용', '모스픽 신규 기능, 업데이트, 서비스 관련 안내'],
+        key: 'marketing' as const, required: false, title: '서비스 연락 동의 (선택)',
+        rows: [
+          ['내용', '모스픽 신규 기능, 업데이트 안내'],
           ['수단', '문자(SMS), 전화'],
-          ['철회 방법', '언제든지 contact@morspeak.com으로 수신 거부 요청 가능'],
         ],
+        fullText: `모스픽은 보호자 연락처로 신규 기능 출시, 앱 업데이트, 서비스 관련 안내를 문자 또는 전화로 전달할 수 있습니다.\n\n본 항목은 선택 사항으로, 동의하지 않으셔도 테스트 참여에는 제한이 없습니다. 수신을 원하지 않으실 경우 언제든지 contact@morspeak.com으로 수신 거부를 요청하실 수 있습니다.`,
       },
     ];
 
@@ -261,38 +256,42 @@ export default function ScreeningPage() {
 
         {items.map(item => (
           <div key={item.key} style={{ background: '#fff', border: `1px solid ${sep}`, borderRadius: 14, marginBottom: 10, overflow: 'hidden' }}>
-            {/* 타이틀 행 */}
+            {/* 타이틀 + 체크 */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', cursor: 'pointer' }}
               onClick={() => setConsents(c => ({ ...c, [item.key]: !c[item.key] }))}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                  <span style={{ fontSize: 16, fontWeight: 600, color: lbl }}>{item.title}</span>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: item.required ? red : lbl2, background: item.required ? 'rgba(255,59,48,0.1)' : 'rgba(60,60,67,0.08)', padding: '2px 7px', borderRadius: 20 }}>
-                    {item.required ? '필수' : '선택'}
-                  </span>
-                </div>
-                <p style={{ fontSize: 13, color: lbl2, margin: 0 }}>{item.summary}</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 16, fontWeight: 600, color: lbl }}>{item.title}</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: item.required ? red : lbl2, background: item.required ? 'rgba(255,59,48,0.1)' : 'rgba(60,60,67,0.08)', padding: '2px 7px', borderRadius: 20 }}>
+                  {item.required ? '필수' : '선택'}
+                </span>
               </div>
               <Check checked={consents[item.key]} />
             </div>
 
-            {/* 전체 보기 버튼 */}
+            {/* 표 — 항상 표시 */}
+            <div style={{ borderTop: `1px solid ${sep}` }}>
+              {item.rows.map(([l, v], i) => (
+                <div key={l} style={{ display: 'flex', gap: 12, padding: '9px 16px', borderTop: i > 0 ? `1px solid ${sep}` : 'none', background: 'rgba(60,60,67,0.02)' }}>
+                  <span style={{ fontSize: 13, color: lbl2, minWidth: 64, flexShrink: 0 }}>{l}</span>
+                  <span style={{ fontSize: 13, color: lbl, lineHeight: 1.5 }}>{v}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* 전체 보기 버튼 — 색상 없는 작은 버튼 */}
             <div style={{ borderTop: `1px solid ${sep}`, padding: '10px 16px' }}>
               <button onClick={() => setExpanded(e => ({ ...e, [item.key]: !e[item.key] }))}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: blue, padding: 0, fontFamily: font, display: 'flex', alignItems: 'center', gap: 4 }}>
-                {expanded[item.key] ? '접기 ▲' : '전체 보기 ▼'}
+                style={{ background: 'none', border: `1px solid ${sep}`, borderRadius: 8, cursor: 'pointer', fontSize: 12, color: lbl2, padding: '4px 10px', fontFamily: font }}>
+                {expanded[item.key] ? '접기' : '전체 보기'}
               </button>
             </div>
 
-            {/* 상세 내용 */}
+            {/* 전체 안내 텍스트 — 펼쳤을 때만 표시 */}
             {expanded[item.key] && (
-              <div style={{ borderTop: `1px solid ${sep}`, padding: '12px 16px', background: 'rgba(60,60,67,0.03)' }}>
-                {item.detail.map(([l, v], i) => (
-                  <div key={l} style={{ display: 'flex', gap: 12, padding: '7px 0', borderTop: i > 0 ? `1px solid ${sep}` : 'none' }}>
-                    <span style={{ fontSize: 13, color: lbl2, minWidth: 72, flexShrink: 0 }}>{l}</span>
-                    <span style={{ fontSize: 13, color: lbl, lineHeight: 1.55 }}>{v}</span>
-                  </div>
-                ))}
+              <div style={{ borderTop: `1px solid ${sep}`, padding: '14px 16px', background: 'rgba(60,60,67,0.02)' }}>
+                <p style={{ fontSize: 13, color: lbl2, lineHeight: 1.7, margin: 0, whiteSpace: 'pre-line' as const }}>
+                  {item.fullText}
+                </p>
               </div>
             )}
           </div>

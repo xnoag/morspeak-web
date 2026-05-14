@@ -105,7 +105,7 @@ export default function HomePage() {
 
         <section
           id="overview"
-          style={{ position: 'relative', minHeight: 'calc(100vh - 68px)', background: '#f5f5f7', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+          style={{ position: 'relative', minHeight: 'calc(100vh - 68px)', background: '#FBF9FA', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
         >
           {/* 영상 — 중앙 */}
           <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'flex-end' }}>

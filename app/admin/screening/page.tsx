@@ -174,7 +174,17 @@ export default function AdminScreeningPage() {
                   onMouseLeave={e => (e.currentTarget.style.background = selected?.id === r.id ? 'rgba(0,0,0,0.02)' : 'transparent')}
                 >
                   <td style={{ padding: '14px 16px', color: 'rgba(60,60,67,0.5)', whiteSpace: 'nowrap', fontSize: 13 }}>{fmtDate(r)}</td>
-                  <td style={{ padding: '14px 16px' }}><StatusBadge status={r.status} /></td>
+                  <td style={{ padding: '10px 16px' }} onClick={e => e.stopPropagation()}>
+                    <select
+                      value={r.status ?? '미검토'}
+                      onChange={e => updateStatus(r.id, e.target.value as Status)}
+                      style={{ border: 'none', outline: 'none', borderRadius: 20, padding: '4px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', background: STATUS_STYLE[r.status ?? '미검토'].bg, color: STATUS_STYLE[r.status ?? '미검토'].color, fontFamily: font, appearance: 'none' as const }}
+                    >
+                      {(['미검토', '적합', '부적합', '재요청'] as Status[]).map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </td>
                   <td style={{ padding: '14px 16px', fontWeight: 600, color: '#000' }}>{r.patientName}</td>
                   <td style={{ padding: '14px 16px' }}>{r.caregiverName}</td>
                   <td style={{ padding: '14px 16px', whiteSpace: 'nowrap' }}>{r.caregiverContact}</td>

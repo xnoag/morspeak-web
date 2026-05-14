@@ -63,7 +63,7 @@ export default function FullscreenVideoSection({
           <h2 style={{
             fontSize: 'clamp(36px, 6.5vw, 76px)', fontWeight: 700,
             color: '#fff', letterSpacing: '-0.022em', lineHeight: 1.08,
-            maxWidth: '700px', wordBreak: 'keep-all',
+            maxWidth: '700px', wordBreak: 'keep-all', whiteSpace: 'pre-line',
           }}>
             {headline}
           </h2>

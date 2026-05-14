@@ -118,8 +118,8 @@ export default function HomePage() {
 
         <FullscreenVideoSection
           id="entertainment"
-          eyebrow="엔터테인먼트"
-          headline="궁극의 극장 경험을 언제 어디서나."
+          eyebrow="환우"
+          headline={"말을 건네고, 불을 켜고, 영상을 보는 일들.\n모스픽과 함께 차근차근 되찾아가요."}
           heroVideo={`${VID25US}/experience-entertainment/large.mp4`}
           heroImage={`${IMG}/experiences/entertainment/entertainment_a_startframe__eqosxjbd3xua_large.jpg`}
           citation="구독 후 Apple TV에서 '울프스' - Wolfs 시청하기"

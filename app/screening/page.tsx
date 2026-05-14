@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { upload } from '@vercel/blob/client';
 
-type Step = 'intro' | 'form' | 'camera' | 'recording' | 'review' | 'complete';
+type Step = 'intro' | 'consent' | 'form' | 'camera' | 'recording' | 'review' | 'complete';
 
 interface FormData {
   patientName: string;
@@ -98,6 +98,7 @@ export default function ScreeningPage() {
   });
   const [instruction, setInstruction] = useState('');
   const [progress, setProgress] = useState(0);
+  const [consents, setConsents] = useState({ privacy: false, video: false, marketing: false });
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [recordedMimeType, setRecordedMimeType] = useState('');
@@ -230,7 +231,7 @@ export default function ScreeningPage() {
     }
   }, [form, recordedMimeType]);
 
-  const isFormValid = form.patientName && form.caregiverName && form.caregiverContact && form.region && form.consent;
+  const isFormValid = form.patientName && form.caregiverName && form.caregiverContact && form.region;
 
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '15px 18px',
@@ -273,12 +274,116 @@ export default function ScreeningPage() {
             모스픽 앱이 도움이 될 수 있는지 원격으로 확인합니다. 카메라로 짧은 영상이 녹화되며, 모스픽 팀 외에는 공유되지 않습니다.
           </p>
 
-          <button style={glassBtnBlue} onClick={() => setStep('form')}>시작하기</button>
+          <button style={glassBtnBlue} onClick={() => setStep('consent')}>시작하기</button>
           <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', textAlign: 'center', marginTop: 14 }}>약 3분 소요</p>
         </div>
       </div>
     </div>
   );
+
+  // ─── CONSENT ─────────────────────────────────────────────────
+  if (step === 'consent') {
+    const allRequired = consents.privacy && consents.video;
+    const allChecked = consents.privacy && consents.video && consents.marketing;
+
+    const toggleAll = () => {
+      const next = !allChecked;
+      setConsents({ privacy: next, video: next, marketing: next });
+    };
+
+    const items = [
+      {
+        key: 'privacy' as const,
+        required: true,
+        title: '개인정보 수집·이용 동의',
+        rows: [
+          ['수집 항목', '환자 이름, 보호자 이름·연락처, 거주 지역, 현재 소통 방법, 메모'],
+          ['수집 목적', '모스픽 앱 적합성 평가 및 결과 안내 연락'],
+          ['보유 기간', '평가 완료 후 1년, 이후 즉시 파기'],
+          ['제3자 제공', '없음'],
+        ],
+      },
+      {
+        key: 'video' as const,
+        required: true,
+        title: '영상 수집·이용 동의',
+        rows: [
+          ['수집 항목', '얼굴이 포함된 눈 깜빡임 영상'],
+          ['수집 목적', '모스픽 팀의 앱 사용 적합성 평가'],
+          ['보유 기간', '평가 완료 후 1년, 이후 즉시 삭제'],
+          ['제3자 제공', '없음'],
+        ],
+      },
+      {
+        key: 'marketing' as const,
+        required: false,
+        title: '서비스 관련 연락 동의',
+        rows: [
+          ['내용', '모스픽 신규 기능, 업데이트, 관련 안내 수신'],
+          ['수단', '문자, 전화'],
+        ],
+      },
+    ];
+
+    return (
+      <div style={pageBg}>
+        <Blobs />
+        <div style={{ position: 'relative', zIndex: 1, minHeight: '100svh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
+          <div style={{ ...glass, padding: '32px 24px', maxWidth: 440, width: '100%', maxHeight: '90svh', overflowY: 'auto' as const }}>
+            <h1 style={{ fontSize: 26, fontWeight: 700, color: '#fff', letterSpacing: '-0.4px', marginBottom: 6 }}>동의 및 개인정보</h1>
+            <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', marginBottom: 24 }}>테스트 진행을 위해 아래 항목에 동의해주세요.</p>
+
+            {/* 모두 동의 */}
+            <button onClick={toggleAll} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 16, padding: '16px 18px', cursor: 'pointer', marginBottom: 16 }}>
+              <span style={{ fontSize: 17, fontWeight: 600, color: '#fff' }}>전체 동의</span>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', background: allChecked ? 'rgba(52,199,89,0.9)' : 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s', boxShadow: allChecked ? '0 0 12px rgba(52,199,89,0.4)' : 'none', flexShrink: 0 }}>
+                {allChecked && <svg width="13" height="10" viewBox="0 0 13 10" fill="none"><path d="M1 5l4 4L12 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+              </div>
+            </button>
+
+            <div style={{ height: 1, background: 'rgba(255,255,255,0.1)', marginBottom: 16 }} />
+
+            {/* 개별 항목 */}
+            {items.map(item => (
+              <div key={item.key} style={{ background: 'rgba(255,255,255,0.07)', borderRadius: 16, padding: '16px 18px', marginBottom: 12, border: '1px solid rgba(255,255,255,0.12)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, cursor: 'pointer' }}
+                  onClick={() => setConsents(c => ({ ...c, [item.key]: !c[item.key] }))}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 15, fontWeight: 600, color: '#fff' }}>{item.title}</span>
+                    <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: item.required ? 'rgba(255,69,58,0.25)' : 'rgba(255,255,255,0.12)', color: item.required ? '#FF6B6B' : 'rgba(255,255,255,0.5)' }}>
+                      {item.required ? '필수' : '선택'}
+                    </span>
+                  </div>
+                  <div style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0, background: consents[item.key] ? 'rgba(52,199,89,0.9)' : 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s', boxShadow: consents[item.key] ? '0 0 10px rgba(52,199,89,0.35)' : 'none' }}>
+                    {consents[item.key] && <svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4.5l3 3L10 1" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                  </div>
+                </div>
+
+                {/* 세부 내용 */}
+                <div style={{ borderRadius: 10, overflow: 'hidden' }}>
+                  {item.rows.map(([label, value], i) => (
+                    <div key={label} style={{ display: 'flex', gap: 12, padding: '8px 0', borderTop: i > 0 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+                      <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', minWidth: 64, flexShrink: 0 }}>{label}</span>
+                      <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>{value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', lineHeight: 1.6, margin: '16px 0 20px' }}>
+              필수 항목에 동의하지 않으시면 테스트 참여가 어렵습니다. 동의는 언제든지 철회하실 수 있으며, 문의는 contact@morspeak.com으로 연락해주세요.
+            </p>
+
+            <button style={{ ...glassBtnBlue, opacity: allRequired ? 1 : 0.4, cursor: allRequired ? 'pointer' : 'not-allowed' }}
+              disabled={!allRequired} onClick={() => setStep('form')}>
+              동의하고 계속하기
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ─── FORM ────────────────────────────────────────────────────
   if (step === 'form') return (
@@ -329,14 +434,6 @@ export default function ScreeningPage() {
               onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
               style={{ ...inputStyle, minHeight: 80, resize: 'none' as const }} />
           </div>
-
-          <label style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 28, cursor: 'pointer' }}
-            onClick={() => setForm(f => ({ ...f, consent: !f.consent }))}>
-            <div style={{ width: 26, height: 26, borderRadius: '50%', flexShrink: 0, marginTop: 1, transition: 'background 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', background: form.consent ? 'rgba(52,199,89,0.9)' : 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', boxShadow: form.consent ? '0 0 12px rgba(52,199,89,0.4)' : 'none' }}>
-              {form.consent && <svg width="12" height="10" viewBox="0 0 12 10" fill="none"><path d="M1 5l3.5 3.5L11 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-            </div>
-            <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', lineHeight: 1.55 }}>개인정보 수집·이용에 동의합니다. 수집된 정보는 모스픽 서비스 적합성 확인 목적으로만 사용됩니다.</span>
-          </label>
 
           {error && <p style={{ color: '#FF6B6B', fontSize: 14, marginBottom: 12, textAlign: 'center' }}>{error}</p>}
 

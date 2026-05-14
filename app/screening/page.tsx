@@ -110,6 +110,10 @@ export default function ScreeningPage() {
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const reviewVideoRef = useRef<HTMLVideoElement>(null);
+  const reviewCanvasRef = useRef<HTMLCanvasElement>(null);
+  const reviewBlobUrl = useRef<string>('');
+  const reviewAnimRef = useRef<number>(0);
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -133,44 +137,32 @@ export default function ScreeningPage() {
     } catch (e) { console.warn('MediaPipe 로드 실패, blur fallback 사용'); }
   }, []);
 
-  // 캔버스 드로우 루프 (모자이크 + 눈 영역)
-  const drawLoop = useCallback(() => {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!video || !canvas || video.readyState < 2) {
-      animFrameRef.current = requestAnimationFrame(drawLoop);
-      return;
-    }
+  // 공통 캔버스 드로우 (모자이크 + 눈 영역)
+  const drawCanvas = useCallback((video: HTMLVideoElement, canvas: HTMLCanvasElement) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-
     const W = video.videoWidth || 640;
     const H = video.videoHeight || 480;
     if (canvas.width !== W) canvas.width = W;
     if (canvas.height !== H) canvas.height = H;
 
-    // 모자이크: 축소 후 확대 (픽셀화)
     const BLOCK = 16;
-    const sw = Math.floor(W / BLOCK);
-    const sh = Math.floor(H / BLOCK);
     const off = document.createElement('canvas');
-    off.width = sw; off.height = sh;
+    off.width = Math.floor(W / BLOCK); off.height = Math.floor(H / BLOCK);
     const offCtx = off.getContext('2d')!;
-    offCtx.drawImage(video, 0, 0, sw, sh);
+    offCtx.drawImage(video, 0, 0, off.width, off.height);
     ctx.save();
-    ctx.translate(W, 0); ctx.scale(-1, 1); // 좌우 반전
+    ctx.translate(W, 0); ctx.scale(-1, 1);
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(off, 0, 0, W, H);
     ctx.restore();
 
-    // 눈 영역 감지 및 선명 표시
     const fl = faceLandmarkerRef.current;
     if (fl) {
       try {
         const results = fl.detectForVideo(video, performance.now());
         if (results.faceLandmarks?.length > 0) {
           const lms = results.faceLandmarks[0];
-          // 눈+눈썹 랜드마크 (미러 적용: x → 1-x)
           const EYE_IDX = [33,133,159,145,246,161,160,158,157,173,155,154,153,144,163,7,
                            362,263,386,374,466,388,387,385,384,398,382,381,380,373,390,249,
                            70,63,105,66,107,336,296,334,293,300];
@@ -181,8 +173,6 @@ export default function ScreeningPage() {
           const y1 = Math.max(0, Math.min(...ys) - pad);
           const x2 = Math.min(W, Math.max(...xs) + pad);
           const y2 = Math.min(H, Math.max(...ys) + pad);
-
-          // 눈 영역만 선명하게
           ctx.save();
           ctx.beginPath();
           ctx.roundRect(x1, y1, x2 - x1, y2 - y1, 14);
@@ -191,8 +181,6 @@ export default function ScreeningPage() {
           ctx.imageSmoothingEnabled = true;
           ctx.drawImage(video, 0, 0, W, H);
           ctx.restore();
-
-          // 흰 테두리
           ctx.strokeStyle = 'rgba(255,255,255,0.65)';
           ctx.lineWidth = 2;
           ctx.beginPath();
@@ -201,20 +189,48 @@ export default function ScreeningPage() {
         }
       } catch { /* 감지 실패 무시 */ }
     }
-
-    animFrameRef.current = requestAnimationFrame(drawLoop);
   }, []);
 
-  // 카메라/녹화 단계 진입 시 MediaPipe 로드 + 드로우 루프 시작
+  const drawLoop = useCallback(() => {
+    const video = videoRef.current; const canvas = canvasRef.current;
+    if (!video || !canvas || video.readyState < 2) { animFrameRef.current = requestAnimationFrame(drawLoop); return; }
+    drawCanvas(video, canvas);
+    animFrameRef.current = requestAnimationFrame(drawLoop);
+  }, [drawCanvas]);
+
+  const reviewDrawLoop = useCallback(() => {
+    const video = reviewVideoRef.current; const canvas = reviewCanvasRef.current;
+    if (!video || !canvas || video.readyState < 2) { reviewAnimRef.current = requestAnimationFrame(reviewDrawLoop); return; }
+    drawCanvas(video, canvas);
+    reviewAnimRef.current = requestAnimationFrame(reviewDrawLoop);
+  }, [drawCanvas]);
+
+  // 카메라/녹화 단계
   useEffect(() => {
-    if (step !== 'camera' && step !== 'recording') {
-      cancelAnimationFrame(animFrameRef.current);
-      return;
-    }
+    if (step !== 'camera' && step !== 'recording') { cancelAnimationFrame(animFrameRef.current); return; }
     loadFaceLandmarker();
     animFrameRef.current = requestAnimationFrame(drawLoop);
     return () => cancelAnimationFrame(animFrameRef.current);
-  }, [step, drawLoop, loadFaceLandmarker]);;
+  }, [step, drawLoop, loadFaceLandmarker]);
+
+  // 리뷰 단계: 녹화 영상 재생 + 드로우 루프
+  useEffect(() => {
+    if (step !== 'review') { cancelAnimationFrame(reviewAnimRef.current); return; }
+    if (chunksRef.current.length > 0 && recordedMimeType) {
+      const blob = new Blob(chunksRef.current, { type: recordedMimeType });
+      reviewBlobUrl.current = URL.createObjectURL(blob);
+      if (reviewVideoRef.current) {
+        reviewVideoRef.current.src = reviewBlobUrl.current;
+        reviewVideoRef.current.loop = true;
+        reviewVideoRef.current.play().catch(() => {});
+      }
+    }
+    reviewAnimRef.current = requestAnimationFrame(reviewDrawLoop);
+    return () => {
+      cancelAnimationFrame(reviewAnimRef.current);
+      if (reviewBlobUrl.current) { URL.revokeObjectURL(reviewBlobUrl.current); reviewBlobUrl.current = ''; }
+    };
+  }, [step, reviewDrawLoop, recordedMimeType]);;
 
   const speak = useCallback((text: string): Promise<void> => new Promise(resolve => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return resolve();
@@ -543,9 +559,9 @@ export default function ScreeningPage() {
           <div style={{ height: '100%', background: '#fff', width: `${progress}%`, transition: 'width 0.5s linear' }} />
         </div>
         {isRecording && (
-          <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 2, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(0,0,0,0.5)', padding: '5px 12px', borderRadius: 20 }}>
-            <div style={{ width: 7, height: 7, borderRadius: '50%', background: red, animation: 'blink 1s infinite' }} />
-            <span style={{ fontSize: 12, color: '#fff', fontWeight: 600, letterSpacing: '0.06em' }}>REC</span>
+          <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 2, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(52,199,89,0.25)', backdropFilter: 'blur(8px)', padding: '6px 14px', borderRadius: 20, border: '1px solid rgba(52,199,89,0.5)' }}>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#34C759', animation: 'blink 1s infinite' }} />
+            <span style={{ fontSize: 12, color: '#34C759', fontWeight: 600 }}>테스트 중</span>
           </div>
         )}
         <div style={{ position: 'absolute', inset: 0, zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 32px' }}>
@@ -578,7 +594,13 @@ export default function ScreeningPage() {
         <svg width="22" height="17" viewBox="0 0 22 17" fill="none"><path d="M1.5 8.5l6 6L20.5 1.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
       </div>
       <h1 style={{ fontSize: 28, fontWeight: 700, color: lbl, letterSpacing: '-0.4px', marginBottom: 6 }}>테스트 완료</h1>
-      <p style={{ fontSize: 15, color: lbl2, marginBottom: 24 }}>아래 정보를 확인하고 제출해주세요.</p>
+      <p style={{ fontSize: 15, color: lbl2, marginBottom: 16 }}>아래 정보를 확인하고 제출해주세요.</p>
+
+      {/* 녹화 영상 미리보기 (눈 영역만 선명) */}
+      <div style={{ borderRadius: 16, overflow: 'hidden', background: '#000', marginBottom: 20, aspectRatio: '4/3', position: 'relative' }}>
+        <video ref={reviewVideoRef} playsInline muted style={{ display: 'none' }} />
+        <canvas ref={reviewCanvasRef} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+      </div>
 
       <div style={{ background: '#fff', border: `1px solid ${sep}`, borderRadius: 14, overflow: 'hidden', marginBottom: 8 }}>
         {[['환우', form.patientName], ['보호자', form.caregiverName], ['연락처', form.caregiverContact], ['지역', form.subRegion ? `${form.region} ${form.subRegion}` : form.region]].map(([l, v], i, arr) => (

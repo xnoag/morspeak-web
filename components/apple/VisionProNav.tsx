@@ -60,7 +60,7 @@ export default function VisionProNav() {
         gap: '16px',
       }}>
         {/* 왼쪽: 로고 */}
-        <a href="/" style={{ textDecoration: 'none', display: 'inline-flex', transition: 'transform 0.2s ease' }}
+        <a href="/" style={{ textDecoration: 'none', display: 'inline-flex', transition: 'transform 0.2s ease', transformOrigin: 'left center' }}
           onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.05)')}
           onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
         >

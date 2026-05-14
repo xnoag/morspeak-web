@@ -60,9 +60,7 @@ export default function VisionProNav() {
         gap: '16px',
       }}>
         {/* 왼쪽: 로고 */}
-        <a href="/" style={{ textDecoration: 'none', display: 'inline-flex', transition: 'transform 0.2s ease' }}
-          onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.025)')}
-          onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+        <a href="/" style={{ textDecoration: 'none', display: 'inline-flex' }}
         >
           <Image src="/morspeak-logo2.png" alt="Morspeak" width={129} height={36} priority />
         </a>

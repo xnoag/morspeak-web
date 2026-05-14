@@ -476,7 +476,8 @@ export default function ScreeningPage() {
         <svg width="22" height="17" viewBox="0 0 22 17" fill="none"><path d="M1.5 8.5l6 6L20.5 1.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
       </div>
       <h1 style={{ fontSize: 28, fontWeight: 700, color: lbl, letterSpacing: '-0.4px', marginBottom: 6 }}>테스트 완료</h1>
-      <p style={{ fontSize: 15, color: lbl2, marginBottom: 24 }}>아래 정보를 확인하고 제출해주세요.</p>
+      <p style={{ fontSize: 15, color: lbl2, marginBottom: 4 }}>아래 정보를 확인하고 제출해주세요.</p>
+      <p style={{ fontSize: 13, color: lbl2, marginBottom: 24 }}>제출 후 모스픽 팀이 영상을 확인하여 평균 1~2일 이내로 연락드립니다.</p>
 
       <div style={{ background: '#fff', border: `1px solid ${sep}`, borderRadius: 14, overflow: 'hidden', marginBottom: 8 }}>
         {[['환우', form.patientName], ['보호자', form.caregiverName], ['연락처', form.caregiverContact], ['지역', form.subRegion ? `${form.region} ${form.subRegion}` : form.region]].map(([l, v], i, arr) => (

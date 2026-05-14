@@ -15,10 +15,11 @@ interface FormData {
   region: string;
   subRegion: string;
   communicationMethod: string;
+  communicationMethodOther: string;
 }
 
 const REGIONS = ['서울', '경기', '인천', '부산', '대구', '대전', '광주', '울산', '세종', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주'];
-const COMM_METHODS = ['추측', '직접 의사소통', '글자판', '안구마우스', '소통이 어려운 상태'];
+const COMM_METHODS = ['추측', '직접 의사소통', '글자판', '안구마우스', '소통이 어려운 상태', '기타'];
 
 const SUB_REGIONS: Record<string, string[]> = {
   '서울': ['종로구','중구','용산구','성동구','광진구','동대문구','중랑구','성북구','강북구','도봉구','노원구','은평구','서대문구','마포구','양천구','강서구','구로구','금천구','영등포구','동작구','관악구','서초구','강남구','송파구','강동구'],
@@ -100,7 +101,7 @@ function Check({ checked }: { checked: boolean }) {
 
 export default function ScreeningPage() {
   const [step, setStep] = useState<Step>('intro');
-  const [form, setForm] = useState<FormData>({ patientName: '', caregiverName: '', caregiverContact: '', region: '', subRegion: '', communicationMethod: '' });
+  const [form, setForm] = useState<FormData>({ patientName: '', caregiverName: '', caregiverContact: '', region: '', subRegion: '', communicationMethod: '', communicationMethodOther: '' });
   const [consents, setConsents] = useState({ privacy: false, video: false, marketing: false });
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [instruction, setInstruction] = useState('');
@@ -196,7 +197,7 @@ export default function ScreeningPage() {
         caregiverContact: form.caregiverContact,
         region: form.region,
         subRegion: form.subRegion ?? '',
-        communicationMethod: form.communicationMethod ?? '',
+        communicationMethod: form.communicationMethod === '기타' ? `기타: ${form.communicationMethodOther}` : (form.communicationMethod ?? ''),
         videoUrl,
         deviceType,
         createdAt: serverTimestamp(),
@@ -209,7 +210,8 @@ export default function ScreeningPage() {
   }, [form, recordedMimeType]);
 
   const needsSubRegion = form.region && SUB_REGIONS[form.region]?.length > 1;
-  const isFormValid = !!(form.patientName && form.caregiverName && form.caregiverContact.length === 13 && form.region && (!needsSubRegion || form.subRegion));
+  const commValid = form.communicationMethod && (form.communicationMethod !== '기타' || form.communicationMethodOther.trim());
+  const isFormValid = !!(form.patientName && form.caregiverName && form.caregiverContact.length === 13 && form.region && (!needsSubRegion || form.subRegion) && commValid);
   const primaryBtn = (disabled?: boolean): React.CSSProperties => ({ padding: '16px', borderRadius: 980, border: 'none', background: disabled ? 'rgba(60,60,67,0.12)' : blue, color: disabled ? lbl2 : '#fff', fontSize: 17, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: font });
   const prevBtn: React.CSSProperties = { padding: '16px 20px', borderRadius: 980, border: `1.5px solid ${sep}`, background: '#fff', color: lbl2, fontSize: 17, fontWeight: 500, cursor: 'pointer', fontFamily: font };
   const inputStyle: React.CSSProperties = { width: '100%', padding: '14px 18px', border: `1px solid ${sep}`, borderRadius: 980, fontSize: 17, color: lbl, outline: 'none', background: '#fff', boxSizing: 'border-box', fontFamily: font };
@@ -420,12 +422,23 @@ export default function ScreeningPage() {
       <div style={{ background: '#fff', border: `1px solid ${sep}`, borderRadius: 20, overflow: 'hidden', marginBottom: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px' }}>
           <label style={{ fontSize: 15, color: lbl2, width: 96, flexShrink: 0 }}>소통 방법</label>
-          <select value={form.communicationMethod} onChange={e => setForm(f => ({ ...f, communicationMethod: e.target.value }))}
+          <select value={form.communicationMethod}
+            onChange={e => setForm(f => ({ ...f, communicationMethod: e.target.value, communicationMethodOther: '' }))}
             style={{ flex: 1, border: 'none', outline: 'none', fontSize: 16, color: form.communicationMethod ? lbl : lbl2, padding: '15px 0', background: 'transparent', fontFamily: font, appearance: 'none' as const, cursor: 'pointer' }}>
-            <option value="">선택 (선택사항)</option>
+            <option value="">선택해주세요</option>
             {COMM_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
         </div>
+        {form.communicationMethod === '기타' && (
+          <>
+            <div style={{ height: 1, background: sep, margin: '0 16px' }} />
+            <div style={{ padding: '0 16px' }}>
+              <input placeholder="직접 입력해주세요" value={form.communicationMethodOther}
+                onChange={e => setForm(f => ({ ...f, communicationMethodOther: e.target.value }))}
+                style={{ width: '100%', border: 'none', outline: 'none', fontSize: 16, color: lbl, padding: '15px 0', background: 'transparent', fontFamily: font, boxSizing: 'border-box' as const }} />
+            </div>
+          </>
+        )}
       </div>
     </Layout>
   );

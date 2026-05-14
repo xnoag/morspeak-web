@@ -11,11 +11,39 @@ interface FormData {
   caregiverName: string;
   caregiverContact: string;
   region: string;
+  subRegion: string;
   communicationMethod: string;
 }
 
 const REGIONS = ['서울', '경기', '인천', '부산', '대구', '대전', '광주', '울산', '세종', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주'];
 const COMM_METHODS = ['추측', '직접 의사소통', '글자판', '안구마우스', '소통이 어려운 상태'];
+
+const SUB_REGIONS: Record<string, string[]> = {
+  '서울': ['종로구','중구','용산구','성동구','광진구','동대문구','중랑구','성북구','강북구','도봉구','노원구','은평구','서대문구','마포구','양천구','강서구','구로구','금천구','영등포구','동작구','관악구','서초구','강남구','송파구','강동구'],
+  '경기': ['수원시','성남시','의정부시','안양시','부천시','광명시','평택시','동두천시','안산시','고양시','과천시','구리시','남양주시','오산시','시흥시','군포시','의왕시','하남시','용인시','파주시','이천시','안성시','김포시','화성시','광주시','양주시','포천시','여주시','양평군','가평군','연천군'],
+  '인천': ['중구','동구','미추홀구','연수구','남동구','부평구','계양구','서구','강화군','옹진군'],
+  '부산': ['중구','서구','동구','영도구','부산진구','동래구','남구','북구','해운대구','사하구','금정구','강서구','연제구','수영구','사상구','기장군'],
+  '대구': ['중구','동구','서구','남구','북구','수성구','달서구','달성군','군위군'],
+  '광주': ['동구','서구','남구','북구','광산구'],
+  '대전': ['동구','중구','서구','유성구','대덕구'],
+  '울산': ['중구','남구','동구','북구','울주군'],
+  '세종': ['세종시'],
+  '강원': ['춘천시','원주시','강릉시','동해시','태백시','속초시','삼척시','홍천군','횡성군','영월군','평창군','정선군','철원군','화천군','양구군','인제군','고성군','양양군'],
+  '충북': ['청주시','충주시','제천시','보은군','옥천군','영동군','증평군','진천군','괴산군','음성군','단양군'],
+  '충남': ['천안시','공주시','보령시','아산시','서산시','논산시','계룡시','당진시','금산군','부여군','서천군','청양군','홍성군','예산군','태안군'],
+  '전북': ['전주시','군산시','익산시','정읍시','남원시','김제시','완주군','진안군','무주군','장수군','임실군','순창군','고창군','부안군'],
+  '전남': ['목포시','여수시','순천시','나주시','광양시','담양군','곡성군','구례군','고흥군','보성군','화순군','장흥군','강진군','해남군','영암군','무안군','함평군','영광군','장성군','완도군','진도군','신안군'],
+  '경북': ['포항시','경주시','김천시','안동시','구미시','영주시','영천시','상주시','문경시','경산시','의성군','청송군','영양군','영덕군','청도군','고령군','성주군','칠곡군','예천군','봉화군','울진군','울릉군'],
+  '경남': ['창원시','진주시','통영시','사천시','김해시','밀양시','거제시','양산시','의령군','함안군','창녕군','고성군','남해군','하동군','산청군','함양군','거창군','합천군'],
+  '제주': ['제주시','서귀포시'],
+};
+
+const formatPhone = (value: string) => {
+  const d = value.replace(/\D/g, '').slice(0, 11);
+  if (d.length <= 3) return d;
+  if (d.length <= 7) return `${d.slice(0,3)}-${d.slice(3)}`;
+  return `${d.slice(0,3)}-${d.slice(3,7)}-${d.slice(7)}`;
+};
 
 const SEQUENCE: { text: string; duration: number; beep?: boolean }[] = [
   { text: '시작합니다.', duration: 3000 },
@@ -70,7 +98,7 @@ function Check({ checked }: { checked: boolean }) {
 
 export default function ScreeningPage() {
   const [step, setStep] = useState<Step>('intro');
-  const [form, setForm] = useState<FormData>({ patientName: '', caregiverName: '', caregiverContact: '', region: '', communicationMethod: '' });
+  const [form, setForm] = useState<FormData>({ patientName: '', caregiverName: '', caregiverContact: '', region: '', subRegion: '', communicationMethod: '' });
   const [consents, setConsents] = useState({ privacy: false, video: false, marketing: false });
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [instruction, setInstruction] = useState('');
@@ -165,7 +193,8 @@ export default function ScreeningPage() {
     finally { setIsUploading(false); }
   }, [form, recordedMimeType]);
 
-  const isFormValid = !!(form.patientName && form.caregiverName && form.caregiverContact && form.region);
+  const needsSubRegion = form.region && SUB_REGIONS[form.region]?.length > 1;
+  const isFormValid = !!(form.patientName && form.caregiverName && form.caregiverContact.length === 13 && form.region && (!needsSubRegion || form.subRegion));
   const primaryBtn = (disabled?: boolean): React.CSSProperties => ({ padding: '16px', borderRadius: 980, border: 'none', background: disabled ? 'rgba(60,60,67,0.12)' : blue, color: disabled ? lbl2 : '#fff', fontSize: 17, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: font });
   const prevBtn: React.CSSProperties = { padding: '16px 20px', borderRadius: 980, border: `1.5px solid ${sep}`, background: '#fff', color: lbl2, fontSize: 17, fontWeight: 500, cursor: 'pointer', fontFamily: font };
   const inputStyle: React.CSSProperties = { width: '100%', padding: '14px 18px', border: `1px solid ${sep}`, borderRadius: 980, fontSize: 17, color: lbl, outline: 'none', background: '#fff', boxSizing: 'border-box', fontFamily: font };
@@ -319,31 +348,57 @@ export default function ScreeningPage() {
 
       {/* 필수 정보 — 하나의 카드로 묶기 */}
       <div style={{ background: '#fff', border: `1px solid ${sep}`, borderRadius: 20, overflow: 'hidden', marginBottom: 14 }}>
-        {[
-          { label: '환우 이름', key: 'patientName', placeholder: '홍길동', type: 'text' },
-          { label: '보호자 이름', key: 'caregiverName', placeholder: '홍보호', type: 'text' },
-          { label: '보호자 연락처', key: 'caregiverContact', placeholder: '010-0000-0000', type: 'tel' },
-        ].map(({ label: l, key, placeholder, type }, i) => (
-          <div key={key}>
-            <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px' }}>
-              <label style={{ fontSize: 15, color: lbl2, width: 96, flexShrink: 0 }}>{l}</label>
-              <input type={type} placeholder={placeholder} value={(form as any)[key]}
-                onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
-                style={{ flex: 1, border: 'none', outline: 'none', fontSize: 16, color: lbl, padding: '15px 0', background: 'transparent', fontFamily: font }} />
-            </div>
-            {i < 2 && <div style={{ height: 1, background: sep, margin: '0 16px' }} />}
-          </div>
-        ))}
-        {/* 거주 지역 */}
+        {/* 환우 이름 */}
+        <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px' }}>
+          <label style={{ fontSize: 15, color: lbl2, width: 96, flexShrink: 0 }}>환우 이름</label>
+          <input type="text" placeholder="홍길동" value={form.patientName}
+            onChange={e => setForm(f => ({ ...f, patientName: e.target.value }))}
+            style={{ flex: 1, border: 'none', outline: 'none', fontSize: 16, color: lbl, padding: '15px 0', background: 'transparent', fontFamily: font }} />
+        </div>
         <div style={{ height: 1, background: sep, margin: '0 16px' }} />
+        {/* 보호자 이름 */}
+        <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px' }}>
+          <label style={{ fontSize: 15, color: lbl2, width: 96, flexShrink: 0 }}>보호자 이름</label>
+          <input type="text" placeholder="홍보호" value={form.caregiverName}
+            onChange={e => setForm(f => ({ ...f, caregiverName: e.target.value }))}
+            style={{ flex: 1, border: 'none', outline: 'none', fontSize: 16, color: lbl, padding: '15px 0', background: 'transparent', fontFamily: font }} />
+        </div>
+        <div style={{ height: 1, background: sep, margin: '0 16px' }} />
+        {/* 보호자 연락처 — 자동 하이픈 */}
+        <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px' }}>
+          <label style={{ fontSize: 15, color: lbl2, width: 96, flexShrink: 0 }}>연락처</label>
+          <input type="tel" placeholder="010-0000-0000" value={form.caregiverContact}
+            onChange={e => {
+              const formatted = formatPhone(e.target.value);
+              setForm(f => ({ ...f, caregiverContact: formatted }));
+            }}
+            maxLength={13}
+            style={{ flex: 1, border: 'none', outline: 'none', fontSize: 16, color: lbl, padding: '15px 0', background: 'transparent', fontFamily: font }} />
+        </div>
+        <div style={{ height: 1, background: sep, margin: '0 16px' }} />
+        {/* 거주 지역 */}
         <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px' }}>
           <label style={{ fontSize: 15, color: lbl2, width: 96, flexShrink: 0 }}>거주 지역</label>
-          <select value={form.region} onChange={e => setForm(f => ({ ...f, region: e.target.value }))}
+          <select value={form.region} onChange={e => setForm(f => ({ ...f, region: e.target.value, subRegion: '' }))}
             style={{ flex: 1, border: 'none', outline: 'none', fontSize: 16, color: form.region ? lbl : lbl2, padding: '15px 0', background: 'transparent', fontFamily: font, appearance: 'none' as const, cursor: 'pointer' }}>
             <option value="">선택</option>
             {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
           </select>
         </div>
+        {/* 세부 지역 — 도/광역시 선택 후 표시 */}
+        {form.region && SUB_REGIONS[form.region] && (
+          <>
+            <div style={{ height: 1, background: sep, margin: '0 16px' }} />
+            <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px' }}>
+              <label style={{ fontSize: 15, color: lbl2, width: 96, flexShrink: 0 }}>시/구/군</label>
+              <select value={form.subRegion} onChange={e => setForm(f => ({ ...f, subRegion: e.target.value }))}
+                style={{ flex: 1, border: 'none', outline: 'none', fontSize: 16, color: form.subRegion ? lbl : lbl2, padding: '15px 0', background: 'transparent', fontFamily: font, appearance: 'none' as const, cursor: 'pointer' }}>
+                <option value="">선택</option>
+                {SUB_REGIONS[form.region].map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          </>
+        )}
       </div>
 
       {/* 소통 방법 */}
@@ -425,7 +480,7 @@ export default function ScreeningPage() {
       <p style={{ fontSize: 15, color: lbl2, marginBottom: 24 }}>아래 정보를 확인하고 제출해주세요.</p>
 
       <div style={{ background: '#fff', border: `1px solid ${sep}`, borderRadius: 14, overflow: 'hidden', marginBottom: 8 }}>
-        {[['환우', form.patientName], ['보호자', form.caregiverName], ['연락처', form.caregiverContact], ['지역', form.region]].map(([l, v], i, arr) => (
+        {[['환우', form.patientName], ['보호자', form.caregiverName], ['연락처', form.caregiverContact], ['지역', form.subRegion ? `${form.region} ${form.subRegion}` : form.region]].map(([l, v], i, arr) => (
           <div key={l}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px' }}>
               <span style={{ fontSize: 16, color: lbl2 }}>{l}</span>

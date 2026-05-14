@@ -9,12 +9,13 @@ export async function POST(req: NextRequest) {
 
     const result = await sql`
       INSERT INTO screening_results (
-        patient_name, caregiver_name, caregiver_contact, region,
-        communication_method, note, video_url, blink_detected,
+        patient_name, caregiver_name, caregiver_contact, region, sub_region,
+        communication_method, video_url, blink_detected,
         device_type, user_agent
       ) VALUES (
         ${data.patientName}, ${data.caregiverName}, ${data.caregiverContact},
-        ${data.region}, ${data.communicationMethod ?? null}, ${data.note ?? null},
+        ${data.region}, ${data.subRegion ?? null},
+        ${data.communicationMethod ?? null},
         ${data.videoUrl ?? null}, ${data.blinkDetected ?? null},
         ${data.deviceType ?? null}, ${data.userAgent ?? null}
       )

@@ -19,6 +19,7 @@ export async function ensureTable() {
       caregiver_name TEXT NOT NULL,
       caregiver_contact TEXT NOT NULL,
       region TEXT NOT NULL,
+      sub_region TEXT,
       communication_method TEXT,
       note TEXT,
       video_url TEXT,

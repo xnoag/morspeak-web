@@ -121,9 +121,6 @@ export default function HomePage() {
               </p>
             </div>
 
-            {/* 하단 그라디언트 전환 */}
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '20%', background: 'linear-gradient(to bottom, transparent, #000)', pointerEvents: 'none', zIndex: 1 }} />
-
             {/* 오른쪽 텍스트 */}
             <div style={{ position: 'absolute', top: '60%', right: '4%', textAlign: 'left', maxWidth: 280, pointerEvents: 'none' }}>
               <p style={{ fontSize: 18, fontWeight: 700, color: '#1d1d1f', marginBottom: 6, letterSpacing: '-0.02em' }}>하나씩, 다시 일상으로</p>

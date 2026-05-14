@@ -167,7 +167,8 @@ export default function ScreeningPage() {
   }, [form, recordedMimeType]);
 
   const isFormValid = !!(form.patientName && form.caregiverName && form.caregiverContact && form.region);
-  const primaryBtn = (disabled?: boolean): React.CSSProperties => ({ width: '100%', padding: '16px', borderRadius: 14, border: 'none', background: disabled ? 'rgba(60,60,67,0.12)' : blue, color: disabled ? lbl2 : '#fff', fontSize: 17, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: font });
+  const primaryBtn = (disabled?: boolean): React.CSSProperties => ({ padding: '16px', borderRadius: 14, border: 'none', background: disabled ? 'rgba(60,60,67,0.12)' : blue, color: disabled ? lbl2 : '#fff', fontSize: 17, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: font });
+  const prevBtn: React.CSSProperties = { padding: '16px 20px', borderRadius: 14, border: `1.5px solid ${sep}`, background: '#fff', color: lbl2, fontSize: 17, fontWeight: 500, cursor: 'pointer', fontFamily: font };
   const inputStyle: React.CSSProperties = { width: '100%', padding: '14px 16px', border: `1px solid ${sep}`, borderRadius: 12, fontSize: 17, color: lbl, outline: 'none', background: '#fff', boxSizing: 'border-box', fontFamily: font };
 
   // ── INTRO ─────────────────────────────────────────────────────
@@ -228,9 +229,10 @@ export default function ScreeningPage() {
       <Layout
         onBack={goBack}
         footer={
-          <button style={primaryBtn(!allRequired)} disabled={!allRequired} onClick={() => setStep('form')}>
-            동의하고 계속하기
-          </button>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button onClick={() => setStep('intro')} style={{ ...prevBtn, flexShrink: 0 }}>이전</button>
+            <button style={{ ...primaryBtn(!allRequired), flex: 1 }} disabled={!allRequired} onClick={() => setStep('form')}>동의하고 계속하기</button>
+          </div>
         }
       >
         <h1 style={{ fontSize: 28, fontWeight: 700, color: lbl, letterSpacing: '-0.4px', marginBottom: 6 }}>동의 및 개인정보</h1>
@@ -299,7 +301,10 @@ export default function ScreeningPage() {
       footer={
         <>
           {error && <p style={{ color: red, fontSize: 14, marginBottom: 8 }}>{error}</p>}
-          <button style={primaryBtn(!isFormValid)} disabled={!isFormValid} onClick={startCamera}>다음</button>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button onClick={() => setStep('consent')} style={{ ...prevBtn, flexShrink: 0 }}>이전</button>
+            <button style={{ ...primaryBtn(!isFormValid), flex: 1 }} disabled={!isFormValid} onClick={startCamera}>다음</button>
+          </div>
         </>
       }
     >
@@ -394,9 +399,12 @@ export default function ScreeningPage() {
       footer={
         <>
           {error && <p style={{ color: red, fontSize: 14, marginBottom: 8 }}>{error}</p>}
-          <button style={primaryBtn(isUploading)} disabled={isUploading} onClick={submitResult}>
-            {isUploading ? '제출 중...' : '제출하기'}
-          </button>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button onClick={() => { chunksRef.current = []; setStep('camera'); }} style={{ ...prevBtn, flexShrink: 0 }}>이전</button>
+            <button style={{ ...primaryBtn(isUploading), flex: 1 }} disabled={isUploading} onClick={submitResult}>
+              {isUploading ? '제출 중...' : '제출하기'}
+            </button>
+          </div>
         </>
       }
     >

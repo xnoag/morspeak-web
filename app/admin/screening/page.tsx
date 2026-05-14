@@ -24,11 +24,20 @@ const ADMIN_PW = 'Hgo3575425*';
 const font = "-apple-system, 'SF Pro Display', BlinkMacSystemFont, 'Helvetica Neue', sans-serif";
 
 const STATUS_STYLE: Record<Status, { bg: string; color: string }> = {
-  '미검토': { bg: 'rgba(60,60,67,0.08)', color: 'rgba(60,60,67,0.5)' },
-  '적합':   { bg: 'rgba(52,199,89,0.12)', color: '#34C759' },
-  '부적합': { bg: 'rgba(255,59,48,0.1)', color: '#FF3B30' },
-  '재요청': { bg: 'rgba(255,159,10,0.12)', color: '#FF9500' },
+  '미검토': { bg: '#F0F0F0', color: '#888' },
+  '적합':   { bg: '#D4F5DF', color: '#1A8C3A' },
+  '부적합': { bg: '#FFE0DE', color: '#CC2200' },
+  '재요청': { bg: '#FFF0D4', color: '#CC7000' },
 };
+
+function StatusBadge({ status }: { status?: Status }) {
+  const s = status ?? '미검토';
+  return (
+    <span style={{ fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 20, background: STATUS_STYLE[s].bg, color: STATUS_STYLE[s].color, whiteSpace: 'nowrap' as const }}>
+      {s}
+    </span>
+  );
+}
 
 export default function AdminScreeningPage() {
   const [password, setPassword] = useState('');
@@ -96,15 +105,6 @@ export default function AdminScreeningPage() {
 
   const fmtDate = (r: Result) =>
     r.createdAt ? new Date(r.createdAt.seconds * 1000).toLocaleDateString('ko-KR') : '-';
-
-  const StatusBadge = ({ status }: { status?: Status }) => {
-    const s = status ?? '미검토';
-    return (
-      <span style={{ fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 20, ...STATUS_STYLE[s] }}>
-        {s}
-      </span>
-    );
-  };
 
   if (!authed) return (
     <div style={{ minHeight: '100vh', background: '#F2F2F7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: font }}>

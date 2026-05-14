@@ -109,11 +109,112 @@ export default function ScreeningPage() {
   const [error, setError] = useState('');
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const faceLandmarkerRef = useRef<any>(null);
+  const animFrameRef = useRef<number>(0);
 
   const goBack = () => { const p = prevStep[step]; if (p) setStep(p); };
+
+  // MediaPipe 로드
+  const loadFaceLandmarker = useCallback(async () => {
+    if (faceLandmarkerRef.current) return;
+    try {
+      const { FaceLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
+      const filesetResolver = await FilesetResolver.forVisionTasks(
+        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm'
+      );
+      faceLandmarkerRef.current = await FaceLandmarker.createFromOptions(filesetResolver, {
+        baseOptions: { modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task' },
+        outputFaceBlendshapes: false, runningMode: 'VIDEO', numFaces: 1,
+      });
+    } catch (e) { console.warn('MediaPipe 로드 실패, blur fallback 사용'); }
+  }, []);
+
+  // 캔버스 드로우 루프 (모자이크 + 눈 영역)
+  const drawLoop = useCallback(() => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas || video.readyState < 2) {
+      animFrameRef.current = requestAnimationFrame(drawLoop);
+      return;
+    }
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const W = video.videoWidth || 640;
+    const H = video.videoHeight || 480;
+    if (canvas.width !== W) canvas.width = W;
+    if (canvas.height !== H) canvas.height = H;
+
+    // 모자이크: 축소 후 확대 (픽셀화)
+    const BLOCK = 16;
+    const sw = Math.floor(W / BLOCK);
+    const sh = Math.floor(H / BLOCK);
+    const off = document.createElement('canvas');
+    off.width = sw; off.height = sh;
+    const offCtx = off.getContext('2d')!;
+    offCtx.drawImage(video, 0, 0, sw, sh);
+    ctx.save();
+    ctx.translate(W, 0); ctx.scale(-1, 1); // 좌우 반전
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(off, 0, 0, W, H);
+    ctx.restore();
+
+    // 눈 영역 감지 및 선명 표시
+    const fl = faceLandmarkerRef.current;
+    if (fl) {
+      try {
+        const results = fl.detectForVideo(video, performance.now());
+        if (results.faceLandmarks?.length > 0) {
+          const lms = results.faceLandmarks[0];
+          // 눈+눈썹 랜드마크 (미러 적용: x → 1-x)
+          const EYE_IDX = [33,133,159,145,246,161,160,158,157,173,155,154,153,144,163,7,
+                           362,263,386,374,466,388,387,385,384,398,382,381,380,373,390,249,
+                           70,63,105,66,107,336,296,334,293,300];
+          const xs = EYE_IDX.map(i => (1 - lms[i].x) * W);
+          const ys = EYE_IDX.map(i => lms[i].y * H);
+          const pad = 32;
+          const x1 = Math.max(0, Math.min(...xs) - pad);
+          const y1 = Math.max(0, Math.min(...ys) - pad);
+          const x2 = Math.min(W, Math.max(...xs) + pad);
+          const y2 = Math.min(H, Math.max(...ys) + pad);
+
+          // 눈 영역만 선명하게
+          ctx.save();
+          ctx.beginPath();
+          ctx.roundRect(x1, y1, x2 - x1, y2 - y1, 14);
+          ctx.clip();
+          ctx.translate(W, 0); ctx.scale(-1, 1);
+          ctx.imageSmoothingEnabled = true;
+          ctx.drawImage(video, 0, 0, W, H);
+          ctx.restore();
+
+          // 흰 테두리
+          ctx.strokeStyle = 'rgba(255,255,255,0.65)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.roundRect(x1, y1, x2 - x1, y2 - y1, 14);
+          ctx.stroke();
+        }
+      } catch { /* 감지 실패 무시 */ }
+    }
+
+    animFrameRef.current = requestAnimationFrame(drawLoop);
+  }, []);
+
+  // 카메라/녹화 단계 진입 시 MediaPipe 로드 + 드로우 루프 시작
+  useEffect(() => {
+    if (step !== 'camera' && step !== 'recording') {
+      cancelAnimationFrame(animFrameRef.current);
+      return;
+    }
+    loadFaceLandmarker();
+    animFrameRef.current = requestAnimationFrame(drawLoop);
+    return () => cancelAnimationFrame(animFrameRef.current);
+  }, [step, drawLoop, loadFaceLandmarker]);;
 
   const speak = useCallback((text: string): Promise<void> => new Promise(resolve => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return resolve();
@@ -419,8 +520,8 @@ export default function ScreeningPage() {
   if (step === 'camera') return (
     <div style={{ minHeight: '100svh', background: '#000', fontFamily: font, display: 'flex', flexDirection: 'column' }}>
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-        <video ref={videoRef} playsInline muted
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'blur(22px)', transform: 'scaleX(-1) scale(1.12)' }} />
+        <video ref={videoRef} playsInline muted style={{ display: 'none' }} />
+        <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '0 24px 32px' }}>
           <p style={{ fontSize: 26, fontWeight: 700, color: '#fff', letterSpacing: '-0.3px', marginBottom: 8 }}>카메라를 설정해주세요</p>
           <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.7)', marginBottom: 8, lineHeight: 1.6 }}>환우의 얼굴이 카메라 정면을 향하도록 기기를 놓아주세요.</p>
@@ -436,8 +537,8 @@ export default function ScreeningPage() {
   if (step === 'recording') return (
     <div style={{ minHeight: '100svh', background: '#000', fontFamily: font, display: 'flex', flexDirection: 'column' }}>
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-        <video ref={videoRef} playsInline muted
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'blur(22px)', transform: 'scaleX(-1) scale(1.12)' }} />
+        <video ref={videoRef} playsInline muted style={{ display: 'none' }} />
+        <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'rgba(255,255,255,0.2)', zIndex: 2 }}>
           <div style={{ height: '100%', background: '#fff', width: `${progress}%`, transition: 'width 0.5s linear' }} />
         </div>

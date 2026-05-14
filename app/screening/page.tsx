@@ -109,128 +109,12 @@ export default function ScreeningPage() {
   const [error, setError] = useState('');
 
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const reviewVideoRef = useRef<HTMLVideoElement>(null);
-  const reviewCanvasRef = useRef<HTMLCanvasElement>(null);
-  const reviewBlobUrl = useRef<string>('');
-  const reviewAnimRef = useRef<number>(0);
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const faceLandmarkerRef = useRef<any>(null);
-  const animFrameRef = useRef<number>(0);
 
   const goBack = () => { const p = prevStep[step]; if (p) setStep(p); };
 
-  // MediaPipe 로드
-  const loadFaceLandmarker = useCallback(async () => {
-    if (faceLandmarkerRef.current) return;
-    try {
-      const { FaceLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
-      const filesetResolver = await FilesetResolver.forVisionTasks(
-        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm'
-      );
-      faceLandmarkerRef.current = await FaceLandmarker.createFromOptions(filesetResolver, {
-        baseOptions: { modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task' },
-        outputFaceBlendshapes: false, runningMode: 'VIDEO', numFaces: 1,
-      });
-    } catch (e) { console.warn('MediaPipe 로드 실패, blur fallback 사용'); }
-  }, []);
-
-  // 공통 캔버스 드로우 (모자이크 + 눈 영역)
-  const drawCanvas = useCallback((video: HTMLVideoElement, canvas: HTMLCanvasElement) => {
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    const W = video.videoWidth || 640;
-    const H = video.videoHeight || 480;
-    if (canvas.width !== W) canvas.width = W;
-    if (canvas.height !== H) canvas.height = H;
-
-    const BLOCK = 16;
-    const off = document.createElement('canvas');
-    off.width = Math.floor(W / BLOCK); off.height = Math.floor(H / BLOCK);
-    const offCtx = off.getContext('2d')!;
-    offCtx.drawImage(video, 0, 0, off.width, off.height);
-    ctx.save();
-    ctx.translate(W, 0); ctx.scale(-1, 1);
-    ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(off, 0, 0, W, H);
-    ctx.restore();
-
-    const fl = faceLandmarkerRef.current;
-    if (fl) {
-      try {
-        const results = fl.detectForVideo(video, performance.now());
-        if (results.faceLandmarks?.length > 0) {
-          const lms = results.faceLandmarks[0];
-          const EYE_IDX = [33,133,159,145,246,161,160,158,157,173,155,154,153,144,163,7,
-                           362,263,386,374,466,388,387,385,384,398,382,381,380,373,390,249,
-                           70,63,105,66,107,336,296,334,293,300];
-          const xs = EYE_IDX.map(i => (1 - lms[i].x) * W);
-          const ys = EYE_IDX.map(i => lms[i].y * H);
-          const pad = 32;
-          const x1 = Math.max(0, Math.min(...xs) - pad);
-          const y1 = Math.max(0, Math.min(...ys) - pad);
-          const x2 = Math.min(W, Math.max(...xs) + pad);
-          const y2 = Math.min(H, Math.max(...ys) + pad);
-          ctx.save();
-          ctx.beginPath();
-          ctx.roundRect(x1, y1, x2 - x1, y2 - y1, 14);
-          ctx.clip();
-          ctx.translate(W, 0); ctx.scale(-1, 1);
-          ctx.imageSmoothingEnabled = true;
-          ctx.drawImage(video, 0, 0, W, H);
-          ctx.restore();
-          ctx.strokeStyle = 'rgba(255,255,255,0.65)';
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.roundRect(x1, y1, x2 - x1, y2 - y1, 14);
-          ctx.stroke();
-        }
-      } catch { /* 감지 실패 무시 */ }
-    }
-  }, []);
-
-  const drawLoop = useCallback(() => {
-    const video = videoRef.current; const canvas = canvasRef.current;
-    if (!video || !canvas || video.readyState < 2) { animFrameRef.current = requestAnimationFrame(drawLoop); return; }
-    drawCanvas(video, canvas);
-    animFrameRef.current = requestAnimationFrame(drawLoop);
-  }, [drawCanvas]);
-
-  const reviewDrawLoop = useCallback(() => {
-    const video = reviewVideoRef.current; const canvas = reviewCanvasRef.current;
-    if (!video || !canvas || video.readyState < 2) { reviewAnimRef.current = requestAnimationFrame(reviewDrawLoop); return; }
-    drawCanvas(video, canvas);
-    reviewAnimRef.current = requestAnimationFrame(reviewDrawLoop);
-  }, [drawCanvas]);
-
-  // 카메라/녹화 단계
-  useEffect(() => {
-    if (step !== 'camera' && step !== 'recording') { cancelAnimationFrame(animFrameRef.current); return; }
-    loadFaceLandmarker();
-    animFrameRef.current = requestAnimationFrame(drawLoop);
-    return () => cancelAnimationFrame(animFrameRef.current);
-  }, [step, drawLoop, loadFaceLandmarker]);
-
-  // 리뷰 단계: 녹화 영상 재생 + 드로우 루프
-  useEffect(() => {
-    if (step !== 'review') { cancelAnimationFrame(reviewAnimRef.current); return; }
-    if (chunksRef.current.length > 0 && recordedMimeType) {
-      const blob = new Blob(chunksRef.current, { type: recordedMimeType });
-      reviewBlobUrl.current = URL.createObjectURL(blob);
-      if (reviewVideoRef.current) {
-        reviewVideoRef.current.src = reviewBlobUrl.current;
-        reviewVideoRef.current.loop = true;
-        reviewVideoRef.current.play().catch(() => {});
-      }
-    }
-    reviewAnimRef.current = requestAnimationFrame(reviewDrawLoop);
-    return () => {
-      cancelAnimationFrame(reviewAnimRef.current);
-      if (reviewBlobUrl.current) { URL.revokeObjectURL(reviewBlobUrl.current); reviewBlobUrl.current = ''; }
-    };
-  }, [step, reviewDrawLoop, recordedMimeType]);;
 
   const speak = useCallback((text: string): Promise<void> => new Promise(resolve => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return resolve();
@@ -536,8 +420,7 @@ export default function ScreeningPage() {
   if (step === 'camera') return (
     <div style={{ minHeight: '100svh', background: '#000', fontFamily: font, display: 'flex', flexDirection: 'column' }}>
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-        <video ref={videoRef} playsInline muted style={{ display: 'none' }} />
-        <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        <video ref={videoRef} playsInline muted style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'blur(22px)', transform: 'scaleX(-1) scale(1.12)' }} />
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '0 24px 32px' }}>
           <p style={{ fontSize: 26, fontWeight: 700, color: '#fff', letterSpacing: '-0.3px', marginBottom: 8 }}>카메라를 설정해주세요</p>
           <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.7)', marginBottom: 8, lineHeight: 1.6 }}>환우의 얼굴이 카메라 정면을 향하도록 기기를 놓아주세요.</p>
@@ -553,8 +436,7 @@ export default function ScreeningPage() {
   if (step === 'recording') return (
     <div style={{ minHeight: '100svh', background: '#000', fontFamily: font, display: 'flex', flexDirection: 'column' }}>
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-        <video ref={videoRef} playsInline muted style={{ display: 'none' }} />
-        <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        <video ref={videoRef} playsInline muted style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'blur(22px)', transform: 'scaleX(-1) scale(1.12)' }} />
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'rgba(255,255,255,0.2)', zIndex: 2 }}>
           <div style={{ height: '100%', background: '#fff', width: `${progress}%`, transition: 'width 0.5s linear' }} />
         </div>
@@ -594,13 +476,7 @@ export default function ScreeningPage() {
         <svg width="22" height="17" viewBox="0 0 22 17" fill="none"><path d="M1.5 8.5l6 6L20.5 1.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
       </div>
       <h1 style={{ fontSize: 28, fontWeight: 700, color: lbl, letterSpacing: '-0.4px', marginBottom: 6 }}>테스트 완료</h1>
-      <p style={{ fontSize: 15, color: lbl2, marginBottom: 16 }}>아래 정보를 확인하고 제출해주세요.</p>
-
-      {/* 녹화 영상 미리보기 (눈 영역만 선명) */}
-      <div style={{ borderRadius: 16, overflow: 'hidden', background: '#000', marginBottom: 20, aspectRatio: '4/3', position: 'relative' }}>
-        <video ref={reviewVideoRef} playsInline muted style={{ display: 'none' }} />
-        <canvas ref={reviewCanvasRef} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-      </div>
+      <p style={{ fontSize: 15, color: lbl2, marginBottom: 24 }}>아래 정보를 확인하고 제출해주세요.</p>
 
       <div style={{ background: '#fff', border: `1px solid ${sep}`, borderRadius: 14, overflow: 'hidden', marginBottom: 8 }}>
         {[['환우', form.patientName], ['보호자', form.caregiverName], ['연락처', form.caregiverContact], ['지역', form.subRegion ? `${form.region} ${form.subRegion}` : form.region]].map(([l, v], i, arr) => (
@@ -625,8 +501,9 @@ export default function ScreeningPage() {
         </div>
         <h1 style={{ fontSize: 28, fontWeight: 700, color: lbl, letterSpacing: '-0.4px', marginBottom: 12 }}>제출 완료</h1>
         <p style={{ fontSize: 17, color: lbl2, lineHeight: 1.7 }}>
-          테스트에 참여해 주셔서 감사합니다.<br />
-          모스픽 팀이 검토 후 <strong style={{ color: lbl }}>{form.caregiverContact}</strong>으로 연락드리겠습니다.
+          테스트에 참여해 주셔서 감사합니다.<br /><br />
+          모스픽 팀에서 영상을 확인한 후 <strong style={{ color: lbl }}>{form.caregiverContact}</strong>으로 연락드리겠습니다.<br />
+          평균 <strong style={{ color: lbl }}>1~2일 이내</strong>에 안내 문자를 보내드리며, 경우에 따라 재요청을 드릴 수 있습니다.
         </p>
         <p style={{ fontSize: 14, color: 'rgba(60,60,67,0.35)', marginTop: 20 }}>창을 닫으셔도 됩니다.</p>
       </div>

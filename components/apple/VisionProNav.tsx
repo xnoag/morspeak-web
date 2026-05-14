@@ -64,7 +64,7 @@ export default function VisionProNav() {
           onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.05)')}
           onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
         >
-          <Image src="/morspeak-logo2.svg" alt="Morspeak" width={129} height={36} priority />
+          <Image src="/morspeak-logo2.png" alt="Morspeak" width={129} height={36} priority />
         </a>
 
         <div />

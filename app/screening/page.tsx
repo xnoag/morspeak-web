@@ -12,11 +12,10 @@ interface FormData {
   caregiverContact: string;
   region: string;
   communicationMethod: string;
-  note: string;
 }
 
 const REGIONS = ['서울', '경기', '인천', '부산', '대구', '대전', '광주', '울산', '세종', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주'];
-const COMM_METHODS = ['말로 의사소통', '눈동자 판서판', '보완대체의사소통(AAC)', '기타 보조기기', '소통이 어려운 상태'];
+const COMM_METHODS = ['추측', '직접 의사소통', '글자판', '안구마우스', '소통이 어려운 상태'];
 
 const SEQUENCE: { text: string; duration: number; beep?: boolean }[] = [
   { text: '시작합니다.', duration: 3000 },
@@ -71,7 +70,7 @@ function Check({ checked }: { checked: boolean }) {
 
 export default function ScreeningPage() {
   const [step, setStep] = useState<Step>('intro');
-  const [form, setForm] = useState<FormData>({ patientName: '', caregiverName: '', caregiverContact: '', region: '', communicationMethod: '', note: '' });
+  const [form, setForm] = useState<FormData>({ patientName: '', caregiverName: '', caregiverContact: '', region: '', communicationMethod: '' });
   const [consents, setConsents] = useState({ privacy: false, video: false, marketing: false });
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [instruction, setInstruction] = useState('');
@@ -347,7 +346,7 @@ export default function ScreeningPage() {
         </div>
       </div>
 
-      {/* 선택 정보 */}
+      {/* 소통 방법 */}
       <div style={{ background: '#fff', border: `1px solid ${sep}`, borderRadius: 20, overflow: 'hidden', marginBottom: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px' }}>
           <label style={{ fontSize: 15, color: lbl2, width: 96, flexShrink: 0 }}>소통 방법</label>
@@ -356,12 +355,6 @@ export default function ScreeningPage() {
             <option value="">선택 (선택사항)</option>
             {COMM_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
-        </div>
-        <div style={{ height: 1, background: sep, margin: '0 16px' }} />
-        <div style={{ padding: '4px 0' }}>
-          <textarea placeholder="메모 (선택사항)" value={form.note}
-            onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
-            style={{ width: '100%', border: 'none', outline: 'none', fontSize: 16, color: lbl, padding: '11px 16px', background: 'transparent', fontFamily: font, resize: 'none' as const, minHeight: 72, boxSizing: 'border-box' as const }} />
         </div>
       </div>
     </Layout>

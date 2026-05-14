@@ -169,7 +169,7 @@ export default function ScreeningPage() {
   const isFormValid = !!(form.patientName && form.caregiverName && form.caregiverContact && form.region);
   const primaryBtn = (disabled?: boolean): React.CSSProperties => ({ padding: '16px', borderRadius: 14, border: 'none', background: disabled ? 'rgba(60,60,67,0.12)' : blue, color: disabled ? lbl2 : '#fff', fontSize: 17, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: font });
   const prevBtn: React.CSSProperties = { padding: '16px 20px', borderRadius: 14, border: `1.5px solid ${sep}`, background: '#fff', color: lbl2, fontSize: 17, fontWeight: 500, cursor: 'pointer', fontFamily: font };
-  const inputStyle: React.CSSProperties = { width: '100%', padding: '14px 16px', border: `1px solid ${sep}`, borderRadius: 12, fontSize: 17, color: lbl, outline: 'none', background: '#fff', boxSizing: 'border-box', fontFamily: font };
+  const inputStyle: React.CSSProperties = { width: '100%', padding: '14px 18px', border: `1px solid ${sep}`, borderRadius: 980, fontSize: 17, color: lbl, outline: 'none', background: '#fff', boxSizing: 'border-box', fontFamily: font };
 
   // ── INTRO ─────────────────────────────────────────────────────
   if (step === 'intro') return (
@@ -345,7 +345,7 @@ export default function ScreeningPage() {
         <label style={{ display: 'block', fontSize: 14, fontWeight: 500, color: lbl2, marginBottom: 6 }}>메모 (선택)</label>
         <textarea placeholder="특이사항이 있으면 적어주세요" value={form.note}
           onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
-          style={{ ...inputStyle, minHeight: 80, resize: 'none' as const }} />
+          style={{ ...inputStyle, minHeight: 80, resize: 'none' as const, borderRadius: 20 }} />
       </div>
     </Layout>
   );

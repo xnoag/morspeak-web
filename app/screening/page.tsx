@@ -221,7 +221,7 @@ export default function ScreeningPage() {
     <div style={{ minHeight: '100svh', background: '#fff', fontFamily: font, display: 'flex', flexDirection: 'column' }}>
       <div style={{ flex: 1, padding: '64px 28px 0', maxWidth: 480, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
         <Image src="/morspeak-logo2.svg" alt="Morspeak" width={148} height={42} priority style={{ marginBottom: 40 }} />
-        <h1 style={{ fontSize: 32, fontWeight: 700, color: lbl, letterSpacing: '-0.5px', marginBottom: 16 }}>눈 깜빡임 테스트</h1>
+        <h1 style={{ fontSize: 32, fontWeight: 700, color: lbl, letterSpacing: '-0.5px', marginBottom: 16 }}>모스픽 사용 적합성 검사</h1>
         <p style={{ fontSize: 17, color: lbl2, lineHeight: 1.7 }}>
           모스픽 앱 사용 가능 여부를 원격으로 확인합니다.<br />카메라로 짧은 영상이 녹화되며, 모스픽 팀 외에는 공유되지 않습니다.
         </p>
@@ -248,7 +248,7 @@ export default function ScreeningPage() {
           ['보유 기간', '평가 완료 후 1년, 이후 즉시 파기'],
           ['제3자 제공', '없음'],
         ],
-        fullText: `모스픽(이하 "회사")은 눈 깜빡임 테스트 서비스 제공을 위해 아래와 같이 개인정보를 수집·이용합니다.\n\n수집하는 개인정보 항목은 환우 이름, 보호자 이름, 보호자 연락처, 거주 지역, 현재 소통 방법, 메모이며, 이는 모스픽 앱 적합성 평가 및 결과 안내 연락 목적으로만 활용됩니다.\n\n수집된 개인정보는 평가 완료 후 1년간 보관되며, 보유 기간 만료 시 즉시 파기됩니다. 제3자 제공 및 처리 위탁은 없습니다.\n\n귀하는 개인정보 수집·이용에 동의하지 않으실 권리가 있으나, 동의하지 않으실 경우 테스트 참여가 어렵습니다. 수집된 개인정보에 대한 열람, 정정, 삭제, 처리 정지 요청은 hello@morspeak.com으로 연락해주세요.`,
+        fullText: `모스픽(이하 "회사")은 모스픽 사용 적합성 검사 서비스 제공을 위해 아래와 같이 개인정보를 수집·이용합니다.\n\n수집하는 개인정보 항목은 환우 이름, 보호자 이름, 보호자 연락처, 거주 지역, 현재 소통 방법, 메모이며, 이는 모스픽 앱 적합성 평가 및 결과 안내 연락 목적으로만 활용됩니다.\n\n수집된 개인정보는 평가 완료 후 1년간 보관되며, 보유 기간 만료 시 즉시 파기됩니다. 제3자 제공 및 처리 위탁은 없습니다.\n\n귀하는 개인정보 수집·이용에 동의하지 않으실 권리가 있으나, 동의하지 않으실 경우 테스트 참여가 어렵습니다. 수집된 개인정보에 대한 열람, 정정, 삭제, 처리 정지 요청은 hello@morspeak.com으로 연락해주세요.`,
       },
       {
         key: 'video' as const, required: true, title: '영상 수집·이용 동의',

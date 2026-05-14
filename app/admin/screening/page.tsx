@@ -130,7 +130,7 @@ export default function AdminScreeningPage() {
       <div style={{ background: '#fff', borderBottom: '1px solid rgba(60,60,67,0.12)', padding: '20px 24px', position: 'sticky', top: 0, zIndex: 10 }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
           <div>
-            <h1 style={{ fontSize: 20, fontWeight: 700, color: '#000', marginBottom: 2 }}>눈 깜빡임 테스트 결과</h1>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: '#000', marginBottom: 2 }}>모스픽 사용 적합성 검사 결과</h1>
             <p style={{ fontSize: 13, color: 'rgba(60,60,67,0.6)' }}>
               총 {results.length}명 &nbsp;·&nbsp;
               적합 {results.filter(r => r.status === '적합').length} &nbsp;·&nbsp;

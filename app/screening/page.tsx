@@ -259,11 +259,15 @@ export default function ScreeningPage() {
             {/* 타이틀 + 체크 */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', cursor: 'pointer' }}
               onClick={() => setConsents(c => ({ ...c, [item.key]: !c[item.key] }))}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' as const }}>
                 <span style={{ fontSize: 16, fontWeight: 600, color: lbl }}>{item.title}</span>
                 <span style={{ fontSize: 11, fontWeight: 600, color: item.required ? red : lbl2, background: item.required ? 'rgba(255,59,48,0.1)' : 'rgba(60,60,67,0.08)', padding: '2px 7px', borderRadius: 20 }}>
                   {item.required ? '필수' : '선택'}
                 </span>
+                <button onClick={e => { e.stopPropagation(); setExpanded(ex => ({ ...ex, [item.key]: !ex[item.key] })); }}
+                  style={{ fontSize: 11, fontWeight: 600, color: 'rgba(60,60,67,0.45)', background: 'rgba(60,60,67,0.07)', padding: '2px 7px', borderRadius: 20, border: 'none', cursor: 'pointer', fontFamily: font }}>
+                  {expanded[item.key] ? '접기' : '전체 보기'}
+                </button>
               </div>
               <Check checked={consents[item.key]} />
             </div>
@@ -278,13 +282,7 @@ export default function ScreeningPage() {
               ))}
             </div>
 
-            {/* 전체 보기 버튼 — 색상 없는 작은 버튼 */}
-            <div style={{ borderTop: `1px solid ${sep}`, padding: '10px 16px' }}>
-              <button onClick={() => setExpanded(e => ({ ...e, [item.key]: !e[item.key] }))}
-                style={{ background: 'none', border: `1px solid ${sep}`, borderRadius: 8, cursor: 'pointer', fontSize: 12, color: lbl2, padding: '4px 10px', fontFamily: font }}>
-                {expanded[item.key] ? '접기' : '전체 보기'}
-              </button>
-            </div>
+
 
             {/* 전체 안내 텍스트 — 펼쳤을 때만 표시 */}
             {expanded[item.key] && (

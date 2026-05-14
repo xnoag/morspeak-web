@@ -49,16 +49,6 @@ function Layout({ children, footer, onBack }: { children: React.ReactNode; foote
   return (
     <div style={{ minHeight: '100svh', background: bg, fontFamily: font, display: 'flex', flexDirection: 'column' }}>
       {/* 상단 뒤로가기 */}
-      {onBack && (
-        <div style={{ position: 'sticky', top: 0, zIndex: 10, background: bg, padding: '16px 20px 0' }}>
-          <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', color: blue, fontSize: 17, fontFamily: font, padding: 0 }}>
-            <svg width="10" height="17" viewBox="0 0 10 17" fill="none">
-              <path d="M9 1L1.5 8.5L9 16" stroke={blue} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            뒤로
-          </button>
-        </div>
-      )}
       {/* 스크롤 콘텐츠 */}
       <div style={{ flex: 1, overflowY: 'auto', padding: onBack ? '20px 20px 0' : '52px 20px 0', maxWidth: 520, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
         {children}
@@ -361,11 +351,6 @@ export default function ScreeningPage() {
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
         <video ref={videoRef} playsInline muted
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'blur(22px)', transform: 'scaleX(-1) scale(1.12)' }} />
-        {/* 뒤로 버튼 */}
-        <button onClick={goBack} style={{ position: 'absolute', top: 20, left: 20, zIndex: 2, background: 'rgba(0,0,0,0.4)', border: 'none', borderRadius: 20, padding: '6px 14px', color: '#fff', fontSize: 15, cursor: 'pointer', fontFamily: font, display: 'flex', alignItems: 'center', gap: 4 }}>
-          <svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7L7 13" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          뒤로
-        </button>
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '0 24px 32px' }}>
           <p style={{ fontSize: 26, fontWeight: 700, color: '#fff', letterSpacing: '-0.3px', marginBottom: 8 }}>카메라를 설정해주세요</p>
           <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.7)', marginBottom: 8, lineHeight: 1.6 }}>환자의 얼굴이 카메라 정면을 향하도록 기기를 놓아주세요.</p>

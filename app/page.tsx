@@ -126,6 +126,8 @@ export default function HomePage() {
         />
 
         <FullscreenVideoSection
+          eyebrow="환우를 위한"
+          headline={"몸은 멈춰도,\n일상은 멈추지 않도록."}
           heroVideo={`${VID25KR}/productivity_a/large.mp4`}
           heroImage={`${IMG}/experiences/productivity/productivity_a_startframe__b78h8iwbcw76_large.jpg`}
           body="Apple Vision Pro는 당신이 최고의 작업을 해낼 수 있도록 무한한 공간을 제공합니다. Mac의 워크플로를 거대한 화면에 펼쳐 확인하는 것은 물론 여러 앱을 자유롭게 오가며 멀티태스킹하고, 원하는 방식으로 정리할 수도 있습니다.⁸"

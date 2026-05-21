@@ -27,8 +27,8 @@ interface Result {
   deviceType: string | null;
   status?: Status;
   createdAt: { seconds: number } | null;
-  blinkLog?: BlinkAttempt[];
-  skippedSteps?: string[];
+  blinkLog?: BlinkAttempt[] | null;
+  skippedSteps?: string[] | null;
 }
 
 const ADMIN_PW = 'Hgo3575425*';
@@ -308,7 +308,7 @@ export default function AdminScreeningPage() {
                             <td style={{ padding: '7px 12px', color: 'rgba(60,60,67,0.4)' }}>{i + 1}</td>
                             <td style={{ padding: '7px 12px', fontWeight: 500, color: '#1C1C1E' }}>{STEP_LABEL[a.step] ?? a.step}</td>
                             <td style={{ padding: '7px 12px', color: 'rgba(60,60,67,0.6)' }}>{a.attempt}</td>
-                            <td style={{ padding: '7px 12px', color: '#1C1C1E', fontVariantNumeric: 'tabular-nums' }}>{a.duration.toFixed(3)}s</td>
+                            <td style={{ padding: '7px 12px', color: '#1C1C1E', fontVariantNumeric: 'tabular-nums' }}>{typeof a.duration === 'number' ? a.duration.toFixed(3) : '-'}s</td>
                             <td style={{ padding: '7px 12px', color: 'rgba(60,60,67,0.5)' }}>{a.patternIndex != null ? a.patternIndex + 1 : '-'}</td>
                             <td style={{ padding: '7px 12px', color: 'rgba(60,60,67,0.5)' }}>{a.expected ? (STEP_LABEL[a.expected] ?? a.expected) : '-'}</td>
                             <td style={{ padding: '7px 12px' }}>

@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import Image from 'next/image';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
+import BlinkDetect, { BlinkProfile } from './BlinkDetect';
 
-type Step = 'intro' | 'consent' | 'form' | 'camera' | 'recording' | 'review' | 'complete';
+type Step = 'intro' | 'consent' | 'form' | 'detect' | 'complete';
 
 interface FormData {
   patientName: string;
@@ -48,42 +48,24 @@ const formatPhone = (value: string) => {
   return `${d.slice(0,3)}-${d.slice(3,7)}-${d.slice(7)}`;
 };
 
-const SEQUENCE: { text: string; duration: number; beep?: boolean }[] = [
-  { text: '카메라를 보고 신호에 맞춰서 눈을 감아주시면 됩니다.', duration: 5000 },
-  { text: '눈을 감아주세요.', duration: 3500, beep: true },
-  { text: '눈을 떠주세요.', duration: 3500 },
-  { text: '눈을 감아주세요.', duration: 3500, beep: true },
-  { text: '눈을 떠주세요.', duration: 3500 },
-  { text: '눈을 감아주세요.', duration: 3500, beep: true },
-  { text: '눈을 떠주세요.', duration: 3500 },
-  { text: '완료되었습니다.', duration: 2500 },
-];
-const TOTAL_DURATION = SEQUENCE.reduce((s, x) => s + x.duration, 0);
-
 const font = '-apple-system, "SF Pro Display", "SF Pro Text", BlinkMacSystemFont, "Helvetica Neue", sans-serif';
 const blue = '#1C1C1E';
 const green = '#3A3A3C';
-const red = 'rgba(60,60,67,0.5)';
 const lbl = '#000';
 const lbl2 = 'rgba(60,60,67,0.6)';
 const sep = 'rgba(60,60,67,0.18)';
 const bg = '#F2F2F7';
 
-// 이전 단계 맵
-const prevStep: Partial<Record<Step, Step>> = {
-  consent: 'intro', form: 'consent', camera: 'form', review: 'camera',
+const prevStepMap: Partial<Record<Step, Step>> = {
+  consent: 'intro', form: 'consent', detect: 'form',
 };
 
-// 레이아웃: 스크롤 영역 + 하단 고정 버튼
 function Layout({ children, footer, onBack }: { children: React.ReactNode; footer: React.ReactNode; onBack?: () => void }) {
   return (
     <div style={{ minHeight: '100svh', background: bg, fontFamily: font, display: 'flex', flexDirection: 'column' }}>
-      {/* 상단 뒤로가기 */}
-      {/* 스크롤 콘텐츠 */}
       <div style={{ flex: 1, overflowY: 'auto', padding: onBack ? '20px 20px 0' : '52px 20px 0', maxWidth: 520, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
         {children}
       </div>
-      {/* 고정 하단 버튼 */}
       <div style={{ position: 'sticky', bottom: 0, background: bg, padding: '16px 20px 32px', maxWidth: 520, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
         {footer}
       </div>
@@ -104,92 +86,15 @@ export default function ScreeningPage() {
   const [form, setForm] = useState<FormData>({ patientName: '', caregiverName: '', caregiverContact: '', region: '', subRegion: '', communicationMethod: '', communicationMethodOther: '' });
   const [consents, setConsents] = useState({ privacy: false, video: false, marketing: false });
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [instruction, setInstruction] = useState('');
-  const [progress, setProgress] = useState(0);
-  const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [recordedMimeType, setRecordedMimeType] = useState('');
-  const [error, setError] = useState('');
+  const [submitError, setSubmitError] = useState('');
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const recorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
+  const goBack = () => { const p = prevStepMap[step]; if (p) setStep(p); };
 
-  const goBack = () => { const p = prevStep[step]; if (p) setStep(p); };
-
-
-  const speak = useCallback((text: string): Promise<void> => new Promise(resolve => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return resolve();
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'ko-KR'; u.rate = 0.85;
-    u.onend = () => resolve(); u.onerror = () => resolve();
-    window.speechSynthesis.speak(u);
-  }), []);
-
-  const playBeep = useCallback(() => {
-    try {
-      const ctx = new AudioContext();
-      const osc = ctx.createOscillator(); const gain = ctx.createGain();
-      osc.connect(gain); gain.connect(ctx.destination);
-      osc.frequency.value = 880;
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-      osc.start(); osc.stop(ctx.currentTime + 0.4);
-    } catch {}
-  }, []);
-
-  const startCamera = useCallback(async () => {
-    setError('');
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
-      streamRef.current = stream;
-      if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play(); }
-      setStep('camera');
-    } catch { setError('카메라 접근이 거부되었습니다. 설정에서 카메라 권한을 허용해주세요.'); }
-  }, []);
-
-  useEffect(() => {
-    if ((step === 'camera' || step === 'recording') && videoRef.current && streamRef.current) {
-      videoRef.current.srcObject = streamRef.current;
-      videoRef.current.play().catch(() => {});
-    }
-  }, [step]);
-
-  useEffect(() => () => { streamRef.current?.getTracks().forEach(t => t.stop()); }, []);
-
-  const startRecording = useCallback(async () => {
-    const stream = streamRef.current; if (!stream) return;
-    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : MediaRecorder.isTypeSupported('video/webm') ? 'video/webm' : 'video/mp4';
-    const recorder = new MediaRecorder(stream, { mimeType });
-    recorderRef.current = recorder; chunksRef.current = [];
-    recorder.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
-    setRecordedMimeType(mimeType); recorder.start(1000); setIsRecording(true); setStep('recording');
-    const startTime = Date.now();
-    for (const item of SEQUENCE) {
-      setInstruction(item.text); if (item.beep) playBeep(); await speak(item.text);
-      const expected = SEQUENCE.slice(0, SEQUENCE.indexOf(item) + 1).reduce((s, x) => s + x.duration, 0);
-      const remaining = expected - (Date.now() - startTime);
-      if (remaining > 0) await new Promise(r => setTimeout(r, remaining));
-      setProgress(Math.min(100, Math.round((Date.now() - startTime) / TOTAL_DURATION * 100)));
-    }
-    recorder.stop(); setIsRecording(false); setProgress(100);
-    await new Promise<void>(resolve => { recorder.onstop = () => resolve(); setTimeout(resolve, 1000); });
-    setStep('review');
-  }, [speak, playBeep]);
-
-  const submitResult = useCallback(async () => {
+  const handleDetectComplete = useCallback(async (profile: BlinkProfile) => {
     setIsUploading(true);
+    setSubmitError('');
     try {
-      // 영상 Firebase Storage 업로드
-      const blob = new Blob(chunksRef.current, { type: recordedMimeType });
-      const ext = recordedMimeType.includes('mp4') ? 'mp4' : 'webm';
-      const storageRef = ref(storage, `screening/${Date.now()}_${form.patientName.replace(/\s/g, '_')}.${ext}`);
-      await uploadBytes(storageRef, blob);
-      const videoUrl = await getDownloadURL(storageRef);
-
-      // Firestore 저장
       const deviceType = /Mobi|Android/i.test(navigator.userAgent) ? 'mobile' : /Tablet|iPad/i.test(navigator.userAgent) ? 'tablet' : 'desktop';
       await addDoc(collection(db, 'screening_results'), {
         patientName: form.patientName,
@@ -198,23 +103,27 @@ export default function ScreeningPage() {
         region: form.region,
         subRegion: form.subRegion ?? '',
         communicationMethod: form.communicationMethod === '기타' ? `기타: ${form.communicationMethodOther}` : (form.communicationMethod ?? ''),
-        videoUrl,
+        passed: true,
+        dotDashBoundary: profile.boundary,
+        shortDurations: profile.shortDurations,
+        longDurations: profile.longDurations,
         deviceType,
         createdAt: serverTimestamp(),
       });
-
-      streamRef.current?.getTracks().forEach(t => t.stop());
       setStep('complete');
-    } catch (e) { console.error(e); setError('제출 중 오류가 발생했습니다.'); }
-    finally { setIsUploading(false); }
-  }, [form, recordedMimeType]);
+    } catch (e) {
+      console.error(e);
+      setSubmitError('저장 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setIsUploading(false);
+    }
+  }, [form]);
 
   const needsSubRegion = form.region && SUB_REGIONS[form.region]?.length > 1;
   const commValid = form.communicationMethod && (form.communicationMethod !== '기타' || form.communicationMethodOther.trim());
   const isFormValid = !!(form.patientName && form.caregiverName && form.caregiverContact.length === 13 && form.region && (!needsSubRegion || form.subRegion) && commValid);
   const primaryBtn = (disabled?: boolean): React.CSSProperties => ({ padding: '16px', borderRadius: 980, border: 'none', background: disabled ? 'rgba(60,60,67,0.12)' : blue, color: disabled ? lbl2 : '#fff', fontSize: 17, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: font });
   const prevBtn: React.CSSProperties = { padding: '16px 20px', borderRadius: 980, border: `1.5px solid ${sep}`, background: '#fff', color: lbl2, fontSize: 17, fontWeight: 500, cursor: 'pointer', fontFamily: font };
-  const inputStyle: React.CSSProperties = { width: '100%', padding: '14px 18px', border: `1px solid ${sep}`, borderRadius: 980, fontSize: 17, color: lbl, outline: 'none', background: '#fff', boxSizing: 'border-box', fontFamily: font };
 
   // ── INTRO ─────────────────────────────────────────────────────
   if (step === 'intro') return (
@@ -226,7 +135,7 @@ export default function ScreeningPage() {
           모스픽을 활용하려면 눈 깜빡임이 원활해야 합니다. 짧은 테스트 후 사용 가능 여부를 안내해드릴게요.
         </p>
         <p style={{ fontSize: 14, color: lbl2, marginTop: 12 }}>약 3분 소요</p>
-        <p style={{ fontSize: 14, color: lbl2, marginTop: 6 }}>영상은 모스픽 내부에서만 확인합니다.</p>
+        <p style={{ fontSize: 14, color: lbl2, marginTop: 6 }}>카메라로 눈 깜빡임을 실시간 감지합니다.</p>
       </div>
       <div style={{ padding: '16px 28px 36px', maxWidth: 480, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
         <button style={{ ...primaryBtn(), borderRadius: 980, width: '100%' }} onClick={() => setStep('consent')}>시작하기</button>
@@ -244,22 +153,22 @@ export default function ScreeningPage() {
       {
         key: 'privacy' as const, required: true, title: '개인정보 수집·이용 동의',
         rows: [
-          ['수집 항목', '환우 이름, 보호자 이름·연락처, 거주 지역, 소통 방법, 메모'],
+          ['수집 항목', '환우 이름, 보호자 이름·연락처, 거주 지역, 소통 방법'],
           ['수집 목적', '모스픽 앱 적합성 평가 및 결과 안내'],
           ['보유 기간', '평가 완료 후 1년, 이후 즉시 파기'],
           ['제3자 제공', '없음'],
         ],
-        fullText: `모스픽(이하 "회사")은 모스픽 사용 적합성 검사 서비스 제공을 위해 아래와 같이 개인정보를 수집·이용합니다.\n\n수집하는 개인정보 항목은 환우 이름, 보호자 이름, 보호자 연락처, 거주 지역, 현재 소통 방법, 메모이며, 이는 모스픽 앱 적합성 평가 및 결과 안내 연락 목적으로만 활용됩니다.\n\n수집된 개인정보는 평가 완료 후 1년간 보관되며, 보유 기간 만료 시 즉시 파기됩니다. 제3자 제공 및 처리 위탁은 없습니다.\n\n귀하는 개인정보 수집·이용에 동의하지 않으실 권리가 있으나, 동의하지 않으실 경우 테스트 참여가 어렵습니다. 수집된 개인정보에 대한 열람, 정정, 삭제, 처리 정지 요청은 hello@morspeak.com으로 연락해주세요.`,
+        fullText: `모스픽(이하 "회사")은 모스픽 사용 적합성 검사 서비스 제공을 위해 아래와 같이 개인정보를 수집·이용합니다.\n\n수집하는 개인정보 항목은 환우 이름, 보호자 이름, 보호자 연락처, 거주 지역, 현재 소통 방법이며, 이는 모스픽 앱 적합성 평가 및 결과 안내 연락 목적으로만 활용됩니다.\n\n수집된 개인정보는 평가 완료 후 1년간 보관되며, 보유 기간 만료 시 즉시 파기됩니다. 제3자 제공 및 처리 위탁은 없습니다.\n\n귀하는 개인정보 수집·이용에 동의하지 않으실 권리가 있으나, 동의하지 않으실 경우 테스트 참여가 어렵습니다. 문의는 hello@morspeak.com으로 연락해주세요.`,
       },
       {
-        key: 'video' as const, required: true, title: '영상 수집·이용 동의',
+        key: 'video' as const, required: true, title: '카메라 및 눈 깜빡임 데이터 수집 동의',
         rows: [
-          ['수집 항목', '얼굴이 포함된 눈 깜빡임 영상 (약 30초)'],
-          ['수집 목적', '모스픽 팀의 앱 사용 가능 여부 평가'],
+          ['수집 항목', '카메라 영상 및 눈 깜빡임 측정값 (실시간 처리)'],
+          ['수집 목적', '눈 깜빡임 패턴 분석을 통한 모스픽 사용 가능 여부 평가'],
           ['보유 기간', '평가 완료 후 1년, 이후 즉시 삭제'],
           ['제3자 제공', '없음'],
         ],
-        fullText: `본 테스트 과정에서 환우의 얼굴이 포함된 눈 깜빡임 영상(약 30초)이 녹화됩니다. 녹화된 영상은 모스픽 앱 사용 가능 여부를 판단하기 위한 목적으로만 활용되며, 모스픽 내부 담당자 외에는 접근이 불가합니다.\n\n영상은 암호화된 클라우드 스토리지에 안전하게 저장되며, 평가 완료 후 1년이 경과하면 즉시 삭제됩니다. 제3자 제공은 없습니다.\n\n화면에는 흐린 처리된 영상만 표시되며, 실제 녹화 파일은 서버에 안전하게 저장됩니다. 영상 삭제를 원하시는 경우 hello@morspeak.com으로 연락해주시면 즉시 처리해드립니다.`,
+        fullText: `본 테스트 과정에서 카메라를 통해 환우의 눈 깜빡임을 실시간으로 감지합니다. 영상 자체는 저장되지 않으며, 눈 깜빡임의 지속 시간 등 측정값만 분석에 사용됩니다.\n\n수집된 데이터는 모스픽 앱 사용 가능 여부를 판단하기 위한 목적으로만 활용되며, 모스픽 내부 담당자 외에는 접근이 불가합니다.\n\n데이터는 평가 완료 후 1년이 경과하면 즉시 삭제됩니다. 삭제를 원하시는 경우 hello@morspeak.com으로 연락해주세요.`,
       },
       {
         key: 'marketing' as const, required: false, title: '서비스 연락 동의 (선택)',
@@ -284,14 +193,12 @@ export default function ScreeningPage() {
         <h1 style={{ fontSize: 28, fontWeight: 700, color: lbl, letterSpacing: '-0.4px', marginBottom: 6 }}>동의 및 개인정보</h1>
         <p style={{ fontSize: 15, color: lbl2, marginBottom: 24 }}>테스트 진행을 위해 아래 항목을 확인해주세요.</p>
 
-        {/* 보호자 대리 동의 안내 */}
         <div style={{ background: 'rgba(60,60,67,0.05)', borderRadius: 12, padding: '12px 16px', marginBottom: 16 }}>
           <p style={{ fontSize: 13, color: lbl2, lineHeight: 1.6, margin: 0 }}>
-            환우분이 직접 동의하기 어려운 경우, <strong style={{ color: lbl }}>보호자가 환우를 대신하여 동의</strong>할 수 있습니다. 보호자는 환우의 의사를 확인한 후 동의해주세요.
+            환우분이 직접 동의하기 어려운 경우, <strong style={{ color: lbl }}>보호자가 환우를 대신하여 동의</strong>할 수 있습니다.
           </p>
         </div>
 
-        {/* 전체 동의 */}
         <button onClick={toggleAll} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', border: `1px solid ${sep}`, borderRadius: 14, padding: '15px 16px', cursor: 'pointer', marginBottom: 12, fontFamily: font }}>
           <span style={{ fontSize: 17, fontWeight: 600, color: lbl }}>전체 동의</span>
           <Check checked={allChecked} />
@@ -301,7 +208,6 @@ export default function ScreeningPage() {
 
         {items.map(item => (
           <div key={item.key} style={{ background: '#fff', border: `1px solid ${sep}`, borderRadius: 14, marginBottom: 10, overflow: 'hidden' }}>
-            {/* 타이틀 + 체크 */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', cursor: 'pointer' }}
               onClick={() => setConsents(c => ({ ...c, [item.key]: !c[item.key] }))}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' as const }}>
@@ -316,8 +222,6 @@ export default function ScreeningPage() {
               </div>
               <Check checked={consents[item.key]} />
             </div>
-
-            {/* 표 — 항상 표시 */}
             <div style={{ borderTop: `1px solid ${sep}` }}>
               {item.rows.map(([l, v], i) => (
                 <div key={l} style={{ display: 'flex', gap: 12, padding: '9px 16px', borderTop: i > 0 ? `1px solid ${sep}` : 'none', background: 'rgba(60,60,67,0.02)' }}>
@@ -326,22 +230,16 @@ export default function ScreeningPage() {
                 </div>
               ))}
             </div>
-
-
-
-            {/* 전체 안내 텍스트 — 펼쳤을 때만 표시 */}
             {expanded[item.key] && (
               <div style={{ borderTop: `1px solid ${sep}`, padding: '14px 16px', background: 'rgba(60,60,67,0.02)' }}>
-                <p style={{ fontSize: 13, color: lbl2, lineHeight: 1.7, margin: 0, whiteSpace: 'pre-line' as const }}>
-                  {item.fullText}
-                </p>
+                <p style={{ fontSize: 13, color: lbl2, lineHeight: 1.7, margin: 0, whiteSpace: 'pre-line' as const }}>{item.fullText}</p>
               </div>
             )}
           </div>
         ))}
 
         <p style={{ fontSize: 13, color: lbl2, lineHeight: 1.6, marginTop: 12, marginBottom: 8 }}>
-          필수 항목에 동의하지 않으시면 테스트에 참여하실 수 없습니다. 동의는 언제든지 철회 가능하며, 문의는 hello@morspeak.com으로 연락해주세요.
+          필수 항목에 동의하지 않으시면 테스트에 참여하실 수 없습니다. 문의는 hello@morspeak.com으로 연락해주세요.
         </p>
       </Layout>
     );
@@ -352,21 +250,16 @@ export default function ScreeningPage() {
     <Layout
       onBack={goBack}
       footer={
-        <>
-          {error && <p style={{ color: red, fontSize: 14, marginBottom: 8 }}>{error}</p>}
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button onClick={() => setStep('consent')} style={{ ...prevBtn, flexShrink: 0 }}>이전</button>
-            <button style={{ ...primaryBtn(!isFormValid), flex: 1 }} disabled={!isFormValid} onClick={startCamera}>다음</button>
-          </div>
-        </>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={() => setStep('consent')} style={{ ...prevBtn, flexShrink: 0 }}>이전</button>
+          <button style={{ ...primaryBtn(!isFormValid), flex: 1 }} disabled={!isFormValid} onClick={() => setStep('detect')}>다음</button>
+        </div>
       }
     >
       <h1 style={{ fontSize: 28, fontWeight: 700, color: lbl, letterSpacing: '-0.4px', marginBottom: 6 }}>정보 입력</h1>
       <p style={{ fontSize: 15, color: lbl2, marginBottom: 24 }}>보호자가 입력해주세요.</p>
 
-      {/* 필수 정보 — 하나의 카드로 묶기 */}
       <div style={{ background: '#fff', border: `1px solid ${sep}`, borderRadius: 20, overflow: 'hidden', marginBottom: 14 }}>
-        {/* 환우 이름 */}
         <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px' }}>
           <label style={{ fontSize: 15, color: lbl2, width: 96, flexShrink: 0 }}>환우 이름</label>
           <input type="text" placeholder="홍길동" value={form.patientName}
@@ -374,7 +267,6 @@ export default function ScreeningPage() {
             style={{ flex: 1, border: 'none', outline: 'none', fontSize: 16, color: lbl, padding: '15px 0', background: 'transparent', fontFamily: font }} />
         </div>
         <div style={{ height: 1, background: sep, margin: '0 16px' }} />
-        {/* 보호자 이름 */}
         <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px' }}>
           <label style={{ fontSize: 15, color: lbl2, width: 96, flexShrink: 0 }}>보호자 이름</label>
           <input type="text" placeholder="홍보호" value={form.caregiverName}
@@ -382,19 +274,14 @@ export default function ScreeningPage() {
             style={{ flex: 1, border: 'none', outline: 'none', fontSize: 16, color: lbl, padding: '15px 0', background: 'transparent', fontFamily: font }} />
         </div>
         <div style={{ height: 1, background: sep, margin: '0 16px' }} />
-        {/* 보호자 연락처 — 자동 하이픈 */}
         <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px' }}>
           <label style={{ fontSize: 15, color: lbl2, width: 96, flexShrink: 0 }}>연락처</label>
           <input type="tel" placeholder="010-0000-0000" value={form.caregiverContact}
-            onChange={e => {
-              const formatted = formatPhone(e.target.value);
-              setForm(f => ({ ...f, caregiverContact: formatted }));
-            }}
+            onChange={e => setForm(f => ({ ...f, caregiverContact: formatPhone(e.target.value) }))}
             maxLength={13}
             style={{ flex: 1, border: 'none', outline: 'none', fontSize: 16, color: lbl, padding: '15px 0', background: 'transparent', fontFamily: font }} />
         </div>
         <div style={{ height: 1, background: sep, margin: '0 16px' }} />
-        {/* 거주 지역 */}
         <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px' }}>
           <label style={{ fontSize: 15, color: lbl2, width: 96, flexShrink: 0 }}>거주 지역</label>
           <select value={form.region} onChange={e => setForm(f => ({ ...f, region: e.target.value, subRegion: '' }))}
@@ -403,7 +290,6 @@ export default function ScreeningPage() {
             {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
           </select>
         </div>
-        {/* 세부 지역 — 도/광역시 선택 후 표시 */}
         {form.region && SUB_REGIONS[form.region] && (
           <>
             <div style={{ height: 1, background: sep, margin: '0 16px' }} />
@@ -419,7 +305,6 @@ export default function ScreeningPage() {
         )}
       </div>
 
-      {/* 소통 방법 */}
       <div style={{ background: '#fff', border: `1px solid ${sep}`, borderRadius: 20, overflow: 'hidden', marginBottom: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px' }}>
           <label style={{ fontSize: 15, color: lbl2, width: 96, flexShrink: 0 }}>소통 방법</label>
@@ -444,78 +329,25 @@ export default function ScreeningPage() {
     </Layout>
   );
 
-  // ── CAMERA ────────────────────────────────────────────────────
-  if (step === 'camera') return (
-    <div style={{ minHeight: '100svh', background: '#000', fontFamily: font, display: 'flex', flexDirection: 'column' }}>
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-        <video ref={videoRef} playsInline muted style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'blur(22px)', transform: 'scaleX(-1) scale(1.12)' }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', padding: '0 24px 32px' }}>
-          <p style={{ fontSize: 26, fontWeight: 700, color: '#fff', letterSpacing: '-0.3px', marginBottom: 8 }}>카메라를 설정해주세요</p>
-          <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.7)', marginBottom: 8, lineHeight: 1.6 }}>환우의 얼굴이 카메라 정면을 향하도록 기기를 놓아주세요.</p>
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginBottom: 24 }}>화면은 흐리게 표시되지만 녹화는 선명하게 저장됩니다</p>
-          {error && <p style={{ color: '#FF6B6B', fontSize: 14, marginBottom: 12 }}>{error}</p>}
-          <button onClick={startRecording} style={{ width: '100%', padding: '16px', borderRadius: 980, border: 'none', background: '#fff', color: '#000', fontSize: 17, fontWeight: 600, cursor: 'pointer', fontFamily: font }}>테스트 시작</button>
+  // ── DETECT ────────────────────────────────────────────────────
+  if (step === 'detect') return (
+    <>
+      <BlinkDetect
+        onComplete={handleDetectComplete}
+        onBack={() => setStep('form')}
+      />
+      {isUploading && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: font }}>
+          <p style={{ color: '#fff', fontSize: 17, fontWeight: 600 }}>저장 중...</p>
         </div>
-      </div>
-    </div>
-  );
-
-  // ── RECORDING ─────────────────────────────────────────────────
-  if (step === 'recording') return (
-    <div style={{ minHeight: '100svh', background: '#000', fontFamily: font, display: 'flex', flexDirection: 'column' }}>
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-        <video ref={videoRef} playsInline muted style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block', filter: 'blur(22px)', transform: 'scaleX(-1) scale(1.12)' }} />
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'rgba(255,255,255,0.2)', zIndex: 2 }}>
-          <div style={{ height: '100%', background: '#fff', width: `${progress}%`, transition: 'width 0.5s linear' }} />
+      )}
+      {submitError && (
+        <div style={{ position: 'fixed', bottom: 40, left: 20, right: 20, zIndex: 9999, background: '#fff', borderRadius: 16, padding: '16px 20px', boxShadow: '0 4px 24px rgba(0,0,0,0.2)', fontFamily: font }}>
+          <p style={{ fontSize: 15, color: '#FF3B30', marginBottom: 12 }}>{submitError}</p>
+          <button onClick={() => setSubmitError('')} style={{ fontSize: 14, color: lbl2, background: 'none', border: 'none', cursor: 'pointer', fontFamily: font }}>닫기</button>
         </div>
-        {isRecording && (
-          <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 2, display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(52,199,89,0.25)', backdropFilter: 'blur(8px)', padding: '6px 14px', borderRadius: 20, border: '1px solid rgba(52,199,89,0.5)' }}>
-            <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#34C759', animation: 'blink 1s infinite' }} />
-            <span style={{ fontSize: 12, color: '#34C759', fontWeight: 600 }}>테스트 중</span>
-          </div>
-        )}
-        <div style={{ position: 'absolute', inset: 0, zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 32px' }}>
-          <p style={{ fontSize: 'clamp(36px, 9vw, 60px)', fontWeight: 700, color: '#fff', textAlign: 'center', letterSpacing: '-0.5px', textShadow: '0 2px 24px rgba(0,0,0,0.5)' }}>
-            {instruction}
-          </p>
-        </div>
-      </div>
-      <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:0.15}}`}</style>
-    </div>
-  );
-
-  // ── REVIEW ────────────────────────────────────────────────────
-  if (step === 'review') return (
-    <Layout
-      onBack={() => { chunksRef.current = []; goBack(); }}
-      footer={
-        <>
-          {error && <p style={{ color: red, fontSize: 14, marginBottom: 8 }}>{error}</p>}
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button onClick={() => { chunksRef.current = []; setStep('camera'); }} style={{ ...prevBtn, flexShrink: 0 }}>이전</button>
-            <button style={{ ...primaryBtn(isUploading), flex: 1 }} disabled={isUploading} onClick={submitResult}>
-              {isUploading ? '제출 중...' : '제출하기'}
-            </button>
-          </div>
-        </>
-      }
-    >
-      <h1 style={{ fontSize: 28, fontWeight: 700, color: lbl, letterSpacing: '-0.4px', marginBottom: 6 }}>테스트 완료</h1>
-      <p style={{ fontSize: 15, color: lbl2, marginBottom: 4 }}>아래 정보를 확인하고 제출해주세요.</p>
-      <p style={{ fontSize: 13, color: lbl2, marginBottom: 24 }}>제출 후 모스픽 팀이 영상을 확인하여 평균 1~2일 이내로 연락드립니다.</p>
-
-      <div style={{ background: '#fff', border: `1px solid ${sep}`, borderRadius: 14, overflow: 'hidden', marginBottom: 8 }}>
-        {[['환우', form.patientName], ['보호자', form.caregiverName], ['연락처', form.caregiverContact], ['지역', form.subRegion ? `${form.region} ${form.subRegion}` : form.region]].map(([l, v], i, arr) => (
-          <div key={l}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px' }}>
-              <span style={{ fontSize: 16, color: lbl2 }}>{l}</span>
-              <span style={{ fontSize: 16, color: lbl, fontWeight: 500 }}>{v}</span>
-            </div>
-            {i < arr.length - 1 && <div style={{ height: 1, background: sep, margin: '0 16px' }} />}
-          </div>
-        ))}
-      </div>
-    </Layout>
+      )}
+    </>
   );
 
   // ── COMPLETE ──────────────────────────────────────────────────
@@ -525,11 +357,11 @@ export default function ScreeningPage() {
         <div style={{ width: 72, height: 72, borderRadius: '50%', background: green, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
           <svg width="32" height="25" viewBox="0 0 32 25" fill="none"><path d="M2 12.5l10 10L30 2" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </div>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: lbl, letterSpacing: '-0.4px', marginBottom: 12 }}>제출 완료</h1>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: lbl, letterSpacing: '-0.4px', marginBottom: 12 }}>테스트 완료</h1>
         <p style={{ fontSize: 17, color: lbl2, lineHeight: 1.7 }}>
-          테스트에 참여해 주셔서 감사합니다.<br /><br />
-          모스픽 팀에서 영상을 확인한 후 <strong style={{ color: lbl }}>{form.caregiverContact}</strong>으로 연락드리겠습니다.<br />
-          평균 <strong style={{ color: lbl }}>1~2일 이내</strong>에 안내 문자를 보내드리며, 경우에 따라 재요청을 드릴 수 있습니다.
+          눈 깜빡임 감지 테스트를 완료해 주셔서 감사합니다.<br /><br />
+          모스픽 팀에서 결과를 확인한 후 <strong style={{ color: lbl }}>{form.caregiverContact}</strong>으로 연락드리겠습니다.<br />
+          평균 <strong style={{ color: lbl }}>1~2일 이내</strong>에 안내 문자를 보내드립니다.
         </p>
         <p style={{ fontSize: 14, color: 'rgba(60,60,67,0.35)', marginTop: 20 }}>창을 닫으셔도 됩니다.</p>
       </div>

@@ -354,6 +354,16 @@ export default function AdminScreeningPage() {
               </div>
             </div>
 
+            {/* raw 데이터 (디버그) */}
+            <details style={{ marginBottom: 20 }}>
+              <summary style={{ fontSize: 12, color: 'rgba(60,60,67,0.4)', cursor: 'pointer', userSelect: 'none' }}>
+                원본 데이터 보기
+              </summary>
+              <pre style={{ marginTop: 8, padding: 12, background: '#F9F9F9', borderRadius: 10, fontSize: 11, overflow: 'auto', color: '#333', maxHeight: 300 }}>
+                {JSON.stringify(selected, null, 2)}
+              </pre>
+            </details>
+
             {/* 삭제 */}
             {!confirmDelete ? (
               <button onClick={() => setConfirmDelete(true)}

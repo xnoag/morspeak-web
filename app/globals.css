@@ -1,26 +1,39 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  /* light pages (articles, contact, legal) */
+  --color-ms-dark: #1c1e25;
+  --color-ms-body: #222222;
+  --color-ms-secondary: #6e6e6e;
+  --color-ms-muted: #888888;
+  --color-ms-light-text: #bdbdbd;
+  --color-ms-footer-text: #5c5c5c;
+  --color-ms-surface: #f9f9f9;
+  --color-ms-surface-2: #f8f8f7;
+  --color-ms-blue: #007aff;
+  --color-ms-border: #222222;
+  --color-ms-link: #0099ff;
+  --color-ms-disabled: #cccccc;
+
+  /* dark pages (homepage, eng, jpn) */
+  --color-apple-bg: #000000;
+  --color-apple-surface: #1d1d1f;
+  --color-apple-heading: #f5f5f7;
+  --color-apple-body: rgba(245,245,247,0.7);
+  --color-apple-muted: rgba(245,245,247,0.4);
+  --color-apple-border: rgba(245,245,247,0.12);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html {
+  font-family: 'PretendardVariable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica Neue, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: #ffffff;
+  color: #1c1e25;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

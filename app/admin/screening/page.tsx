@@ -254,73 +254,83 @@ export default function AdminScreeningPage() {
               </div>
             )}
 
-            {/* blinkLog */}
-            {selected.blinkLog && selected.blinkLog.length > 0 && (() => {
-              const shortAttempts = selected.blinkLog.filter(a => a.step === 'short');
-              const longAttempts  = selected.blinkLog.filter(a => a.step === 'long');
+            {/* blinkLog — 항상 표시 */}
+            {(() => {
+              const log = selected.blinkLog ?? [];
+              const skipped = selected.skippedSteps ?? [];
+              const STEP_LABEL: Record<string, string> = { short: '짧게', long: '길게', mixed: '혼합' };
+              const shortAttempts = log.filter(a => a.step === 'short');
+              const longAttempts  = log.filter(a => a.step === 'long');
               const shortSuccessAvg = shortAttempts.filter(a => a.success).length > 0
                 ? (shortAttempts.filter(a => a.success).reduce((s, a) => s + a.duration, 0) / shortAttempts.filter(a => a.success).length).toFixed(3)
                 : null;
               const longSuccessAvg = longAttempts.filter(a => a.success).length > 0
                 ? (longAttempts.filter(a => a.success).reduce((s, a) => s + a.duration, 0) / longAttempts.filter(a => a.success).length).toFixed(3)
                 : null;
-              const STEP_LABEL: Record<string, string> = { short: '짧게', long: '길게', mixed: '혼합' };
               return (
                 <div style={{ marginBottom: 24 }}>
                   <p style={{ fontSize: 12, color: 'rgba(60,60,67,0.5)', marginBottom: 8 }}>깜빡임 로그</p>
 
-                  {/* 요약 */}
-                  <div style={{ display: 'flex', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
-                    {shortSuccessAvg && (
-                      <div style={{ background: '#F2F2F7', borderRadius: 10, padding: '8px 14px', fontSize: 13 }}>
-                        <span style={{ color: 'rgba(60,60,67,0.5)' }}>짧게 평균 </span>
-                        <strong style={{ color: '#1C1C1E' }}>{shortSuccessAvg}s</strong>
-                        <span style={{ color: 'rgba(60,60,67,0.4)', fontSize: 11 }}> ({shortAttempts.filter(a => a.success).length}/{shortAttempts.length})</span>
+                  {log.length === 0 ? (
+                    <p style={{ fontSize: 13, color: 'rgba(60,60,67,0.35)', padding: '12px 0' }}>
+                      로그 없음 (앱 최신 버전으로 재검사 필요)
+                    </p>
+                  ) : (
+                    <>
+                      {/* 요약 */}
+                      <div style={{ display: 'flex', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+                        {shortSuccessAvg && (
+                          <div style={{ background: '#F2F2F7', borderRadius: 10, padding: '8px 14px', fontSize: 13 }}>
+                            <span style={{ color: 'rgba(60,60,67,0.5)' }}>짧게 평균 </span>
+                            <strong style={{ color: '#1C1C1E' }}>{shortSuccessAvg}s</strong>
+                            <span style={{ color: 'rgba(60,60,67,0.4)', fontSize: 11 }}> ({shortAttempts.filter(a => a.success).length}/{shortAttempts.length})</span>
+                          </div>
+                        )}
+                        {longSuccessAvg && (
+                          <div style={{ background: '#F2F2F7', borderRadius: 10, padding: '8px 14px', fontSize: 13 }}>
+                            <span style={{ color: 'rgba(60,60,67,0.5)' }}>길게 평균 </span>
+                            <strong style={{ color: '#1C1C1E' }}>{longSuccessAvg}s</strong>
+                            <span style={{ color: 'rgba(60,60,67,0.4)', fontSize: 11 }}> ({longAttempts.filter(a => a.success).length}/{longAttempts.length})</span>
+                          </div>
+                        )}
+                        {skipped.length > 0 && (
+                          <div style={{ background: '#FFF0D4', borderRadius: 10, padding: '8px 14px', fontSize: 13 }}>
+                            <span style={{ color: '#CC7000' }}>스킵: {skipped.map(s => STEP_LABEL[s] ?? s).join(', ')}</span>
+                          </div>
+                        )}
                       </div>
-                    )}
-                    {longSuccessAvg && (
-                      <div style={{ background: '#F2F2F7', borderRadius: 10, padding: '8px 14px', fontSize: 13 }}>
-                        <span style={{ color: 'rgba(60,60,67,0.5)' }}>길게 평균 </span>
-                        <strong style={{ color: '#1C1C1E' }}>{longSuccessAvg}s</strong>
-                        <span style={{ color: 'rgba(60,60,67,0.4)', fontSize: 11 }}> ({longAttempts.filter(a => a.success).length}/{longAttempts.length})</span>
-                      </div>
-                    )}
-                    {selected.skippedSteps && selected.skippedSteps.length > 0 && (
-                      <div style={{ background: '#FFF0D4', borderRadius: 10, padding: '8px 14px', fontSize: 13 }}>
-                        <span style={{ color: '#CC7000' }}>스킵: {selected.skippedSteps.map(s => STEP_LABEL[s] ?? s).join(', ')}</span>
-                      </div>
-                    )}
-                  </div>
 
-                  {/* 테이블 */}
-                  <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid rgba(60,60,67,0.1)' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                      <thead>
-                        <tr style={{ background: '#F9F9F9', borderBottom: '1px solid rgba(60,60,67,0.1)' }}>
-                          {['#', '단계', '시도', '지속시간', '패턴위치', '기대값', '결과'].map(h => (
-                            <th key={h} style={{ padding: '8px 12px', textAlign: 'left', color: 'rgba(60,60,67,0.5)', fontWeight: 500, whiteSpace: 'nowrap' }}>{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selected.blinkLog.map((a, i) => (
-                          <tr key={i} style={{ borderBottom: i < selected.blinkLog!.length - 1 ? '1px solid rgba(60,60,67,0.06)' : 'none', background: a.success ? 'rgba(52,199,89,0.04)' : 'rgba(255,59,48,0.04)' }}>
-                            <td style={{ padding: '7px 12px', color: 'rgba(60,60,67,0.4)' }}>{i + 1}</td>
-                            <td style={{ padding: '7px 12px', fontWeight: 500, color: '#1C1C1E' }}>{STEP_LABEL[a.step] ?? a.step}</td>
-                            <td style={{ padding: '7px 12px', color: 'rgba(60,60,67,0.6)' }}>{a.attempt}</td>
-                            <td style={{ padding: '7px 12px', color: '#1C1C1E', fontVariantNumeric: 'tabular-nums' }}>{typeof a.duration === 'number' ? a.duration.toFixed(3) : '-'}s</td>
-                            <td style={{ padding: '7px 12px', color: 'rgba(60,60,67,0.5)' }}>{a.patternIndex != null ? a.patternIndex + 1 : '-'}</td>
-                            <td style={{ padding: '7px 12px', color: 'rgba(60,60,67,0.5)' }}>{a.expected ? (STEP_LABEL[a.expected] ?? a.expected) : '-'}</td>
-                            <td style={{ padding: '7px 12px' }}>
-                              <span style={{ fontSize: 12, fontWeight: 600, padding: '3px 8px', borderRadius: 12, background: a.success ? '#D4F5DF' : '#FFE0DE', color: a.success ? '#1A8C3A' : '#CC2200' }}>
-                                {a.success ? '성공' : '실패'}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                      {/* 테이블 */}
+                      <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid rgba(60,60,67,0.1)' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                          <thead>
+                            <tr style={{ background: '#F9F9F9', borderBottom: '1px solid rgba(60,60,67,0.1)' }}>
+                              {['#', '단계', '시도', '지속시간', '패턴위치', '기대값', '결과'].map(h => (
+                                <th key={h} style={{ padding: '8px 12px', textAlign: 'left', color: 'rgba(60,60,67,0.5)', fontWeight: 500, whiteSpace: 'nowrap' }}>{h}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {log.map((a, i) => (
+                              <tr key={i} style={{ borderBottom: i < log.length - 1 ? '1px solid rgba(60,60,67,0.06)' : 'none', background: a.success ? 'rgba(52,199,89,0.04)' : 'rgba(255,59,48,0.04)' }}>
+                                <td style={{ padding: '7px 12px', color: 'rgba(60,60,67,0.4)' }}>{i + 1}</td>
+                                <td style={{ padding: '7px 12px', fontWeight: 500, color: '#1C1C1E' }}>{STEP_LABEL[a.step] ?? a.step}</td>
+                                <td style={{ padding: '7px 12px', color: 'rgba(60,60,67,0.6)' }}>{a.attempt}</td>
+                                <td style={{ padding: '7px 12px', color: '#1C1C1E', fontVariantNumeric: 'tabular-nums' }}>{typeof a.duration === 'number' ? a.duration.toFixed(3) : '-'}s</td>
+                                <td style={{ padding: '7px 12px', color: 'rgba(60,60,67,0.5)' }}>{a.patternIndex != null ? a.patternIndex + 1 : '-'}</td>
+                                <td style={{ padding: '7px 12px', color: 'rgba(60,60,67,0.5)' }}>{a.expected ? (STEP_LABEL[a.expected] ?? a.expected) : '-'}</td>
+                                <td style={{ padding: '7px 12px' }}>
+                                  <span style={{ fontSize: 12, fontWeight: 600, padding: '3px 8px', borderRadius: 12, background: a.success ? '#D4F5DF' : '#FFE0DE', color: a.success ? '#1A8C3A' : '#CC2200' }}>
+                                    {a.success ? '성공' : '실패'}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  )}
                 </div>
               );
             })()}

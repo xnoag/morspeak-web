@@ -49,6 +49,71 @@ function avg(blinks: BlinkAttempt[], step: string) {
   return (ok.reduce((s, a) => s + a.duration, 0) / ok.length).toFixed(2);
 }
 
+// ── 도입 적합도 분석 ─────────────────────────────────────────
+interface Suitability {
+  score: number;       // 0–100
+  label: string;
+  color: string;
+  bg: string;
+  reason: string;      // 한 줄 근거
+}
+
+function calcSuitability(r: Result): Suitability | null {
+  const log = r.blinkLog ?? [];
+  if (log.length === 0) return null;
+
+  const sLog = log.filter(a => a.step === 'short');
+  const lLog = log.filter(a => a.step === 'long');
+  const mLog = log.filter(a => a.step === 'mixed');
+  const skipped = r.skippedSteps ?? [];
+
+  const sRate = sLog.length > 0 ? sLog.filter(a => a.success).length / sLog.length : 0;
+  const lRate = lLog.length > 0 ? lLog.filter(a => a.success).length / lLog.length : 0;
+  const mRate = mLog.length > 0 ? mLog.filter(a => a.success).length / mLog.length : 0;
+
+  const sAvg = sLog.filter(a => a.success).reduce((s,a)=>s+a.duration,0) / (sLog.filter(a=>a.success).length||1);
+  const lAvg = lLog.filter(a => a.success).reduce((s,a)=>s+a.duration,0) / (lLog.filter(a=>a.success).length||1);
+  const gap  = lLog.filter(a=>a.success).length > 0 && sLog.filter(a=>a.success).length > 0 ? lAvg - sAvg : 0;
+
+  let score = 0;
+
+  // 짧게 성공률 (0–25)
+  score += sRate * 25;
+  // 길게 성공률 (0–25)
+  score += lRate * 25;
+  // 혼합 성공률 (0–20)
+  score += mRate * 20;
+  // 짧게·길게 간격 명확성 (0–20): 간격이 클수록 좋음
+  if (gap > 0.45) score += 20;
+  else if (gap > 0.30) score += 15;
+  else if (gap > 0.15) score += 8;
+  else score += 2;
+  // 경계값 합리성 (0–10): 0.2s~1.0s 범위
+  const b = r.dotDashBoundary ?? 0;
+  if (b > 0.2 && b < 1.0) score += 10;
+  else if (b > 0) score += 4;
+
+  // 패널티: 단계 건너뜀 (-8/개)
+  score -= skipped.length * 8;
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  // 주요 근거 한 줄
+  const reasons: string[] = [];
+  if (sRate >= 0.8) reasons.push(`짧게 ${Math.round(sRate*100)}%`);
+  else reasons.push(`짧게 ${Math.round(sRate*100)}% (낮음)`);
+  if (gap > 0.2) reasons.push(`간격 ${gap.toFixed(2)}s`);
+  else reasons.push('간격 좁음');
+  if (skipped.length) reasons.push(`${skipped.map(s=>STEP[s]??s).join('·')} 건너뜀`);
+
+  let label: string, color: string, bg: string;
+  if      (score >= 80) { label='도입 추천';    color='#1A8C3A'; bg='#D4F5DF'; }
+  else if (score >= 60) { label='가능성 있음';  color='#0071E3'; bg='#E3F2FF'; }
+  else if (score >= 40) { label='훈련 필요';    color='#CC7000'; bg='#FFF0D4'; }
+  else                  { label='어려울 수 있음'; color='#CC2200'; bg='#FFE0DE'; }
+
+  return { score, label, color, bg, reason: reasons.join(' · ') };
+}
+
 export default function AdminScreeningPage() {
   const [pw, setPw] = useState('');
   const [authed, setAuthed] = useState(false);
@@ -124,9 +189,13 @@ export default function AdminScreeningPage() {
     a.download = 'morspeak_screening.csv'; a.click();
   };
 
-  const fmt = (r: Result) => r.createdAt
-    ? new Date(r.createdAt.seconds*1000).toLocaleDateString('ko-KR',{month:'2-digit',day:'2-digit'})
-    : '-';
+  const fmt = (r: Result) => {
+    if (!r.createdAt) return '-';
+    const d = new Date(r.createdAt.seconds * 1000);
+    const date = d.toLocaleDateString('ko-KR', { month:'2-digit', day:'2-digit' });
+    const time = d.toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit', hour12: false });
+    return `${date} ${time}`;
+  };
 
   const filtered = results.filter(r => {
     const s = r.status ?? '미검토';
@@ -226,14 +295,22 @@ export default function AdminScreeningPage() {
                   <input type="checkbox" checked={allFilteredSelected} onChange={() => toggleAll(filteredIds)}
                     style={{ cursor:'pointer',width:14,height:14 }} />
                 </th>
-                {['날짜','환우명','보호자','연락처','지역','소통방법','상태','짧게avg','길게avg','경계값','로그','건너뜀','영상','기기',''].map(h => (
-                  <th key={h} style={{ padding:'10px 12px',textAlign:'left',color:'#8E8E93',fontWeight:500,whiteSpace:'nowrap',fontSize:11,letterSpacing:'0.03em' }}>{h}</th>
+                {[
+                  {h:'날짜·시간',tip:''},
+                  {h:'환우명',tip:''},{h:'보호자',tip:''},{h:'연락처',tip:''},
+                  {h:'지역',tip:''},{h:'소통방법',tip:''},{h:'상태',tip:''},
+                  {h:'적합도 ⓘ',tip:'깜빡임 성공률·간격·혼합 패턴 종합 도입 가능성 점수 (0~100)'},
+                  {h:'짧게avg',tip:'짧게 깜빡임 평균 지속시간 (성공만)'},{h:'길게avg',tip:'길게 깜빡임 평균 지속시간 (성공만)'},
+                  {h:'경계값 ⓘ',tip:'짧게/길게 구분 임계시간 — Morspeak 앱에 직접 사용되는 개인별 캘리브레이션 값'},
+                  {h:'로그',tip:''},{h:'건너뜀',tip:''},{h:'영상',tip:''},{h:'기기',tip:''},{h:'',tip:''},
+                ].map(({h,tip}) => (
+                  <th key={h} title={tip||undefined} style={{ padding:'10px 12px',textAlign:'left',color:'#8E8E93',fontWeight:500,whiteSpace:'nowrap',fontSize:11,letterSpacing:'0.03em',cursor:tip?'help':'default' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 && (
-                <tr><td colSpan={16} style={{ padding:'60px',textAlign:'center',color:'#C7C7CC' }}>결과가 없습니다</td></tr>
+                <tr><td colSpan={17} style={{ padding:'60px',textAlign:'center',color:'#C7C7CC' }}>결과가 없습니다</td></tr>
               )}
               {filtered.map((r, i) => {
                 const isOpen = expandedId === r.id;
@@ -244,6 +321,7 @@ export default function AdminScreeningPage() {
                 const shortAvg = avg(log,'short');
                 const longAvg  = avg(log,'long');
                 const hasVideo = !!(r.videoUrl || r.videoUrls);
+                const suit = calcSuitability(r);
                 const videoEntries: [string,string][] = r.videoUrls
                   ? (['short','long','mixed'] as const).filter(k=>r.videoUrls?.[k]).map(k=>[k,r.videoUrls![k]!])
                   : r.videoUrl ? [['recording',r.videoUrl]] : [];
@@ -270,6 +348,20 @@ export default function AdminScreeningPage() {
                         style={{ border:'none',outline:'none',borderRadius:20,padding:'4px 10px',fontSize:11,fontWeight:600,cursor:'pointer',background:STATUS[s].bg,color:STATUS[s].color,fontFamily:F,appearance:'none' as const }}>
                         {(['미검토','적합','부적합','재요청'] as Status[]).map(v=><option key={v} value={v}>{v}</option>)}
                       </select>
+                    </td>
+                    {/* 적합도 */}
+                    <td style={{ padding:'8px 12px' }} onClick={() => setExpandedId(isOpen?null:r.id)}>
+                      {suit ? (
+                        <div>
+                          <div style={{ display:'flex',alignItems:'center',gap:5,marginBottom:2 }}>
+                            <span style={{ fontSize:11,fontWeight:700,padding:'2px 8px',borderRadius:20,background:suit.bg,color:suit.color,whiteSpace:'nowrap' as const }}>
+                              {suit.label}
+                            </span>
+                            <span style={{ fontSize:11,fontWeight:600,color:suit.color }}>{suit.score}</span>
+                          </div>
+                          <p style={{ fontSize:10,color:'#8E8E93',margin:0 }}>{suit.reason}</p>
+                        </div>
+                      ) : <span style={{ color:'#C7C7CC',fontSize:11 }}>-</span>}
                     </td>
                     <td style={{ padding:'12px',fontVariantNumeric:'tabular-nums' as const,color:shortAvg?'#000':'#C7C7CC' }} onClick={() => setExpandedId(isOpen?null:r.id)}>
                       {shortAvg ? `${shortAvg}s` : '-'}
@@ -306,7 +398,7 @@ export default function AdminScreeningPage() {
                   /* 아코디언 상세 */
                   isOpen && (
                     <tr key={`${r.id}-detail`}>
-                      <td colSpan={16} style={{ padding:'0 16px 20px',background:'#F7F7F9',borderBottom:'2px solid #E5E5EA' }}>
+                      <td colSpan={17} style={{ padding:'0 16px 20px',background:'#F7F7F9',borderBottom:'2px solid #E5E5EA' }}>
                         <div style={{ background:'#fff',borderRadius:16,border:'1px solid rgba(0,0,0,0.05)',padding:'20px',marginTop:12 }}>
 
                           {/* 정보 + 상태 */}

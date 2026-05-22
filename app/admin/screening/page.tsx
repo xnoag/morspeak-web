@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { collection, getDocs, orderBy, query, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { getStorage, ref, deleteObject } from 'firebase/storage';
 import { db } from '@/lib/firebase';
 
 type Status = '미검토' | '적합' | '부적합' | '재요청';
@@ -140,22 +141,38 @@ export default function AdminScreeningPage() {
     finally { setLoading(false); }
   };
 
+  // Storage 영상 파일 삭제 (URL → ref → deleteObject)
+  const deleteStorageFiles = async (r: Result) => {
+    const storage = getStorage();
+    const urls = [
+      r.videoUrl,
+      ...(r.videoUrls ? Object.values(r.videoUrls) : []),
+    ].filter(Boolean) as string[];
+    await Promise.allSettled(
+      urls.map(url => deleteObject(ref(storage, url)).catch(() => {}))
+    );
+  };
+
   const updateStatus = async (id: string, status: Status) => {
     await updateDoc(doc(db, 'screening_results', id), { status });
     setResults(r => r.map(x => x.id === id ? { ...x, status } : x));
   };
 
   const deleteOne = async (id: string) => {
+    const r = results.find(x => x.id === id);
+    if (r) await deleteStorageFiles(r);
     await deleteDoc(doc(db, 'screening_results', id));
-    setResults(r => r.filter(x => x.id !== id));
+    setResults(prev => prev.filter(x => x.id !== id));
     setSelected(s => { const n = new Set(s); n.delete(id); return n; });
     if (expandedId === id) setExpandedId(null);
   };
 
   const deleteSelected = async () => {
-    if (!confirm(`선택한 ${selected.size}건을 삭제하시겠습니까?`)) return;
+    if (!confirm(`선택한 ${selected.size}건을 삭제하시겠습니까?\n영상 파일도 함께 삭제됩니다.`)) return;
+    const toDelete = results.filter(x => selected.has(x.id));
+    await Promise.all(toDelete.map(r => deleteStorageFiles(r)));
     await Promise.all([...selected].map(id => deleteDoc(doc(db, 'screening_results', id))));
-    setResults(r => r.filter(x => !selected.has(x.id)));
+    setResults(prev => prev.filter(x => !selected.has(x.id)));
     setSelected(new Set());
     if (selected.has(expandedId ?? '')) setExpandedId(null);
   };

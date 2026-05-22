@@ -24,6 +24,7 @@ interface Result {
   subRegion: string;
   communicationMethod: string;
   videoUrl: string | null;
+  videoUrls?: { short?: string; long?: string; mixed?: string } | null;
   deviceType: string | null;
   status?: Status;
   createdAt: { seconds: number } | null;
@@ -340,25 +341,37 @@ export default function AdminScreeningPage() {
               );
             })()}
 
-            {/* 영상 (blinkLog 아래) */}
-            {selected.videoUrl && (
-              <div style={{ marginBottom: 24 }}>
-                <p style={{ fontSize: 12, color: 'rgba(60,60,67,0.5)', marginBottom: 8 }}>녹화 영상</p>
-                {/* ARKit 세로 영상: 시계방향 90도 회전 보정 */}
-                <div style={{ width: 270, height: 480, overflow: 'hidden', borderRadius: 12, background: '#000', position: 'relative' }}>
-                  <video src={selected.videoUrl} controls
-                    style={{
-                      position: 'absolute',
-                      width: 480,
-                      height: 270,
-                      left: -105,
-                      top: 105,
-                      transform: 'rotate(90deg)',
-                      transformOrigin: 'center center',
-                    }} />
+            {/* 단계별 영상 (blinkLog 아래) */}
+            {(() => {
+              const urls = selected.videoUrls;
+              const legacy = selected.videoUrl;
+              const LABEL: Record<string, string> = { short: '짧게', long: '길게', mixed: '혼합', recording: '녹화' };
+              const entries: [string, string][] = urls
+                ? (['short','long','mixed'] as const).filter(k => urls[k]).map(k => [k, urls[k]!])
+                : legacy ? [['recording', legacy]] : [];
+              if (entries.length === 0) return null;
+              return (
+                <div style={{ marginBottom: 24 }}>
+                  <p style={{ fontSize: 12, color: 'rgba(60,60,67,0.5)', marginBottom: 10 }}>녹화 영상</p>
+                  <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                    {entries.map(([seg, url]) => (
+                      <div key={seg}>
+                        <p style={{ fontSize: 11, fontWeight: 600, color: 'rgba(60,60,67,0.5)', marginBottom: 4 }}>
+                          {LABEL[seg] ?? seg}
+                        </p>
+                        {/* ARKit 세로 영상 → 시계방향 90도 보정 */}
+                        <div style={{ width: 150, height: 267, overflow: 'hidden', borderRadius: 10, background: '#000', position: 'relative' }}>
+                          <video src={url} controls
+                            style={{ position: 'absolute', width: 267, height: 150,
+                                     left: -58, top: 58,
+                                     transform: 'rotate(90deg)', transformOrigin: 'center center' }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* 상태 변경 */}
             <div style={{ marginBottom: 20 }}>

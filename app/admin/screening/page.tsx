@@ -148,16 +148,46 @@ export default function AdminScreeningPage() {
     finally { setLoading(false); }
   };
 
-  // Storage 영상 파일 삭제 (URL → ref → deleteObject)
+  // Download URL → Storage 경로 추출 (gs:// 또는 https://firebasestorage... 모두 처리)
+  const urlToStoragePath = (url: string): string | null => {
+    try {
+      if (url.startsWith('gs://')) {
+        return url.replace(/^gs:\/\/[^/]+\//, '');
+      }
+      // https://firebasestorage.googleapis.com/v0/b/xxx/o/path%2Ffile.mp4?alt=media&token=...
+      const u = new URL(url);
+      const match = u.pathname.match(/\/o\/(.+)/);
+      if (!match) return null;
+      return decodeURIComponent(match[1]);
+    } catch { return null; }
+  };
+
+  // Storage 영상 파일 삭제 — 경로 직접 추출 후 deleteObject
   const deleteStorageFiles = async (r: Result) => {
+    await ensureAuth();  // Storage 삭제에도 인증 필요
     const storage = getStorage();
     const urls = [
       r.videoUrl,
       ...(r.videoUrls ? Object.values(r.videoUrls) : []),
     ].filter(Boolean) as string[];
-    await Promise.allSettled(
-      urls.map(url => deleteObject(ref(storage, url)).catch(() => {}))
+
+    const results = await Promise.allSettled(
+      urls.map(async url => {
+        const path = urlToStoragePath(url);
+        if (!path) { console.warn('경로 추출 실패:', url); return; }
+        try {
+          await deleteObject(ref(storage, path));
+          console.log('✅ Storage 삭제:', path);
+        } catch (e: unknown) {
+          // 이미 삭제됐거나 없는 파일은 무시
+          const code = (e as { code?: string })?.code;
+          if (code !== 'storage/object-not-found') {
+            console.warn('⚠️ Storage 삭제 실패:', path, e);
+          }
+        }
+      })
     );
+    console.log(`Storage 삭제 완료: ${results.filter(r => r.status === 'fulfilled').length}/${results.length}`);
   };
 
   const updateStatus = async (id: string, status: Status) => {
@@ -173,9 +203,9 @@ export default function AdminScreeningPage() {
       setResults(prev => prev.filter(x => x.id !== id));
       setSelected(s => { const n = new Set(s); n.delete(id); return n; });
       if (expandedId === id) setExpandedId(null);
-      // 3. Storage 파일은 백그라운드 삭제 (실패해도 UI에 영향 없음)
+      // 3. Storage 파일 삭제 (await으로 완료 확인)
       const r = results.find(x => x.id === id);
-      if (r) deleteStorageFiles(r).catch(() => {});
+      if (r) await deleteStorageFiles(r);
     } catch (e) {
       alert('삭제 실패: ' + (e as Error).message);
     }
@@ -192,8 +222,8 @@ export default function AdminScreeningPage() {
       setResults(prev => prev.filter(x => !deletedIds.has(x.id)));
       setSelected(new Set());
       if (deletedIds.has(expandedId ?? '')) setExpandedId(null);
-      // 3. Storage 백그라운드 삭제
-      toDelete.forEach(r => deleteStorageFiles(r).catch(() => {}));
+      // 3. Storage 파일 삭제 (완료 확인)
+      await Promise.all(toDelete.map(r => deleteStorageFiles(r)));
     } catch (e) {
       alert('일부 삭제 실패: ' + (e as Error).message);
     }

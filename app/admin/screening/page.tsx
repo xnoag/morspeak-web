@@ -171,7 +171,7 @@ export default function AdminScreeningPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
             <thead>
               <tr style={{ borderBottom: '1.5px solid rgba(60,60,67,0.1)' }}>
-                {['날짜', '상태', '환우명', '보호자명', '연락처', '지역', '소통방법', '영상', '기기'].map(h => (
+                {['날짜', '상태', '환우명', '보호자명', '연락처', '지역', '소통방법', '영상', '기기', '로그', ''].map(h => (
                   <th key={h} style={{ padding: '12px 16px', textAlign: 'left', color: 'rgba(60,60,67,0.5)', fontWeight: 500, whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
@@ -208,10 +208,23 @@ export default function AdminScreeningPage() {
                       : <span style={{ color: '#ccc', fontSize: 13 }}>없음</span>}
                   </td>
                   <td style={{ padding: '14px 16px', color: 'rgba(60,60,67,0.4)', fontSize: 13 }}>{r.deviceType ?? '-'}</td>
+                  {/* 로그 유무 */}
+                  <td style={{ padding: '14px 16px' }}>
+                    {r.blinkLog && r.blinkLog.length > 0
+                      ? <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 12, background: '#D4F5DF', color: '#1A8C3A' }}>{r.blinkLog.length}개</span>
+                      : <span style={{ fontSize: 11, color: '#ccc' }}>없음</span>}
+                  </td>
+                  {/* 행 삭제 */}
+                  <td style={{ padding: '8px 12px' }} onClick={e => e.stopPropagation()}>
+                    <button
+                      onClick={() => { if (confirm(`${r.patientName} 기록을 삭제하시겠습니까?`)) deleteResult(r.id); }}
+                      style={{ background: 'none', border: '1px solid rgba(255,59,48,0.25)', borderRadius: 6, color: '#FF3B30', fontSize: 12, cursor: 'pointer', padding: '3px 8px' }}
+                    >삭제</button>
+                  </td>
                 </tr>
               ))}
               {filtered.length === 0 && (
-                <tr><td colSpan={9} style={{ padding: '60px', textAlign: 'center', color: 'rgba(60,60,67,0.4)' }}>결과가 없습니다.</td></tr>
+                <tr><td colSpan={11} style={{ padding: '60px', textAlign: 'center', color: 'rgba(60,60,67,0.4)' }}>결과가 없습니다.</td></tr>
               )}
             </tbody>
           </table>
@@ -246,15 +259,7 @@ export default function AdminScreeningPage() {
               ))}
             </div>
 
-            {/* 영상 */}
-            {selected.videoUrl && (
-              <div style={{ marginBottom: 24 }}>
-                <p style={{ fontSize: 12, color: 'rgba(60,60,67,0.5)', marginBottom: 8 }}>녹화 영상</p>
-                <video src={selected.videoUrl} controls style={{ width: '100%', maxWidth: 480, borderRadius: 12, background: '#000', display: 'block' }} />
-              </div>
-            )}
-
-            {/* blinkLog — 항상 표시 */}
+            {/* blinkLog — 항상 표시 (영상 위에) */}
             {(() => {
               const log = selected.blinkLog ?? [];
               const skipped = selected.skippedSteps ?? [];
@@ -334,6 +339,14 @@ export default function AdminScreeningPage() {
                 </div>
               );
             })()}
+
+            {/* 영상 (blinkLog 아래) */}
+            {selected.videoUrl && (
+              <div style={{ marginBottom: 24 }}>
+                <p style={{ fontSize: 12, color: 'rgba(60,60,67,0.5)', marginBottom: 8 }}>녹화 영상</p>
+                <video src={selected.videoUrl} controls style={{ width: '100%', maxWidth: 480, borderRadius: 12, background: '#000', display: 'block' }} />
+              </div>
+            )}
 
             {/* 상태 변경 */}
             <div style={{ marginBottom: 20 }}>

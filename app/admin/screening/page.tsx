@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { collection, getDocs, orderBy, query, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { getStorage, ref, deleteObject } from 'firebase/storage';
+import { getAuth, signInAnonymously } from 'firebase/auth';
 import { db } from '@/lib/firebase';
 
 type Status = '미검토' | '적합' | '부적합' | '재요청';
@@ -126,8 +127,14 @@ export default function AdminScreeningPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
+  const ensureAuth = async () => {
+    const auth = getAuth();
+    if (!auth.currentUser) await signInAnonymously(auth).catch(() => {});
+  };
+
   const load = async () => {
     setLoading(true);
+    await ensureAuth();
     const snap = await getDocs(query(collection(db, 'screening_results'), orderBy('createdAt', 'desc')));
     setResults(snap.docs.map(d => ({ id: d.id, ...d.data() } as Result)));
     setLoading(false);
@@ -159,22 +166,37 @@ export default function AdminScreeningPage() {
   };
 
   const deleteOne = async (id: string) => {
-    const r = results.find(x => x.id === id);
-    if (r) await deleteStorageFiles(r);
-    await deleteDoc(doc(db, 'screening_results', id));
-    setResults(prev => prev.filter(x => x.id !== id));
-    setSelected(s => { const n = new Set(s); n.delete(id); return n; });
-    if (expandedId === id) setExpandedId(null);
+    try {
+      // 1. Firestore 먼저 삭제 (핵심)
+      await deleteDoc(doc(db, 'screening_results', id));
+      // 2. UI 즉시 업데이트
+      setResults(prev => prev.filter(x => x.id !== id));
+      setSelected(s => { const n = new Set(s); n.delete(id); return n; });
+      if (expandedId === id) setExpandedId(null);
+      // 3. Storage 파일은 백그라운드 삭제 (실패해도 UI에 영향 없음)
+      const r = results.find(x => x.id === id);
+      if (r) deleteStorageFiles(r).catch(() => {});
+    } catch (e) {
+      alert('삭제 실패: ' + (e as Error).message);
+    }
   };
 
   const deleteSelected = async () => {
     if (!confirm(`선택한 ${selected.size}건을 삭제하시겠습니까?\n영상 파일도 함께 삭제됩니다.`)) return;
     const toDelete = results.filter(x => selected.has(x.id));
-    await Promise.all(toDelete.map(r => deleteStorageFiles(r)));
-    await Promise.all([...selected].map(id => deleteDoc(doc(db, 'screening_results', id))));
-    setResults(prev => prev.filter(x => !selected.has(x.id)));
-    setSelected(new Set());
-    if (selected.has(expandedId ?? '')) setExpandedId(null);
+    try {
+      // 1. Firestore 먼저 일괄 삭제
+      await Promise.all([...selected].map(id => deleteDoc(doc(db, 'screening_results', id))));
+      // 2. UI 즉시 업데이트
+      const deletedIds = new Set(selected);
+      setResults(prev => prev.filter(x => !deletedIds.has(x.id)));
+      setSelected(new Set());
+      if (deletedIds.has(expandedId ?? '')) setExpandedId(null);
+      // 3. Storage 백그라운드 삭제
+      toDelete.forEach(r => deleteStorageFiles(r).catch(() => {}));
+    } catch (e) {
+      alert('일부 삭제 실패: ' + (e as Error).message);
+    }
   };
 
   const toggleSelect = (id: string) => {

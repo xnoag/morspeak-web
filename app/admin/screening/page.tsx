@@ -344,7 +344,19 @@ export default function AdminScreeningPage() {
             {selected.videoUrl && (
               <div style={{ marginBottom: 24 }}>
                 <p style={{ fontSize: 12, color: 'rgba(60,60,67,0.5)', marginBottom: 8 }}>녹화 영상</p>
-                <video src={selected.videoUrl} controls style={{ width: '100%', maxWidth: 480, borderRadius: 12, background: '#000', display: 'block' }} />
+                {/* ARKit 세로 영상: 시계방향 90도 회전 보정 */}
+                <div style={{ width: 270, height: 480, overflow: 'hidden', borderRadius: 12, background: '#000', position: 'relative' }}>
+                  <video src={selected.videoUrl} controls
+                    style={{
+                      position: 'absolute',
+                      width: 480,
+                      height: 270,
+                      left: -105,
+                      top: 105,
+                      transform: 'rotate(90deg)',
+                      transformOrigin: 'center center',
+                    }} />
+                </div>
               </div>
             )}
 

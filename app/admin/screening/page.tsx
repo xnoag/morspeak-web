@@ -391,10 +391,8 @@ export default function AdminScreeningPage() {
                                 {videoEntries.map(([seg,url])=>(
                                   <div key={seg}>
                                     <p style={{ fontSize:11,fontWeight:600,color:'#8E8E93',marginBottom:5 }}>{STEP[seg]??seg}</p>
-                                    <div style={{ width:120,height:214,overflow:'hidden',borderRadius:10,background:'#000',position:'relative' }}>
-                                      <video src={url} controls
-                                        style={{ position:'absolute',width:214,height:120,left:-47,top:47,transform:'rotate(90deg)',transformOrigin:'center center' }} />
-                                    </div>
+                                    <video src={url} controls
+                                      style={{ width:200,borderRadius:10,display:'block',background:'#000' }} />
                                   </div>
                                 ))}
                               </div>

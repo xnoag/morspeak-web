@@ -374,7 +374,7 @@ export default function AdminScreeningPage() {
                   {h:'적합도 ⓘ',tip:'깜빡임 성공률·간격·혼합 패턴 종합 도입 가능성 점수 (0~100)'},
                   {h:'짧게avg',tip:'짧게 깜빡임 평균 지속시간 (성공만)'},{h:'길게avg',tip:'길게 깜빡임 평균 지속시간 (성공만)'},
                   {h:'경계값 ⓘ',tip:'짧게/길게 구분 임계시간 — Morspeak 앱에 직접 사용되는 개인별 캘리브레이션 값'},
-                  {h:'로그',tip:''},{h:'건너뜀',tip:''},{h:'영상',tip:''},{h:'기기',tip:''},{h:'동의',tip:'개인정보(필수)·카메라(필수)·연락(선택)'},{h:'',tip:''},
+                  {h:'로그',tip:''},{h:'건너뜀',tip:''},{h:'영상',tip:''},{h:'기기',tip:''},{h:'연락동의',tip:'서비스 연락 수신 선택 동의 여부'},{h:'',tip:''},
                 ].map(({h,tip}) => (
                   <th key={h} title={tip||undefined} style={{ padding:'10px 12px',textAlign:'left',color:'#8E8E93',fontWeight:500,whiteSpace:'nowrap',fontSize:11,letterSpacing:'0.03em',cursor:tip?'help':'default' }}>{h}</th>
                 ))}
@@ -462,13 +462,14 @@ export default function AdminScreeningPage() {
                         : <span style={{ color:'#C7C7CC',fontSize:11 }}>-</span>}
                     </td>
                     <td style={{ padding:'12px',color:'#C7C7CC',fontSize:11 }} onClick={() => setExpandedId(isOpen?null:r.id)}>{r.deviceType??'-'}</td>
-                    {/* 동의 항목 */}
+                    {/* 연락 동의 여부 */}
                     <td style={{ padding:'8px 12px' }} onClick={() => setExpandedId(isOpen?null:r.id)}>
-                      <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
-                        <span style={{ fontSize:10, color: r.consentPrivacy !== false ? '#1A8C3A' : '#C7C7CC' }}>{r.consentPrivacy !== false ? '✓' : '✗'} 개인정보</span>
-                        <span style={{ fontSize:10, color: r.consentCamera !== false ? '#1A8C3A' : '#C7C7CC' }}>{r.consentCamera !== false ? '✓' : '✗'} 카메라</span>
-                        <span style={{ fontSize:10, color: r.consentContact ? '#1A8C3A' : '#8E8E93' }}>{r.consentContact ? '✓' : '✗'} 연락(선택)</span>
-                      </div>
+                      {r.consentContact === undefined
+                        ? <span style={{ fontSize:11, color:'#C7C7CC' }}>-</span>
+                        : r.consentContact
+                          ? <span style={{ fontSize:11, fontWeight:600, padding:'2px 8px', borderRadius:20, background:'#D4F5DF', color:'#1A8C3A' }}>동의</span>
+                          : <span style={{ fontSize:11, fontWeight:600, padding:'2px 8px', borderRadius:20, background:'#F2F2F7', color:'#8E8E93' }}>미동의</span>
+                      }
                     </td>
                     <td style={{ padding:'12px',textAlign:'center' }} onClick={() => setExpandedId(isOpen?null:r.id)}>
                       <span style={{ color:'#C7C7CC',fontSize:16,display:'inline-block',transform:isOpen?'rotate(90deg)':'rotate(0deg)',transition:'transform 0.2s' }}>›</span>
@@ -487,6 +488,7 @@ export default function AdminScreeningPage() {
                               {[['환우명',r.patientName],['보호자',r.caregiverName],['연락처',r.caregiverContact],
                                 ['지역',(r.subRegion?`${r.region} ${r.subRegion}`:r.region)],
                                 ['소통방법',r.communicationMethod||'-'],['기기',r.deviceType??'-'],['신청일',fmt(r)],
+                          ['연락동의', r.consentContact === undefined ? '-' : r.consentContact ? '동의' : '미동의'],
                                 ...(r.dotDashBoundary!=null?[['경계값',`${r.dotDashBoundary.toFixed(3)}s`]]:[]),
                               ].map(([l,v])=>(
                                 <div key={l}>

@@ -27,6 +27,9 @@ interface Result {
   communicationMethod: string;
   videoUrl: string | null;
   videoUrls?: { short?: string; long?: string; mixed?: string } | null;
+  consentPrivacy?: boolean;
+  consentCamera?: boolean;
+  consentContact?: boolean;
   deviceType: string | null;
   status?: Status;
   createdAt: { seconds: number } | null;
@@ -371,7 +374,7 @@ export default function AdminScreeningPage() {
                   {h:'적합도 ⓘ',tip:'깜빡임 성공률·간격·혼합 패턴 종합 도입 가능성 점수 (0~100)'},
                   {h:'짧게avg',tip:'짧게 깜빡임 평균 지속시간 (성공만)'},{h:'길게avg',tip:'길게 깜빡임 평균 지속시간 (성공만)'},
                   {h:'경계값 ⓘ',tip:'짧게/길게 구분 임계시간 — Morspeak 앱에 직접 사용되는 개인별 캘리브레이션 값'},
-                  {h:'로그',tip:''},{h:'건너뜀',tip:''},{h:'영상',tip:''},{h:'기기',tip:''},{h:'',tip:''},
+                  {h:'로그',tip:''},{h:'건너뜀',tip:''},{h:'영상',tip:''},{h:'기기',tip:''},{h:'동의',tip:'개인정보(필수)·카메라(필수)·연락(선택)'},{h:'',tip:''},
                 ].map(({h,tip}) => (
                   <th key={h} title={tip||undefined} style={{ padding:'10px 12px',textAlign:'left',color:'#8E8E93',fontWeight:500,whiteSpace:'nowrap',fontSize:11,letterSpacing:'0.03em',cursor:tip?'help':'default' }}>{h}</th>
                 ))}
@@ -379,7 +382,7 @@ export default function AdminScreeningPage() {
             </thead>
             <tbody>
               {filtered.length === 0 && (
-                <tr><td colSpan={17} style={{ padding:'60px',textAlign:'center',color:'#C7C7CC' }}>결과가 없습니다</td></tr>
+                <tr><td colSpan={18} style={{ padding:'60px',textAlign:'center',color:'#C7C7CC' }}>결과가 없습니다</td></tr>
               )}
               {filtered.map((r, i) => {
                 const isOpen = expandedId === r.id;
@@ -459,6 +462,14 @@ export default function AdminScreeningPage() {
                         : <span style={{ color:'#C7C7CC',fontSize:11 }}>-</span>}
                     </td>
                     <td style={{ padding:'12px',color:'#C7C7CC',fontSize:11 }} onClick={() => setExpandedId(isOpen?null:r.id)}>{r.deviceType??'-'}</td>
+                    {/* 동의 항목 */}
+                    <td style={{ padding:'8px 12px' }} onClick={() => setExpandedId(isOpen?null:r.id)}>
+                      <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
+                        <span style={{ fontSize:10, color: r.consentPrivacy !== false ? '#1A8C3A' : '#C7C7CC' }}>{r.consentPrivacy !== false ? '✓' : '✗'} 개인정보</span>
+                        <span style={{ fontSize:10, color: r.consentCamera !== false ? '#1A8C3A' : '#C7C7CC' }}>{r.consentCamera !== false ? '✓' : '✗'} 카메라</span>
+                        <span style={{ fontSize:10, color: r.consentContact ? '#1A8C3A' : '#8E8E93' }}>{r.consentContact ? '✓' : '✗'} 연락(선택)</span>
+                      </div>
+                    </td>
                     <td style={{ padding:'12px',textAlign:'center' }} onClick={() => setExpandedId(isOpen?null:r.id)}>
                       <span style={{ color:'#C7C7CC',fontSize:16,display:'inline-block',transform:isOpen?'rotate(90deg)':'rotate(0deg)',transition:'transform 0.2s' }}>›</span>
                     </td>
@@ -467,7 +478,7 @@ export default function AdminScreeningPage() {
                   /* 아코디언 상세 */
                   isOpen && (
                     <tr key={`${r.id}-detail`}>
-                      <td colSpan={17} style={{ padding:'0 16px 20px',background:'#F7F7F9',borderBottom:'2px solid #E5E5EA' }}>
+                      <td colSpan={18} style={{ padding:'0 16px 20px',background:'#F7F7F9',borderBottom:'2px solid #E5E5EA' }}>
                         <div style={{ background:'#fff',borderRadius:16,border:'1px solid rgba(0,0,0,0.05)',padding:'20px',marginTop:12 }}>
 
                           {/* 정보 + 상태 */}

@@ -20,7 +20,7 @@ function getLang(pathname: string): 'ko' | 'en' | 'jp' {
 export default function Footer() {
   const pathname = usePathname();
 
-  if (pathname.startsWith('/avp') || pathname.startsWith('/screening') || pathname.startsWith('/admin') || pathname.startsWith('/download')) return null;
+  if (pathname.startsWith('/avp') || pathname.startsWith('/screening') || pathname.startsWith('/admin') || pathname.startsWith('/apply')) return null;
 
   const isDark = DARK_PAGES.has(pathname);
   const lang = getLang(pathname);

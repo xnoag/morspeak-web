@@ -73,7 +73,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
 
-  if (pathname.startsWith('/avp') || pathname === '/' || pathname.startsWith('/screening') || pathname.startsWith('/admin') || pathname.startsWith('/download')) return null;
+  if (pathname.startsWith('/avp') || pathname === '/' || pathname.startsWith('/screening') || pathname.startsWith('/admin') || pathname.startsWith('/apply')) return null;
 
   const lang = getLang(pathname);
   const config = configs[lang];

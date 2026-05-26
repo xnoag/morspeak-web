@@ -38,18 +38,18 @@ export default function DownloadPage() {
         <h1 style={{ fontSize: 26, fontWeight: 700, color: dark, letterSpacing: '-0.4px', marginBottom: 28 }}>모스픽 사용 적합성 검사</h1>
 
         <p style={{ fontSize: 17, color: dark, lineHeight: 1.75, marginBottom: 8 }}>
-          모스픽은 눈 깜빡임만으로 의사소통하는 ALS 환자용 보조기기입니다.
+          모스픽은 눈 깜빡임만으로 의사소통하는 ALS 환우용 보조기기입니다.
         </p>
         <p style={{ fontSize: 16, color: sub, lineHeight: 1.7, marginBottom: 32 }}>
-          이 앱은 환자가 모스픽을 사용할 수 있는지 <strong style={{ color: dark }}>사전 적합성 검사</strong>를 진행합니다.
-          보호자가 환자와 함께 약 <strong style={{ color: dark }}>3분</strong>간 진행해주세요.
+          이 앱은 환우가 모스픽을 사용할 수 있는지 <strong style={{ color: dark }}>사전 적합성 검사</strong>를 진행합니다.
+          보호자가 환우와 함께 약 <strong style={{ color: dark }}>3분</strong>간 진행해주세요.
         </p>
 
         {/* Steps */}
         <div style={{ background: bg, borderRadius: 16, padding: '20px 20px', marginBottom: 36 }}>
           {[
             { n: '1', text: '아래에서 스마트폰에 맞는 앱을 다운로드합니다.' },
-            { n: '2', text: '앱을 실행 후 환자 정보를 입력합니다.' },
+            { n: '2', text: '앱을 실행 후 환우 정보를 입력합니다.' },
             { n: '3', text: '안내에 따라 눈 깜빡임 검사를 진행합니다.' },
             { n: '4', text: '결과를 제출하면 모스픽 팀이 1~2일 내 연락드립니다.' },
           ].map(({ n, text }) => (
@@ -101,7 +101,7 @@ export default function DownloadPage() {
             </a>
           ) : (
             <div style={{ padding: '13px 0', borderRadius: 12, background: 'rgba(60,60,67,0.08)', textAlign: 'center' as const }}>
-              <p style={{ fontSize: 15, color: sub, margin: 0, fontWeight: 500 }}>App Store 출시 준비 중</p>
+              <p style={{ fontSize: 15, color: sub, margin: 0, fontWeight: 500 }}>App Store 심사 진행 중</p>
               <p style={{ fontSize: 13, color: 'rgba(110,110,110,0.7)', margin: '3px 0 0' }}>곧 이용 가능합니다</p>
             </div>
           )}

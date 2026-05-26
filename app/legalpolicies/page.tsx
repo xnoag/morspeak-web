@@ -78,10 +78,19 @@ export default function LegalPoliciesPage() {
             <p>요청은 <a href={`mailto:${EMAIL}`} className="text-ms-link underline">{EMAIL}</a>으로 연락주시면 5영업일 이내 처리합니다.</p>
           </PolicyBlock>
 
-          <PolicyBlock title="8. 카메라·마이크 권한 사용">
+          <PolicyBlock title="8. 카메라, 얼굴 데이터 및 마이크 권한 사용">
+            <p><strong>[카메라 및 얼굴 데이터]</strong></p>
+            <p>본 앱은 Apple ARKit의 전면 TrueDepth 카메라를 사용하여 눈 깜빡임을 실시간으로 감지합니다.</p>
             <ul>
-              <li><strong>카메라:</strong> 전면 카메라를 통해 눈 깜빡임을 감지하고 검사 과정을 녹화합니다. 녹화 영상은 검사 결과 검토 목적으로만 사용되며 제3자에 공유되지 않습니다.</li>
-              <li><strong>마이크(iOS):</strong> 검사 녹화 시 주변 음성 기록에 사용될 수 있습니다.</li>
+              <li><strong>수집되는 데이터:</strong> 눈 깜빡임 감지 데이터(좌·우 눈의 열림/닫힘 확률, 깜빡임 지속시간, 성공·실패 여부), 검사 세션 중 전면 카메라 영상</li>
+              <li><strong>수집되지 않는 데이터:</strong> 얼굴 이미지, 얼굴 형상 데이터, 얼굴 인식 정보, 생체 인식 식별자, 3D 얼굴 메시 데이터는 수집하지 않습니다.</li>
+              <li><strong>이용 목적:</strong> 눈 깜빡임 데이터는 ALS 등 운동신경질환 환자의 모스픽 기기 사용 적합성 판단에만 사용됩니다.</li>
+              <li><strong>제3자 제공:</strong> 얼굴 데이터 및 눈 깜빡임 데이터는 제3자에게 제공되지 않습니다. 검사 결과 수치 데이터는 Google Firebase Firestore에 저장되며 모스픽 팀만 접근할 수 있습니다. 녹화 영상은 Google Firebase Storage에 저장되며 검사 결과 검토 목적으로만 사용됩니다.</li>
+              <li><strong>보존 기간:</strong> 수집 동의일로부터 3년 보관 후 파기합니다.</li>
+            </ul>
+            <p><strong>[마이크]</strong></p>
+            <ul>
+              <li>검사 과정 녹화 시 주변 음성이 함께 기록될 수 있습니다.</li>
             </ul>
           </PolicyBlock>
 

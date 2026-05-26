@@ -33,19 +33,9 @@ export default function DownloadPage() {
   return (
     <div style={{ minHeight: '100svh', background: '#fff', fontFamily: font }}>
       {/* Hero */}
-      <div style={{ background: '#fff', padding: '56px 24px 0', maxWidth: 560, margin: '0 auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 32 }}>
-          <div style={{ width: 56, height: 56, borderRadius: 14, background: dark, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <svg width="30" height="22" viewBox="0 0 30 22" fill="none">
-              <circle cx="5" cy="11" r="5" fill="white"/>
-              <rect x="14" y="6" width="16" height="10" rx="5" fill="white"/>
-            </svg>
-          </div>
-          <div>
-            <p style={{ fontSize: 12, fontWeight: 600, color: sub, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>Morspeak</p>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: dark, letterSpacing: '-0.3px' }}>모스픽 사용 적합성 검사</h1>
-          </div>
-        </div>
+      <div style={{ background: '#fff', padding: '52px 24px 0', maxWidth: 560, margin: '0 auto' }}>
+        <Image src="/morspeak-logo2.svg" alt="Morspeak" width={130} height={37} priority style={{ marginBottom: 28 }} />
+        <h1 style={{ fontSize: 26, fontWeight: 700, color: dark, letterSpacing: '-0.4px', marginBottom: 28 }}>모스픽 사용 적합성 검사</h1>
 
         <p style={{ fontSize: 17, color: dark, lineHeight: 1.75, marginBottom: 8 }}>
           모스픽은 눈 깜빡임만으로 의사소통하는 ALS 환자용 보조기기입니다.
@@ -163,8 +153,8 @@ export default function DownloadPage() {
               {[
                 '위 버튼으로 APK 파일을 다운로드합니다.',
                 '다운로드한 파일을 탭합니다.',
-                '"알 수 없는 앱 설치" 허용 메시지가 뜨면 설정 → 이 출처 허용을 켭니다.',
-                '뒤로 가서 설치를 탭합니다.',
+                '"앱을 설치할 수 없습니다" 경고가 뜨면 세부정보를 탭한 뒤 무시하고 설치를 탭합니다.',
+                '"알 수 없는 앱 설치" 허용 화면이 뜨면 이 출처 허용을 켠 후 뒤로 가서 설치를 탭합니다.',
               ].map((step, i) => (
                 <div key={i} style={{ display: 'flex', gap: 10, marginBottom: i === 3 ? 0 : 8 }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: sub, minWidth: 16 }}>{i + 1}.</span>

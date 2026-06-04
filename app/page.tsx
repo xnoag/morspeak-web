@@ -8,8 +8,8 @@ import TechSection from '@/components/apple/TechSection';
 import AppleFooter from '@/components/apple/AppleFooter';
 
 export const metadata: Metadata = {
-  title: 'Apple Vision Pro - Apple (KR)',
-  description: '새로운 강력한 M5 칩과 편안한 듀얼 니트 밴드를 갖춘 Apple Vision Pro.',
+  title: 'Morspeak',
+  description: '몸은 멈춰도, 일상은 멈추지 않도록. 환우를 위한 의사소통 솔루션.',
 };
 
 const IMG = 'https://www.apple.com/v/apple-vision-pro/k/images/overview';
@@ -20,53 +20,53 @@ const VID24KR = 'https://www.apple.com/105/media/kr/apple-vision-pro/2024/6e1432
 /* ── 카드 데이터 ─────────────────────────────────────────────────── */
 
 const entertainmentCards = [
-  { title: 'Apple Immersive Video', body: 'Apple Immersive Video는 \'공간 음향\'을 지원하는 180도 3D 8K 녹화 형식입니다. 그 현장 속에 있는 듯한 몰입감을 통해, 당신이 가본 적 없는 곳까지 실감 나게 경험할 수 있게 해주죠.', image: `${IMG}/experiences/entertainment/drawer/immersive_startframe__cnugrn0zk30i_large.jpg`, video: `${VID25US}/drawer-entertainment-immersive-video/large.mp4` },
-  { title: '공간 갤러리 앱', body: '공간 갤러리 앱에서 몰입감 넘치는 경험에 흠뻑 빠져보세요. Apple이 지속적으로 엄선하는 공간 사진, 비디오, 파노라마 컬렉션을 즐길 수 있죠.', image: `${IMG}/experiences/entertainment/drawer/spatial_gallery_startframe__c2d5fzswvfu6_large.jpg`, video: `${VID25US}/drawer-entertainment-spatial-gallery/large.mp4` },
-  { title: 'visionOS 게임', body: 'visionOS 게임은 당신의 주변 공간을 활용해 짜릿한 플레이 경험을 제공합니다. 최대 90Hz로 손 추적이 되기 때문에, 그 어느 때보다 매끄러운 반응성을 자랑하죠.³', image: `${IMG}/experiences/entertainment/drawer/gaming_startframe__gfsm177e89yu_large.jpg`, video: `${VID25US}/drawer-entertainment-apple-arcade/large.mp4` },
-  { title: '멀티뷰', body: '스포츠 팬이라면 멀티뷰 기능을 활용해 Apple TV 앱에서 최대 다섯 개의 MLS Season Pass⁴와 \'불금엔 야구\'⁵ 경기를 동시에 시청할 수 있습니다.', image: `${IMG}/experiences/entertainment/drawer/multiview__esktpswafj42_large.jpg` },
-  { title: '3D 영화', body: '놀라운 깊이감과 선명한 움직임으로 3D 영화를 즐길 수 있습니다.⁶ 화면의 경계를 넘어 그 어느 때보다 생생하게 펼쳐지는 스토리를 경험해 보세요.', image: `${IMG}/experiences/entertainment/drawer/3d_movies__0x5wo07626ae_large.jpg` },
-  { title: 'Apple TV 및 스트리밍 서비스', body: 'Apple TV 및 기타 스트리밍 서비스에서 최애 영화와 TV 프로그램을 감상할 수 있습니다. 같은 공간의 친구들과 함께 콘텐츠를 즐길 수도 있죠.⁷', image: `${IMG}/experiences/entertainment/drawer/atv__q0pm6hbhy72a_large.jpg` },
-  { title: '여행 모드', body: '여행 모드 덕분에 기차, 버스, 자동차 안 또는 9,000m 상공에서도 어떤 콘텐츠든 원활하게 시청할 수 있죠.', image: `${IMG}/experiences/entertainment/drawer/travel_mode__ecldu3pcb6gm_large.jpg` },
+  { title: '시선 입력', body: '눈의 움직임만으로 화면을 선택하고 명령을 입력할 수 있습니다. 손을 쓰기 어려운 상황에서도 자유롭게 소통하세요.', image: `${IMG}/experiences/entertainment/drawer/immersive_startframe__cnugrn0zk30i_large.jpg` },
+  { title: '음성 인식', body: '말하는 것만으로 메시지를 작성하고 전송할 수 있습니다. 다양한 억양과 발음도 정확하게 인식합니다.', image: `${IMG}/experiences/entertainment/drawer/spatial_gallery_startframe__c2d5fzswvfu6_large.jpg` },
+  { title: '기호 입력', body: '간단한 기호 조합으로 자주 쓰는 문장을 빠르게 입력하세요. 의료 현장에 최적화된 단어 세트를 기본 제공합니다.', image: `${IMG}/experiences/entertainment/drawer/gaming_startframe__gfsm177e89yu_large.jpg` },
+  { title: '다국어 지원', body: '한국어를 포함한 여러 언어로 소통할 수 있습니다. 외국인 의료진과의 대화도 막힘 없이 이어가세요.', image: `${IMG}/experiences/entertainment/drawer/multiview__esktpswafj42_large.jpg` },
+  { title: '즐겨찾기 문장', body: '자주 사용하는 문장을 미리 저장해두고 한 번의 선택으로 빠르게 전달하세요.', image: `${IMG}/experiences/entertainment/drawer/3d_movies__0x5wo07626ae_large.jpg` },
+  { title: '실시간 번역', body: '입력한 내용을 상대방의 언어로 즉시 번역해 화면에 표시합니다. 언어 장벽 없는 진료 환경을 만들어갑니다.', image: `${IMG}/experiences/entertainment/drawer/atv__q0pm6hbhy72a_large.jpg` },
+  { title: '대화 이력', body: '주고받은 대화 내용을 저장하고 다시 불러볼 수 있습니다. 중요한 내용은 별표로 표시해 두세요.', image: `${IMG}/experiences/entertainment/drawer/travel_mode__ecldu3pcb6gm_large.jpg` },
 ];
 
 const productivityCards = [
-  { title: 'Mac 가상 디스플레이', body: 'Mac 가상 디스플레이로 Mac을 무선으로 Apple Vision Pro 안으로 가져와, 울트라 와이드 화면으로 작업할 수 있습니다.⁹', image: `${IMG}/experiences/productivity/drawer/mac_startframe__ez7om6vgeis2_large.jpg`, video: `${VID25KR}/drawer-productivity-mac/large.mp4` },
-  { title: '위젯', body: '\'사진\', \'시계\', \'음악\', \'캘린더\'와 같이 즐겨 찾는 정보와 앱을 당신이 딱 원하는 방식으로 공간에 배치할 수 있습니다.', image: `${IMG}/experiences/productivity/drawer/widgets_startframe__e5k95qxoevue_large.jpg`, video: `${VID25KR}/drawer-productivity-widgets/large.mp4` },
-  { title: 'Apple Intelligence — 글쓰기 도구', body: '\'글쓰기 도구\'는 글을 교정하고 가장 적절한 어조와 표현을 찾을 수 있을 때까지 다양한 버전으로 재작성해 줍니다.⁸', link: { label: 'Apple Intelligence에 대해 더 알아보기', href: '/kr/apple-intelligence/' }, image: `${IMG}/experiences/productivity/drawer/apple_intelligence__btsvykyvfooi_large.jpg` },
-  { title: 'Magic Keyboard 및 액세서리', body: 'Apple Vision Pro와 함께 Magic Keyboard, Magic Trackpad 및 기타 Bluetooth 액세서리를 사용할 수 있습니다.', image: `${IMG}/experiences/productivity/drawer/magic_keyboard__kes6sc8k5puq_large.jpg` },
-  { title: '비즈니스 활용', body: 'Apple Vision Pro는 비즈니스 운영 방식을 새롭게 정의하고 있습니다. 지구 반대편의 팀과 협업하고, 프로토타입을 더 빠르게 반복 개선할 수 있습니다.', link: { label: 'Apple Vision Pro 비즈니스 활용에 대해 더 알아보기', href: '/kr/apple-vision-pro/enterprise/' }, image: `${IMG}/experiences/productivity/drawer/apple_at_work__cvknlevmdyy6_large.jpg` },
+  { title: '조명 제어', body: '병실 조명의 밝기와 색온도를 눈 움직임만으로 조절할 수 있습니다. 취침 시 불을 끄거나 독서등을 켜는 것도 혼자 할 수 있습니다.', image: `${IMG}/experiences/productivity/drawer/mac_startframe__ez7om6vgeis2_large.jpg` },
+  { title: 'TV 및 미디어', body: '리모컨 없이 TV 채널, 볼륨, 재생을 제어합니다. 좋아하는 콘텐츠를 원하는 시간에 즐기세요.', image: `${IMG}/experiences/productivity/drawer/widgets_startframe__e5k95qxoevue_large.jpg` },
+  { title: '침대 및 전동 기기', body: '전동 침대의 각도와 높이를 섬세하게 조절하세요. 편안한 자세를 직접 찾아갈 수 있습니다.', image: `${IMG}/experiences/productivity/drawer/apple_intelligence__btsvykyvfooi_large.jpg` },
+  { title: '블라인드 및 커튼', body: '햇빛 조절이 필요할 때 블라인드나 커튼을 직접 열고 닫을 수 있습니다. 더 이상 도움을 기다릴 필요 없습니다.', image: `${IMG}/experiences/productivity/drawer/magic_keyboard__kes6sc8k5puq_large.jpg` },
+  { title: '스마트 기기 연동', body: '병실 내 다양한 스마트 기기들을 하나의 화면에서 통합 제어합니다. 설정해둔 프리셋으로 자주 쓰는 환경을 즉시 불러오세요.', image: `${IMG}/experiences/productivity/drawer/apple_at_work__cvknlevmdyy6_large.jpg` },
 ];
 
 const photosCards = [
-  { title: '공간 비디오 및 사진', body: '공간 비디오와 사진은 놀라운 깊이감으로 그 순간에 다시 빠져들게 해줍니다.', image: `${IMG}/experiences/photos-videos/drawer/spatial_photos_startframe__cgqyf9bm8c2u_large.jpg`, video: `${VID24KR}/drawer-photos-videos-spatial-photos/large.mp4` },
-  { title: '2D 사진을 공간 장면으로 변환', body: '사진 보관함에 있는 2D 사진을 공간 장면으로 즉시 변환해 자연스러운 깊이감과 공간감으로 추억을 더욱 생생하게 되새길 수 있게 해주죠.', image: `${IMG}/experiences/photos-videos/drawer/2d_photo_startframe__efc1oeep47cm_large.jpg`, video: `${VID25US}/drawer-photos-videos-transform-2d/large.mp4` },
-  { title: '360도 및 광시야각 동영상', body: 'GoPro, Insta360, Canon 액션 카메라로 촬영한 360°, 180° 동영상을 추가 변환 없이 원본 그대로 재생할 수 있습니다.', image: `${IMG}/experiences/photos-videos/drawer/fov_startframe__eg96rg9zf4qe_large.jpg`, video: `${VID25US}/drawer-photos-videos-fov/large.mp4` },
-  { title: '상단 버튼', body: '상단 버튼으로 공간 비디오와 사진을 더욱 빠르고 쉽게 촬영할 수 있습니다.', image: `${IMG}/experiences/photos-videos/drawer/top_button__btvsc4mfgcb6_large.jpg` },
-  { title: 'iPhone으로 공간 사진 및 비디오 촬영', body: 'iPhone으로 공간 사진과 비디오를 촬영한 다음, Apple Vision Pro에서 실감 나게 되살릴 수도 있습니다.¹⁰', image: `${IMG}/experiences/photos-videos/drawer/spatial_videos__zzd227ws8lu6_large.jpg` },
+  { title: '간호사 호출', body: '한 번의 선택으로 담당 간호사를 즉시 호출할 수 있습니다. 호출 상태와 예상 도착 시간이 화면에 표시됩니다.', image: `${IMG}/experiences/photos-videos/drawer/spatial_photos_startframe__cgqyf9bm8c2u_large.jpg` },
+  { title: '긴급 알림', body: '위급 상황 시 의료진에게 즉각적인 긴급 알림을 전송합니다. 알림은 병동 전체 스테이션에 동시에 전달됩니다.', image: `${IMG}/experiences/photos-videos/drawer/2d_photo_startframe__efc1oeep47cm_large.jpg` },
+  { title: '보호자 연락', body: '가족이나 보호자에게 현재 상태나 메시지를 간편하게 전달할 수 있습니다. 미리 등록된 연락처로 바로 연결됩니다.', image: `${IMG}/experiences/photos-videos/drawer/fov_startframe__eg96rg9zf4qe_large.jpg` },
+  { title: '예약 호출', body: '투약 시간, 검사 일정 등을 미리 설정해두면 정해진 시간에 자동으로 알림을 보냅니다.', image: `${IMG}/experiences/photos-videos/drawer/top_button__btvsc4mfgcb6_large.jpg` },
+  { title: '호출 이력', body: '이전 호출 내역과 응답 시간을 확인할 수 있습니다. 반복적인 요청은 즐겨찾기로 등록해 더욱 빠르게 사용하세요.', image: `${IMG}/experiences/photos-videos/drawer/spatial_videos__zzd227ws8lu6_large.jpg` },
 ];
 
 const connectionCards = [
-  { title: 'Persona', body: '당신의 Persona는 놀라운 사실감과 표현력을 통해 다른 사람들이 당신을 역동적이고 자연스러운 모습으로 볼 수 있게 해줍니다.', image: `${IMG}/experiences/connection/drawer/persona_startframe__bryzu03w563m_large.jpg`, video: `${VID25US}/drawer-connection-persona/large.mp4` },
-  { title: 'FaceTime', body: 'FaceTime 사용 시 각 참가자가 크기 조절 가능한 타일 안에 표시됩니다. 공간 음향이 각 타일의 위치에 맞게 음성 방향을 설정해 더욱 자연스럽게 대화할 수 있죠.', image: `${IMG}/experiences/connection/drawer/facetime__cn2l222r4mc2_large.jpg` },
-  { title: 'SharePlay', body: 'SharePlay로 가족이나 친구들과 TV 프로그램, 영화, 음악을 함께 감상하고, 멀티플레이어 게임도 즐길 수 있습니다.', image: `${IMG}/experiences/connection/drawer/shareplay__fqxq1g3bbfmi_large.jpg` },
-  { title: 'Image Playground', body: 'Image Playground를 활용해 당신만의 개성을 시각적으로 표현해 보세요. 설명이나 친구의 사진을 바탕으로 몇 초 만에 재미있고 독창적인 이미지를 만들 수 있습니다.', image: `${IMG}/experiences/connection/drawer/image_playground__gauw0i2iwwy2_large.jpg` },
+  { title: '화상 통화', body: '가족, 친구, 의료진과 언제든 얼굴을 보며 대화할 수 있습니다. 선명한 화질과 안정적인 연결로 멀리 있어도 가깝게 느껴집니다.', image: `${IMG}/experiences/connection/drawer/persona_startframe__bryzu03w563m_large.jpg` },
+  { title: '문자 메시지', body: '짧은 메시지를 주고받으며 일상적인 소통을 이어가세요. 가족의 안부 메시지를 받는 것만으로도 큰 힘이 됩니다.', image: `${IMG}/experiences/connection/drawer/facetime__cn2l222r4mc2_large.jpg` },
+  { title: '함께 콘텐츠 즐기기', body: '멀리 있는 가족과 같은 영상을 동시에 시청할 수 있습니다. 혼자가 아닌, 함께하는 시간을 만들어 드립니다.', image: `${IMG}/experiences/connection/drawer/shareplay__fqxq1g3bbfmi_large.jpg` },
+  { title: '소셜 미디어 연결', body: '일상의 소소한 순간을 사진이나 글로 공유하세요. 사람들과의 연결을 유지하는 것이 회복에 도움이 됩니다.', image: `${IMG}/experiences/connection/drawer/image_playground__gauw0i2iwwy2_large.jpg` },
 ];
 
 const appsCards = [
-  { title: '친숙한 앱', body: 'Safari, \'사진\', \'음악\' 및 \'메시지\' 등이 변화된 모습으로 당신의 공간에 존재하죠. iCloud 덕분에 당신의 콘텐츠가 자동으로 iPhone, iPad, Mac과 동기화됩니다.', image: `${IMG}/experiences/apps/drawer/familiar_apps_startframe__bd4vu9ussfv6_large.jpg`, video: `${VID25KR}/drawer-apps-familiar-apps/large.mp4` },
-  { title: 'App Store', body: 'Apple Vision Pro용 App Store에서는 visionOS를 위해 설계된 혁신적인 앱들을 만나볼 수 있습니다.', link: { label: 'Apple Vision Pro용 앱 살펴보기', href: 'https://apps.apple.com/kr/vision' }, image: `${IMG}/experiences/apps/drawer/app_store__ge30nsef8xui_large.jpg` },
-  { title: '마음 챙기기', body: '앱을 확장해 당신의 공간을 가득 채울 수 있습니다. 마음 챙기기 세션 중에 자신만의 고요한 순간을 만들어 낼 수 있죠.', image: `${IMG}/experiences/apps/drawer/mindfulness_startframe__c070kjbtkqky_large.jpg` },
+  { title: '엔터테인먼트', body: '유튜브, OTT 서비스, 음악 스트리밍까지 좋아하는 콘텐츠를 즐기며 입원 생활을 보다 편안하게 만들어 드립니다.', image: `${IMG}/experiences/apps/drawer/familiar_apps_startframe__bd4vu9ussfv6_large.jpg` },
+  { title: '전자책 및 독서', body: '수천 권의 책과 잡지를 손 안에서 즐기세요. 글자 크기와 배경 색상을 조절해 눈에 편안한 독서 환경을 만들 수 있습니다.', image: `${IMG}/experiences/apps/drawer/app_store__ge30nsef8xui_large.jpg` },
+  { title: '명상 및 휴식', body: '호흡 가이드, 자연 소리, 마음 챙기기 프로그램으로 편안한 휴식을 취하세요. 정신적 안정이 빠른 회복을 돕습니다.', image: `${IMG}/experiences/apps/drawer/mindfulness_startframe__c070kjbtkqky_large.jpg` },
 ];
 
 const visionOSCards = [
-  { title: '앱 배치', body: 'visionOS에서는 앱이 디스플레이의 제약을 뛰어넘어 당신 주변의 공간을 채울 수 있습니다. 방 안의 조명에 반응하고 그림자도 드리웁니다.', image: `${IMG}/visionos/drawer/apps__fx9t3jilcqqi_large.jpg` },
-  { title: '환경', body: '환경은 마법처럼 당신의 주변 공간을 요세미티, 보라보라, 목성같이 아름다운 360° 풍경으로 전환합니다.', image: `${IMG}/visionos/drawer/environments__dr1soqwwcgq6_large.jpg` },
-  { title: 'EyeSight', body: 'EyeSight는 당신이 앱을 사용 중이거나 어떤 경험에 완전히 몰입하고 있다는 걸 근처의 사람들이 알 수 있게 해줍니다.', image: `${IMG}/visionos/drawer/eyesight__fpk4mmfeztme_large.jpg` },
-  { title: '방문 사용자 기능', body: '방문 사용자 기능은 다른 사람들에게 Apple Vision Pro 접근 권한을 주고, iPhone이나 iPad에서 \'뷰 미러링\'으로 안내할 수 있게 해줍니다.', image: `${IMG}/visionos/drawer/guest_user__b4tnut5kxieu_large.jpg` },
-  { title: '눈 제어', body: '앱, 버튼, 텍스트 필드를 바라보는 것만으로 visionOS를 탐색할 수 있습니다.', image: `${IMG}/visionos/drawer/eyes_startframe__d4bpz6kcq7iq_large.jpg`, video: `${VID25KR}/visionos/large.mp4` },
-  { title: '손 제어', body: '손가락 맞대기로 탭해서 원하는 요소를 선택하고, 가볍게 손짓해서 스크롤할 수 있습니다.', image: `${IMG}/visionos/drawer/hands_startframe__d456zaj3uje6_large.jpg`, video: `${VID25KR}/drawer-visionos-tap/large.mp4` },
-  { title: '음성 제어', body: '간편히 검색 필드의 마이크 버튼을 바라보기만 하면, 음성으로 텍스트를 받아쓸 수 있습니다.', image: `${IMG}/visionos/drawer/voice_startframe__c0a4vcs48m0y_large.jpg` },
-  { title: 'Siri', body: 'Siri를 사용해, 앱을 열고 닫거나 미디어를 재생하는 등의 동작도 빠르게 수행할 수 있죠.', image: `${IMG}/visionos/drawer/siri__bb6p4jhfelki_large.jpg` },
+  { title: '시선으로 선택', body: '원하는 항목을 바라보는 것만으로 선택이 완료됩니다. 손동작이 어려운 상황에서도 눈빛 하나로 모든 기능을 사용할 수 있습니다.', image: `${IMG}/visionos/drawer/apps__fx9t3jilcqqi_large.jpg` },
+  { title: '미세 움직임 감지', body: '아주 작은 신체 움직임도 정확하게 인식합니다. 손가락 하나, 고개 끄덕임만으로도 기기를 조작할 수 있습니다.', image: `${IMG}/visionos/drawer/environments__dr1soqwwcgq6_large.jpg` },
+  { title: '보조 기기 연동', body: '스위치 액세스, 조이스틱 등 다양한 보조 입력 기기와 연결해 사용할 수 있습니다. 기존에 쓰던 기기를 그대로 활용하세요.', image: `${IMG}/visionos/drawer/eyesight__fpk4mmfeztme_large.jpg` },
+  { title: '맞춤 설정', body: '사용자의 신체 상태와 능력에 맞게 인터페이스를 세밀하게 조정할 수 있습니다. 가장 편한 방식으로 사용하세요.', image: `${IMG}/visionos/drawer/guest_user__b4tnut5kxieu_large.jpg` },
+  { title: '눈 제어', body: '화면의 어디를 바라보는지 추적해 정확한 지점을 선택합니다. 보정 기능으로 개인별 시선 특성을 학습합니다.', image: `${IMG}/visionos/drawer/eyes_startframe__d4bpz6kcq7iq_large.jpg` },
+  { title: '손 제어', body: '손가락 끝을 맞대거나 손바닥을 들어올리는 간단한 동작으로 기기를 제어합니다. 침대 위에 누운 상태에서도 편리하게 사용할 수 있습니다.', image: `${IMG}/visionos/drawer/hands_startframe__d456zaj3uje6_large.jpg` },
+  { title: '음성 명령', body: '"불 꺼줘", "간호사 불러줘" 같은 자연스러운 말투로 기기를 제어하세요. 별도의 학습 없이 바로 사용할 수 있습니다.', image: `${IMG}/visionos/drawer/voice_startframe__c0a4vcs48m0y_large.jpg` },
+  { title: '호흡 제어', body: '호흡 패턴을 이용해 선택과 실행을 조작하는 방식도 지원합니다. 신체 움직임이 극히 제한된 경우에도 독립적으로 기기를 사용할 수 있습니다.', image: `${IMG}/visionos/drawer/siri__bb6p4jhfelki_large.jpg` },
 ];
 
 const valuesCards = [
@@ -107,57 +107,53 @@ export default function HomePage() {
           id="overview"
           style={{ position: 'relative', height: 'calc(100vh - 52px)', minHeight: '500px', background: '#f5f5f7', overflow: 'hidden' }}
         >
-          <img
-            src="/hero.png"
-            alt="모스픽 사용 모습"
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' }}
-          />
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
+          >
+            <source src="/hero-video.mp4" type="video/mp4" />
+          </video>
         </section>
 
         <StickyTextReveal />
 
         <FullscreenVideoSection
           id="entertainment"
-          heroVideo={`${VID25US}/experience-entertainment/large.mp4`}
-          heroImage={`${IMG}/experiences/entertainment/entertainment_a_startframe__eqosxjbd3xua_large.jpg`}
-          citation="구독 후 Apple TV에서 '울프스' - Wolfs 시청하기"
+          heroVideo="/video-entertainment.mp4"
+          citation="의사소통"
           body="각 눈에 4K TV보다 많은 픽셀로 시각 정보가 제공되기 때문에 그 어떤 공간이든 당신만의 극장으로 바꿀 수 있습니다. '공간 음향'과 함께 압도적인 몰입감을 경험하고, 영화, TV 프로그램, 게임을 커다란 화면으로 확장해 즐길 수 있습니다. 거실 소파에서든, 긴 비행 중이든 어디서나 놀라운 콘텐츠를 누릴 수 있죠."
           cards={entertainmentCards}
         />
 
         <FullscreenVideoSection
-          eyebrow="환우를 위한"
-          headline={"몸은 멈춰도,\n일상은 멈추지 않도록."}
-          heroVideo={`${VID25KR}/productivity_a/large.mp4`}
-          heroImage={`${IMG}/experiences/productivity/productivity_a_startframe__b78h8iwbcw76_large.jpg`}
+          heroVideo="/video-productivity.mp4"
+          citation="사물 제어"
           body="Apple Vision Pro는 당신이 최고의 작업을 해낼 수 있도록 무한한 공간을 제공합니다. Mac의 워크플로를 거대한 화면에 펼쳐 확인하는 것은 물론 여러 앱을 자유롭게 오가며 멀티태스킹하고, 원하는 방식으로 정리할 수도 있습니다.⁸"
           link={{ label: 'Apple Intelligence에 대해 더 알아보기', href: '/kr/apple-intelligence/' }}
           cards={productivityCards}
         />
 
         <FullscreenVideoSection
-          eyebrow="사진 및 비디오"
-          headline="아름다운 순간, 다시 그 한가운데로."
-          heroVideo={`${VID25KR}/experience-photos-videos/large.mp4`}
-          heroImage={`${IMG}/experiences/photos-videos/photos_videos_startframe__dnwwa2e1qys2_large.jpg`}
+          heroVideo="/video-photos.mp4"
+          citation="호출"
           body="Apple Vision Pro를 사용하면 마법 같은 공간 사진과 비디오를 3D로 담아, 그 소중한 순간을 언제든 다시 실감 나게 되살릴 수 있습니다. 탭 한 번으로 2D 사진을 공간 장면으로 변환해 당신의 소중한 추억을 생생하게 만들 수도 있죠."
           cards={photosCards}
         />
 
         <FullscreenVideoSection
-          eyebrow="소통"
-          headline="양질의 시간 그리고 공간을 함께하다."
-          heroVideo={`${VID25US}/experience-connection/large.mp4`}
-          heroImage={`${IMG}/experiences/connection/connection_startframe__dk2ju081ayqa_large.jpg`}
+          heroVideo="/video-connection.mp4"
+          citation="콘텐츠 탐색"
           body="어디에서든 그 어느 때보다 생생한 방식으로 협업하고 소통할 수 있습니다. 다른 사람들과 FaceTime 통화를 할 때 상대방을 실물 크기의 비디오 타일로 볼 수 있고, 당신의 Persona를 사용하면 동료나 친구들, 또는 가족이 바로 앞에 있는 듯한 느낌을 받을 수도 있답니다."
           cards={connectionCards}
         />
 
         <FullscreenVideoSection
-          eyebrow="앱"
-          headline="좋아하는 일을 완전히 새로운 방식으로."
           heroVideo={`${VID25KR}/experience-apps/large.mp4`}
           heroImage={`${IMG}/experiences/apps/apps_startframe__fgskz7opptiu_large.jpg`}
+          citation="앱"
           body="Safari 내 브라우징부터 '메시지' 앱에서의 대화까지, Apple Vision Pro는 당신이 자주 사용하는 앱의 경험을 한층 넓혀 모든 것에 경이로움을 더해줍니다. App Store에서는 감탄을 자아내는 더 많은 Apple Vision Pro용 공간 앱을 만나볼 수 있으며, 그 숫자는 계속 늘고 있죠."
           link={{ label: 'App Store 방문하기', href: 'https://apps.apple.com/kr/vision' }}
           cards={appsCards}
@@ -165,10 +161,9 @@ export default function HomePage() {
 
         <FullscreenVideoSection
           id="visionos"
-          eyebrow="visionOS"
-          headline="공간 컴퓨팅을 위해 디자인된 운영체제."
           heroVideo={`${VID24KR}/visionos-a/large.mp4`}
           heroImage={`${IMG}/visionos/visionos_a_startframe__fp1z3eff98qe_large.jpg`}
+          citation="visionOS"
           body="macOS, iOS 및 iPadOS의 토대를 기반으로 설계된 visionOS는 눈, 손, 음성을 사용해 자연스럽게 다룰 수 있는 강력한 공간 경험을 구현합니다. visionOS 26와 함께라면 Apple Vision Pro를 사용해 감상하고, 일하고, 창작하는 것은 물론 소통할 수 있는 더욱 놀라운 방법을 발견할 수 있죠."
           link={{ label: 'visionOS 26에 대해 더 알아보기', href: '/kr/os/visionos/' }}
           cards={visionOSCards}

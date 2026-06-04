@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
 
-const APP_STORE_URL = 'https://apps.apple.com/kr/app/%EB%AA%A8%EC%8A%A4%ED%94%BD/id6743996900';
+const APP_STORE_URL = 'https://apps.apple.com/kr/app/%EB%AA%A8%EC%8A%A4%ED%94%BD-%EA%B2%80%EC%82%AC%EC%9A%A9/id6772686399';
 
 const NAV_LINKS = [
   { label: '소개', href: '#overview' },
@@ -136,7 +136,7 @@ export default function VisionProNav() {
           >
             기부하기
           </a>
-          <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer" style={{
+          <a href="/screening" style={{
             fontSize: '13px', color: '#fff', textDecoration: 'none',
             background: '#0071e3', padding: '0 16px', borderRadius: '980px', whiteSpace: 'nowrap',
             height: '34px', display: 'inline-flex', alignItems: 'center',

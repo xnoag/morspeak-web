@@ -13,7 +13,7 @@ export interface CarouselCard {
   video?: string;
 }
 
-export default function FeatureCarousel({ cards }: { cards: CarouselCard[] }) {
+export default function FeatureCarousel({ cards, sectionVideo, sectionTitle, sectionBody }: { cards: CarouselCard[]; sectionVideo?: string; sectionTitle?: string; sectionBody?: string }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(false);
@@ -53,6 +53,37 @@ export default function FeatureCarousel({ cards }: { cards: CarouselCard[] }) {
         }}
         className="no-scrollbar"
       >
+        {sectionVideo && (
+          <div
+            style={{
+              flex: `0 0 min(${CARD_WIDTH}px, calc(100vw - 44px))`,
+              scrollSnapAlign: 'start',
+              background: '#fff',
+              borderRadius: '20px',
+              overflow: 'hidden',
+              flexShrink: 0,
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <div style={{ width: '100%', aspectRatio: '3/2', overflow: 'hidden', flexShrink: 0 }}>
+              <video
+                autoPlay muted loop playsInline
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              >
+                <source src={sectionVideo} type="video/mp4" />
+              </video>
+            </div>
+            {(sectionTitle || sectionBody) && (
+              <div style={{ padding: '20px 24px 28px 0', flex: 1 }}>
+                <p style={{ fontSize: '15px', color: '#6e6e73', lineHeight: 1.7, letterSpacing: '-0.01em' }}>
+                  {sectionTitle && <strong style={{ color: '#1d1d1f', fontWeight: 600 }}>{sectionTitle} </strong>}
+                  {sectionBody}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
         {cards.map((card, i) => (
           <div
             key={i}
@@ -67,21 +98,25 @@ export default function FeatureCarousel({ cards }: { cards: CarouselCard[] }) {
             }}
           >
             {/* 이미지 or 비디오 */}
-            {card.video ? (
-              <video
-                autoPlay muted loop playsInline
-                poster={card.image}
-                style={{ width: '100%', aspectRatio: '3/2', objectFit: 'cover', display: 'block' }}
-              >
-                <source src={card.video} type="video/mp4" />
-              </video>
-            ) : card.image ? (
-              <img
-                src={card.image}
-                alt={card.title}
-                style={{ width: '100%', aspectRatio: '3/2', objectFit: 'cover', display: 'block' }}
-              />
-            ) : null}
+            {(card.video || card.image) && (
+              <div style={{ width: '100%', aspectRatio: '3/2', overflow: 'hidden', flexShrink: 0 }}>
+                {card.video ? (
+                  <video
+                    autoPlay muted loop playsInline
+                    poster={card.image}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  >
+                    <source src={card.video} type="video/mp4" />
+                  </video>
+                ) : (
+                  <img
+                    src={card.image}
+                    alt={card.title}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
+                )}
+              </div>
+            )}
 
             {/* 텍스트 */}
             <div style={{ padding: '20px 24px 28px 0', flex: 1 }}>

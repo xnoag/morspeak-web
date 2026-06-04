@@ -38,7 +38,7 @@ interface Result {
   dotDashBoundary?: number;
 }
 
-const ADMIN_PW = 'Hgo3575425*';
+const ADMIN_PW = '0621';
 const F = "-apple-system,'SF Pro Display',BlinkMacSystemFont,'Helvetica Neue',sans-serif";
 const STATUS: Record<Status, { bg: string; color: string }> = {
   '미검토': { bg: '#F2F2F7', color: '#8E8E93' },

@@ -1559,12 +1559,14 @@ export default function AdminScreeningPage() {
                       const handleSave = async () => {
                         if (!evalInput.name.trim()) return alert('이름을 입력해주세요.');
                         if (evalInput.phone.length!==4) return alert('전화번호 뒷 4자리를 입력해주세요.');
-                        const c1=evalInput.c1!==''?parseFloat(evalInput.c1):0;
-                        const c2=evalInput.c2!==''?parseFloat(evalInput.c2):0;
-                        const c3=evalInput.c3!==''?parseFloat(evalInput.c3):0;
-                        const filled=[c1,c2,c3].filter((_,i)=>[evalInput.c1,evalInput.c2,evalInput.c3][i]!=='');
-                        if (filled.some(v=>isNaN(v)||v<0||v>20)) return alert('각 항목은 0~20점 사이입니다.');
-                        await saveEvalEntry(selRank.key, {name:evalInput.name.trim(), phone:evalInput.phone, c1, c2, c3, comment:evalInput.comment.trim()||undefined});
+                        const c1=parseFloat(evalInput.c1), c2=parseFloat(evalInput.c2), c3=parseFloat(evalInput.c3);
+                        if ([c1,c2,c3].some(isNaN)) return alert('모든 항목에 점수를 선택해주세요.');
+                        if ([c1,c2,c3].some(v=>v<0||v>20)) return alert('각 항목은 0~20점 사이입니다.');
+                        const commentVal = evalInput.comment.trim();
+                        await saveEvalEntry(selRank.key, {
+                          name:evalInput.name.trim(), phone:evalInput.phone, c1, c2, c3,
+                          ...(commentVal ? {comment: commentVal} : {}),
+                        });
                         setEvalJustSaved(true);
                         setTimeout(()=>setEvalJustSaved(false), 2500);
                       };

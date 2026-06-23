@@ -285,8 +285,15 @@ export default function AdminScreeningPage() {
   const saveEvalEntry = async (personKey: string, entry: Omit<EvalEntry, 'submittedAt'>) => {
     await ensureAuth();
     const evalKey = `${normalizeStr(entry.name)}_${entry.phone}`;
+    // undefined 값이 Firestore에 전달되지 않도록 명시적으로 구성
+    const data: Record<string, unknown> = {
+      name: entry.name, phone: entry.phone,
+      c1: entry.c1, c2: entry.c2, c3: entry.c3,
+      submittedAt: new Date().toISOString(),
+    };
+    if (entry.comment) data.comment = entry.comment;
     await setDoc(doc(db, 'qualitative_scores', personKey.replace(/\//g,'_')), {
-      evals: { [evalKey]: {...entry, submittedAt: new Date().toISOString()} }
+      evals: { [evalKey]: data }
     }, {merge: true});
   };
 

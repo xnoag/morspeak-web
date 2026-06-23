@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { collection, onSnapshot, orderBy, query, updateDoc, deleteDoc, doc, setDoc } from 'firebase/firestore';
+import { collection, onSnapshot, orderBy, query, updateDoc, deleteDoc, doc, setDoc, deleteField } from 'firebase/firestore';
 import { getStorage, ref, deleteObject } from 'firebase/storage';
 import { getAuth, signInAnonymously } from 'firebase/auth';
 import { db } from '@/lib/firebase';
@@ -1559,9 +1559,11 @@ export default function AdminScreeningPage() {
                       const handleSave = async () => {
                         if (!evalInput.name.trim()) return alert('이름을 입력해주세요.');
                         if (evalInput.phone.length!==4) return alert('전화번호 뒷 4자리를 입력해주세요.');
-                        const c1=parseFloat(evalInput.c1), c2=parseFloat(evalInput.c2), c3=parseFloat(evalInput.c3);
-                        if ([c1,c2,c3].some(isNaN)) return alert('모든 항목에 점수를 입력해주세요.');
-                        if ([c1,c2,c3].some(v=>v<0||v>20)) return alert('각 항목은 0~20점 사이입니다.');
+                        const c1=evalInput.c1!==''?parseFloat(evalInput.c1):0;
+                        const c2=evalInput.c2!==''?parseFloat(evalInput.c2):0;
+                        const c3=evalInput.c3!==''?parseFloat(evalInput.c3):0;
+                        const filled=[c1,c2,c3].filter((_,i)=>[evalInput.c1,evalInput.c2,evalInput.c3][i]!=='');
+                        if (filled.some(v=>isNaN(v)||v<0||v>20)) return alert('각 항목은 0~20점 사이입니다.');
                         await saveEvalEntry(selRank.key, {name:evalInput.name.trim(), phone:evalInput.phone, c1, c2, c3, comment:evalInput.comment.trim()||undefined});
                         setEvalJustSaved(true);
                         setTimeout(()=>setEvalJustSaved(false), 2500);
@@ -1653,18 +1655,24 @@ export default function AdminScreeningPage() {
                                 <table style={{ width:'100%',borderCollapse:'collapse',fontSize:12 }}>
                                   <thead>
                                     <tr style={{ background:'#FAFAFA',borderBottom:'1.5px solid #F2F2F7' }}>
-                                      {['이름','①활용','②개선','③필요','소계','의견'].map(h=>(
+                                      {['이름','①활용','②개선','③필요','소계','의견',''].map(h=>(
                                         <th key={h} style={{ padding:'7px 10px',textAlign:'left',color:'#8E8E93',fontWeight:500,fontSize:10 }}>{h}</th>
                                       ))}
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {Object.values(evals).map((e,i)=>(
+                                    {Object.entries(evals).map(([evalKey, e],i)=>(
                                       <tr key={i} style={{ borderBottom:'1px solid #F7F7F9' }}>
                                         <td style={{ padding:'6px 10px',fontSize:12 }}>{e.name}</td>
                                         {[e.c1,e.c2,e.c3].map((v,j)=><td key={j} style={{ padding:'6px 10px',textAlign:'right' as const,fontSize:12 }}>{v}</td>)}
                                         <td style={{ padding:'6px 10px',textAlign:'right' as const,fontWeight:700,fontSize:12 }}>{e.c1+e.c2+e.c3}</td>
                                         <td style={{ padding:'6px 10px',fontSize:11,color:'#3C3C43',maxWidth:120 }}>{e.comment||'-'}</td>
+                                        <td style={{ padding:'6px 10px',textAlign:'center' as const }}>
+                                          <button onClick={async()=>{
+                                            if(!confirm(`${e.name}의 평가를 삭제할까요?`)) return;
+                                            await updateDoc(doc(db,'qualitative_scores',pKey),{[`evals.${evalKey}`]:deleteField()});
+                                          }} style={{ background:'none',border:'none',cursor:'pointer',color:'#FF3B30',fontSize:12,padding:'2px 6px' }}>삭제</button>
+                                        </td>
                                       </tr>
                                     ))}
                                     {(() => { const qa=computeEvalAvg(evals); return qa?(

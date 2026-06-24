@@ -5,12 +5,12 @@ import Footer from './Footer'
 
 export default function ConditionalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const isTracking = pathname.startsWith('/tracking')
+  const isHidden = pathname.startsWith('/tracking') || pathname.startsWith('/schedule')
   return (
     <>
-      {!isTracking && <Navbar />}
+      {!isHidden && <Navbar />}
       {children}
-      {!isTracking && <Footer />}
+      {!isHidden && <Footer />}
     </>
   )
 }

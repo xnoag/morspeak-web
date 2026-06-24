@@ -204,7 +204,7 @@ export default function AdminScreeningPage() {
   const [sortField, setSortField] = useState<'date' | 'score'>('date');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [activeView, setActiveView] = useState<'screening' | 'applications' | 'ranking' | 'final' | 'schedule'>('screening');
-  const [scheduleBookings, setScheduleBookings] = useState<Record<string, {patientName:string;contactPhone:string;bookedAt:string}>>({});
+  const [scheduleBookings, setScheduleBookings] = useState<Record<string, {patientName:string;caregiverName?:string;contactPhone:string;meetingType?:string;bookedAt:string}>>({});
   const [finalUnlocked, setFinalUnlocked] = useState(false);
   const [finalPw, setFinalPw] = useState('');
   const [expandedRankKey, setExpandedRankKey] = useState<string | null>(null);
@@ -1942,8 +1942,14 @@ export default function AdminScreeningPage() {
                           <div style={{ display:'flex',alignItems:'center',gap:10 }}>
                             <span style={{ fontSize:14,fontWeight:600,color:'#1C1C1E',width:44 }}>{time}</span>
                             {b
-                              ? <><span style={{ fontSize:13,color:'#000',fontWeight:500 }}>{b.patientName}</span>
-                                  <span style={{ fontSize:12,color:'#8E8E93' }}>{b.contactPhone}</span></>
+                              ? <>
+                                  <span style={{ fontSize:13,color:'#000',fontWeight:500 }}>{b.patientName}</span>
+                                  {b.caregiverName&&<span style={{ fontSize:12,color:'#8E8E93' }}>({b.caregiverName})</span>}
+                                  <span style={{ fontSize:12,color:'#8E8E93' }}>{b.contactPhone}</span>
+                                  {b.meetingType&&<span style={{ fontSize:10,fontWeight:600,padding:'1px 6px',borderRadius:20,background:b.meetingType==='kakao'?'#FFF0D4':'#E3F2FF',color:b.meetingType==='kakao'?'#CC7000':'#0071E3' }}>
+                                    {b.meetingType==='kakao'?'카카오':'ZOOM'}
+                                  </span>}
+                                </>
                               : <span style={{ fontSize:12,color:'#C7C7CC' }}>미신청</span>}
                           </div>
                           {b && <button onClick={()=>cancelSlot(id)}

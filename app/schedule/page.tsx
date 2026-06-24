@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { collection, onSnapshot, doc, runTransaction } from 'firebase/firestore';
 import { getAuth, signInAnonymously } from 'firebase/auth';
 import { db } from '@/lib/firebase';
@@ -62,6 +62,7 @@ export default function SchedulePage() {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<{ date: string; time: string; dateLabel: string } | null>(null);
   const [slotsReady, setSlotsReady] = useState(false);
+  const formRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const auth = getAuth();
@@ -152,7 +153,11 @@ export default function SchedulePage() {
                   const label12 = `${hh>12?hh-12:hh}시${mm>0?` ${mm}분`:''}`;
                   return (
                     <button key={time} disabled={unavailable || !slotsReady}
-                      onClick={() => setSelected(unavailable ? null : isSelected ? null : { date, time })}
+                      onClick={() => {
+                        if (unavailable) return;
+                        setSelected(isSelected ? null : { date, time });
+                        if (!isSelected) setTimeout(() => formRef.current?.scrollIntoView({ behavior:'smooth', block:'start' }), 50);
+                      }}
                       style={{ height:64, borderRadius:12,
                         border:`2px solid ${isSelected?'#1C1C1E':unavailable?'#E5E5EA':'#D1D1D6'}`,
                         background:isSelected?'#1C1C1E':unavailable?'#F5F5F7':'#fff',
@@ -185,7 +190,7 @@ export default function SchedulePage() {
 
         {/* SECTION 2: 정보 입력 */}
         {selected && (
-          <div style={{ background:'#fff', borderRadius:20, padding:'22px 20px', marginBottom:16, boxShadow:'0 2px 12px rgba(0,0,0,0.07)', border:'2px solid #1C1C1E' }}>
+          <div ref={formRef} style={{ background:'#fff', borderRadius:20, padding:'22px 20px', marginBottom:16, boxShadow:'0 2px 12px rgba(0,0,0,0.07)', border:'2px solid #1C1C1E' }}>
             <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:20 }}>
               <div style={{ width:32, height:32, borderRadius:'50%', background:'#1C1C1E', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, fontWeight:700, flexShrink:0 }}>2</div>
               <p style={{ fontSize:18, fontWeight:700, color:'#1C1C1E', margin:0 }}>정보를 입력해주세요</p>
@@ -244,10 +249,10 @@ export default function SchedulePage() {
           <a href="tel:0234536865"
             style={{ display:'block', width:'100%', padding:'16px', borderRadius:14,
               background:'#1C1C1E', color:'#fff', fontSize:18, fontWeight:700,
-              textDecoration:'none', fontFamily:F, boxSizing:'border-box' as const }}>
-            📞 02-3453-6865 전화하기
+              textDecoration:'none', fontFamily:F, boxSizing:'border-box' as const, lineHeight:1.4 }}>
+            📞 02-3453-6865<br/>
+            <span style={{ fontSize:14, fontWeight:400, opacity:0.7 }}>(승일희망재단 최인헌 간사)</span>
           </a>
-          <p style={{ fontSize:13, color:'#AEAEB2', marginTop:10 }}>승일희망재단 최인헌 간사</p>
         </div>
 
         <p style={{ textAlign:'center', fontSize:14, color:'#AEAEB2', marginTop:28 }}>문의: 모스픽팀</p>

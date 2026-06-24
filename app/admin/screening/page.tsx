@@ -205,7 +205,6 @@ export default function AdminScreeningPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [activeView, setActiveView] = useState<'screening' | 'applications' | 'ranking' | 'final' | 'schedule'>('screening');
   const [scheduleBookings, setScheduleBookings] = useState<Record<string, {patientName:string;caregiverName?:string;contactPhone:string;meetingType?:string;bookedAt:string}>>({});
-  const [scheduleAlt, setScheduleAlt] = useState<{id:string;patientName:string;contactPhone:string;preferredTime:string;submittedAt:string}[]>([]);
   const [finalUnlocked, setFinalUnlocked] = useState(false);
   const [finalPw, setFinalPw] = useState('');
   const [expandedRankKey, setExpandedRankKey] = useState<string | null>(null);
@@ -279,10 +278,7 @@ export default function AdminScreeningPage() {
       snap.docs.forEach(d => { const data = d.data(); if (data.patientName) map[d.id] = data as {patientName:string;caregiverName?:string;contactPhone:string;meetingType?:string;bookedAt:string}; });
       setScheduleBookings(map);
     });
-    const unsub2 = onSnapshot(collection(db, 'schedule_alt'), snap => {
-      setScheduleAlt(snap.docs.map(d => ({id:d.id, ...d.data()} as {id:string;patientName:string;contactPhone:string;preferredTime:string;submittedAt:string})));
-    });
-    return () => { unsub1(); unsub2(); };
+    return () => { unsub1(); };
   }, [authed]);
 
   const loadQualScores = async () => {
@@ -1739,65 +1735,6 @@ export default function AdminScreeningPage() {
             })()}
             </div>
 
-            {/* 시간 조율 요청 — 항상 표시 + 직접 추가 */}
-            {(() => {
-              const [altInput, setAltInput] = (useState as <T>(v:T)=>[T,(v:T|((p:T)=>T))=>void])({name:'',phone:'',time:''});
-              const [altAdding, setAltAdding] = (useState as <T>(v:T)=>[T,(v:T|((p:T)=>T))=>void])(false);
-              const addAlt = async () => {
-                if (!altInput.name.trim() || !altInput.phone.trim() || !altInput.time.trim()) return;
-                setAltAdding(true);
-                try {
-                  const { addDoc, collection: col } = await import('firebase/firestore');
-                  await addDoc(col(db, 'schedule_alt'), {
-                    patientName: altInput.name.trim(), contactPhone: altInput.phone.trim(),
-                    preferredTime: altInput.time.trim(), submittedAt: new Date().toISOString(),
-                    addedByAdmin: true,
-                  });
-                  setAltInput({name:'',phone:'',time:''});
-                } catch { alert('추가 실패'); }
-                setAltAdding(false);
-              };
-              return (
-                <div style={{ padding:'0 20px 20px' }}>
-                  <div style={{ background:'#fff',borderRadius:12,overflow:'hidden',boxShadow:'0 2px 8px rgba(0,0,0,0.08)',maxWidth:900,border:'2px solid #FDE68A' }}>
-                    <div style={{ padding:'12px 16px',borderBottom:'1px solid #FDE68A',background:'#FFFBEB',display:'flex',alignItems:'center',justifyContent:'space-between' }}>
-                      <div style={{ display:'flex',alignItems:'center',gap:8 }}>
-                        <span style={{ fontSize:14,fontWeight:700,color:'#92400E' }}>⏰ 시간 조율 요청</span>
-                        <span style={{ fontSize:13,background:'#FDE68A',color:'#92400E',padding:'1px 8px',borderRadius:20,fontWeight:600 }}>{scheduleAlt.length}건</span>
-                      </div>
-                    </div>
-                    {/* 직접 추가 */}
-                    <div style={{ padding:'12px 16px',borderBottom:'1px solid #F7F7F9',background:'#FAFAFA',display:'flex',gap:8,flexWrap:'wrap' as const }}>
-                      <input value={altInput.name} onChange={e=>setAltInput(p=>({...p,name:e.target.value}))} placeholder="환우 성함"
-                        style={{ flex:'1 0 80px',padding:'7px 10px',border:'1.5px solid #E5E5EA',borderRadius:8,fontSize:12,outline:'none',fontFamily:F,minWidth:80 }} />
-                      <input value={altInput.phone} onChange={e=>setAltInput(p=>({...p,phone:e.target.value}))} placeholder="연락처"
-                        style={{ flex:'1 0 100px',padding:'7px 10px',border:'1.5px solid #E5E5EA',borderRadius:8,fontSize:12,outline:'none',fontFamily:F,minWidth:100 }} />
-                      <input value={altInput.time} onChange={e=>setAltInput(p=>({...p,time:e.target.value}))} placeholder="희망 시간 (예: 6/29 오전 10시)"
-                        style={{ flex:'2 0 140px',padding:'7px 10px',border:'1.5px solid #E5E5EA',borderRadius:8,fontSize:12,outline:'none',fontFamily:F,minWidth:140 }} />
-                      <button onClick={addAlt} disabled={altAdding||!altInput.name.trim()||!altInput.phone.trim()||!altInput.time.trim()}
-                        style={{ padding:'7px 14px',borderRadius:8,border:'none',background:'#1C1C1E',color:'#fff',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:F,whiteSpace:'nowrap' as const }}>
-                        + 추가
-                      </button>
-                    </div>
-                    {/* 목록 */}
-                    {scheduleAlt.length === 0
-                      ? <div style={{ padding:'20px 16px',fontSize:13,color:'#8E8E93',textAlign:'center' as const }}>
-                          아직 시간 조율 요청이 없습니다.<br/>
-                          <span style={{ fontSize:11,color:'#C7C7CC' }}>환우분이 일정 페이지에서 제출하거나, 위에서 직접 추가해주세요.</span>
-                        </div>
-                      : scheduleAlt.map((a,i)=>(
-                        <div key={a.id} style={{ padding:'12px 16px',borderBottom:i<scheduleAlt.length-1?'1px solid #F7F7F9':'none',display:'flex',alignItems:'center',gap:10,flexWrap:'wrap' as const }}>
-                          <span style={{ fontSize:13,fontWeight:600,color:'#000' }}>{a.patientName}</span>
-                          <span style={{ fontSize:12,color:'#8E8E93' }}>{a.contactPhone}</span>
-                          <span style={{ fontSize:12,color:'#3C3C43',flex:1 }}>희망: {a.preferredTime}</span>
-                          {(a as {addedByAdmin?:boolean}).addedByAdmin && <span style={{ fontSize:10,color:'#8E8E93',background:'#F2F2F7',padding:'1px 6px',borderRadius:10 }}>수동입력</span>}
-                        </div>
-                      ))
-                    }
-                  </div>
-                </div>
-              );
-            })()}
           </div>
         );
       })()}

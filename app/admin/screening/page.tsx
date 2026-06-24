@@ -1737,21 +1737,25 @@ export default function AdminScreeningPage() {
                 </div>
               );
             })()}
-              {/* 대체 시간 신청 */}
-              {scheduleAlt.length > 0 && (
-                <div style={{ background:'#fff',borderRadius:12,overflow:'hidden',boxShadow:'0 1px 4px rgba(0,0,0,0.06)',marginTop:16 }}>
-                  <div style={{ padding:'12px 16px',borderBottom:'1px solid #F2F2F7',background:'#FAFAFA' }}>
-                    <span style={{ fontSize:14,fontWeight:700,color:'#CC7000' }}>⏰ 시간 조율 요청 {scheduleAlt.length}건</span>
-                  </div>
-                  {scheduleAlt.map((a,i)=>(
-                    <div key={a.id} style={{ padding:'10px 16px',borderBottom:i<scheduleAlt.length-1?'1px solid #F7F7F9':'none',display:'flex',alignItems:'center',gap:8,flexWrap:'wrap' as const }}>
-                      <span style={{ fontSize:13,fontWeight:600,color:'#000' }}>{a.patientName}</span>
-                      <span style={{ fontSize:12,color:'#8E8E93' }}>{a.contactPhone}</span>
-                      <span style={{ fontSize:12,color:'#3C3C43' }}>희망: {a.preferredTime}</span>
-                    </div>
-                  ))}
+            </div>
+
+            {/* 대체 시간 신청 — 그리드 밖 전체 너비 */}
+            <div style={{ padding:'0 20px 20px' }}>
+              <div style={{ background:'#fff',borderRadius:12,overflow:'hidden',boxShadow:'0 1px 4px rgba(0,0,0,0.06)',maxWidth:900 }}>
+                <div style={{ padding:'12px 16px',borderBottom:'1px solid #F2F2F7',background:'#FAFAFA',display:'flex',alignItems:'center',gap:8 }}>
+                  <span style={{ fontSize:14,fontWeight:700,color:'#CC7000' }}>⏰ 시간 조율 요청</span>
+                  <span style={{ fontSize:13,color:'#8E8E93' }}>{scheduleAlt.length > 0 ? `${scheduleAlt.length}건` : '없음'}</span>
                 </div>
-              )}
+                {scheduleAlt.length === 0 ? (
+                  <div style={{ padding:'16px',fontSize:13,color:'#C7C7CC' }}>아직 시간 조율 요청이 없습니다.</div>
+                ) : scheduleAlt.map((a,i)=>(
+                  <div key={a.id} style={{ padding:'12px 16px',borderBottom:i<scheduleAlt.length-1?'1px solid #F7F7F9':'none',display:'flex',alignItems:'center',gap:10,flexWrap:'wrap' as const }}>
+                    <span style={{ fontSize:13,fontWeight:600,color:'#000' }}>{a.patientName}</span>
+                    <span style={{ fontSize:12,color:'#8E8E93' }}>{a.contactPhone}</span>
+                    <span style={{ fontSize:12,color:'#3C3C43',flex:1 }}>희망: {a.preferredTime}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         );

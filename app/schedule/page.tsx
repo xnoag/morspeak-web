@@ -71,6 +71,7 @@ export default function SchedulePage() {
   const [altPhone, setAltPhone] = useState('');
   const [altSubmitting, setAltSubmitting] = useState(false);
   const [altDone, setAltDone] = useState(false);
+  const [slotsReady, setSlotsReady] = useState(false);
 
   useEffect(() => {
     const auth = getAuth();
@@ -79,6 +80,7 @@ export default function SchedulePage() {
       const map: Record<string, Booking> = {};
       snap.docs.forEach(d => { const data = d.data(); if (data.patientName) map[d.id] = data as Booking; });
       setBookings(map);
+      setSlotsReady(true);
     });
     return () => unsub();
   }, []);
@@ -181,13 +183,14 @@ export default function SchedulePage() {
                   const [h,m] = time.split(':').map(Number);
                   const label12 = `${h>12?h-12:h}시${m>0?` ${m}분`:''}`;
                   return (
-                    <button key={time} disabled={unavailable}
+                    <button key={time} disabled={unavailable || !slotsReady}
                       onClick={() => setSelected(unavailable ? null : isSelected ? null : { date, time })}
                       style={{
                         height: 64, borderRadius: 12,
                         border: `2px solid ${isSelected?'#1C1C1E':unavailable?'#E5E5EA':'#D1D1D6'}`,
                         background: isSelected?'#1C1C1E':unavailable?'#F5F5F7':'#fff',
                         color: isSelected?'#fff':unavailable?'#C7C7CC':'#1C1C1E',
+                        opacity: slotsReady ? 1 : 0.4,
                         fontFamily:F, fontSize:17, fontWeight:600,
                         cursor:unavailable?'not-allowed':'pointer',
                         display:'flex', alignItems:'center', justifyContent:'center',

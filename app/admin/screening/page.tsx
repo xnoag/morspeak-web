@@ -1206,7 +1206,7 @@ export default function AdminScreeningPage() {
 
         const appScore = (a: Application) => {
           const bs: Record<string,number> = {};
-          const hasExp = (s?: string) => { const v=(s??'').trim(); return v.length>0&&!/^(없음?|없어요|아니[요오]?|해당\s*없음|X|x|-)$/i.test(v); };
+          const hasExp = (s?: string) => { const v=(s??'').trim(); return v.length>0&&!/^(없음?|없습니다?|없다|없어요|아니[요오]?|아닙니다|해당\s*없음|X|x|-)$/i.test(v); };
           const trach = a.tracheotomy??'';
           bs.tracheotomy = trach ? (/시행/.test(trach)&&!/안|않|미시행|하지/.test(trach)?10:8) : 0;
           const bulbar = a.bulbarPalsyProgress??'';
@@ -1752,7 +1752,7 @@ export default function AdminScreeningPage() {
 
         const appScoreF = (a: Application) => {
           const bs: Record<string,number> = {};
-          const hasExp = (s?: string) => { const v=(s??'').trim(); return v.length>0&&!/^(없음?|없어요|아니[요오]?|해당\s*없음|X|x|-)$/i.test(v); };
+          const hasExp = (s?: string) => { const v=(s??'').trim(); return v.length>0&&!/^(없음?|없습니다?|없다|없어요|아니[요오]?|아닙니다|해당\s*없음|X|x|-)$/i.test(v); };
           const trach=a.tracheotomy??'';
           bs.tracheotomy=trach?(/시행/.test(trach)&&!/안|않|미시행|하지/.test(trach)?10:8):0;
           const bulbar=a.bulbarPalsyProgress??'';

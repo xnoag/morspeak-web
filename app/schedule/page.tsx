@@ -7,11 +7,31 @@ import { db } from '@/lib/firebase';
 const F = "-apple-system,'SF Pro Display',BlinkMacSystemFont,'Helvetica Neue',sans-serif";
 
 const DATES: { date: string; label: string; slots: string[] }[] = [
-  { date: '2026-06-29', label: '6월 29일 (월)', slots: ['09:00','09:30','10:00','10:30','11:00','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30'] },
-  { date: '2026-06-30', label: '6월 30일 (화)', slots: ['14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30'] },
+  { date: '2026-06-29', label: '6월 29일 (월)', slots: [
+    '09:00','09:15','09:30','09:45','10:00','10:15','10:30','10:45','11:00',
+    '14:00','14:15','14:30','14:45','15:00','15:15','15:30','15:45','16:00','16:15','16:30','16:45','17:00','17:15','17:30',
+  ]},
+  { date: '2026-06-30', label: '6월 30일 (화)', slots: [
+    '14:00','14:15','14:30','14:45','15:00','15:15','15:30','15:45','16:00','16:15','16:30',
+  ]},
 ];
 
 const BLOCKED = new Set(['20260629-1530', '20260629-1630']);
+
+const fmtTime = (t: string) => {
+  const [h, m] = t.split(':').map(Number);
+  const period = h < 12 ? '오전' : '오후';
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return m === 0 ? `${period} ${h12}시` : `${period} ${h12}시 ${m}분`;
+};
+const fmtRange = (t: string) => {
+  const [h, m] = t.split(':').map(Number);
+  const endM = m + 15;
+  const endH = endM >= 60 ? h + 1 : h;
+  const endMin = endM >= 60 ? endM - 60 : endM;
+  const end = `${String(endH).padStart(2,'0')}:${String(endMin).padStart(2,'0')}`;
+  return `${fmtTime(t)} ~ ${fmtTime(end)}`;
+};
 
 type Booking = { patientName: string; caregiverName: string; contactPhone: string; meetingType: string; bookedAt: string };
 const slotId = (date: string, time: string) => `${date.replace(/-/g,'')}-${time.replace(':','')}`;
@@ -35,6 +55,7 @@ export default function SchedulePage() {
   const [done, setDone] = useState<{ date: string; time: string; dateLabel: string } | null>(null);
   const [altTime, setAltTime] = useState('');
   const [altName, setAltName] = useState('');
+  const [altCaregiver, setAltCaregiver] = useState('');
   const [altPhone, setAltPhone] = useState('');
   const [altSubmitting, setAltSubmitting] = useState(false);
   const [altDone, setAltDone] = useState(false);
@@ -81,7 +102,8 @@ export default function SchedulePage() {
     setAltSubmitting(true);
     try {
       await addDoc(collection(db, 'schedule_alt'), {
-        patientName: altName.trim(), contactPhone: altPhone.trim(),
+        patientName: altName.trim(), caregiverName: altCaregiver.trim(),
+        contactPhone: altPhone.trim(),
         preferredTime: altTime.trim(), submittedAt: new Date().toISOString(),
       });
       setAltDone(true);
@@ -97,7 +119,7 @@ export default function SchedulePage() {
         <div style={{ fontSize:64, marginBottom:20 }}>✅</div>
         <h2 style={{ fontSize:26, fontWeight:700, color:'#1C1C1E', marginBottom:10 }}>신청이 완료됐습니다</h2>
         <p style={{ fontSize:18, color:'#3C3C43', lineHeight:1.7, marginBottom:8 }}>
-          <strong>{done.dateLabel}</strong> {done.time}
+          <strong>{done.dateLabel}</strong><br/>{fmtRange(done.time)}
         </p>
         <p style={{ fontSize:16, color:'#8E8E93', lineHeight:1.7 }}>
           확인 후 담당자가 연락드릴 예정입니다.<br/>감사합니다 🙏
@@ -126,40 +148,55 @@ export default function SchedulePage() {
             <p style={{ fontSize:18, fontWeight:700, color:'#1C1C1E', margin:0 }}>날짜와 시간을 선택해주세요</p>
           </div>
 
-          {DATES.map(({ date, label, slots }) => (
-            <div key={date} style={{ marginBottom:20 }}>
-              <div style={{ background:'#1C1C1E', borderRadius:10, padding:'10px 16px', marginBottom:12 }}>
-                <p style={{ fontSize:17, fontWeight:700, color:'#fff', margin:0 }}>{label}</p>
-              </div>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8 }}>
-                {slots.map(time => {
+          {DATES.map(({ date, label, slots }) => {
+            const morning = slots.filter(t => parseInt(t)<12);
+            const afternoon = slots.filter(t => parseInt(t)>=12);
+            const renderSlots = (list: string[]) => (
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:8, marginBottom:8 }}>
+                {list.map(time => {
                   const id = slotId(date, time);
                   const blocked = BLOCKED.has(id);
                   const booked = !!bookings[id];
                   const unavailable = blocked || booked;
                   const isSelected = selected?.date === date && selected?.time === time;
+                  const [h,m] = time.split(':').map(Number);
+                  const label12 = `${h>12?h-12:h}시${m>0?` ${m}분`:''}`;
                   return (
                     <button key={time} disabled={unavailable}
                       onClick={() => setSelected(unavailable ? null : isSelected ? null : { date, time })}
                       style={{
-                        height: 58,
-                        borderRadius: 12,
-                        border: `2px solid ${isSelected ? '#1C1C1E' : unavailable ? '#E5E5EA' : '#D1D1D6'}`,
-                        background: isSelected ? '#1C1C1E' : unavailable ? '#F5F5F7' : '#fff',
-                        color: isSelected ? '#fff' : unavailable ? '#C7C7CC' : '#1C1C1E',
-                        fontFamily: F, fontSize: 17, fontWeight: 600,
-                        cursor: unavailable ? 'not-allowed' : 'pointer',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        transition: 'all 0.12s',
-                        textDecoration: unavailable ? 'line-through' : 'none',
+                        height: 58, borderRadius: 12,
+                        border: `2px solid ${isSelected?'#1C1C1E':unavailable?'#E5E5EA':'#D1D1D6'}`,
+                        background: isSelected?'#1C1C1E':unavailable?'#F5F5F7':'#fff',
+                        color: isSelected?'#fff':unavailable?'#C7C7CC':'#1C1C1E',
+                        fontFamily:F, fontSize:15, fontWeight:600,
+                        cursor:unavailable?'not-allowed':'pointer',
+                        display:'flex', alignItems:'center', justifyContent:'center',
+                        transition:'all 0.12s',
+                        textDecoration:unavailable?'line-through':'none',
                       }}>
-                      {time}
+                      {label12}
                     </button>
                   );
                 })}
               </div>
-            </div>
-          ))}
+            );
+            return (
+              <div key={date} style={{ marginBottom:20 }}>
+                <div style={{ background:'#1C1C1E', borderRadius:10, padding:'10px 16px', marginBottom:12 }}>
+                  <p style={{ fontSize:17, fontWeight:700, color:'#fff', margin:0 }}>{label}</p>
+                </div>
+                {morning.length > 0 && <>
+                  <p style={{ fontSize:13, fontWeight:600, color:'#8E8E93', marginBottom:6, paddingLeft:2 }}>오전</p>
+                  {renderSlots(morning)}
+                </>}
+                {afternoon.length > 0 && <>
+                  <p style={{ fontSize:13, fontWeight:600, color:'#8E8E93', marginBottom:6, paddingLeft:2, marginTop:morning.length>0?10:0 }}>오후</p>
+                  {renderSlots(afternoon)}
+                </>}
+              </div>
+            );
+          })}
 
           <p style={{ fontSize:14, color:'#AEAEB2', textAlign:'center', marginTop:4 }}>
             취소선 표시된 시간은 이미 마감됐습니다
@@ -179,7 +216,7 @@ export default function SchedulePage() {
               <div>
                 <p style={{ fontSize:14, color:'#8E8E93', margin:0 }}>선택하신 시간</p>
                 <p style={{ fontSize:18, fontWeight:700, color:'#1C1C1E', margin:0 }}>
-                  {DATES.find(d=>d.date===selected.date)?.label} {selected.time}
+                  {DATES.find(d=>d.date===selected.date)?.label} {fmtRange(selected.time)}
                 </p>
               </div>
               <button onClick={()=>setSelected(null)}
@@ -245,14 +282,16 @@ export default function SchedulePage() {
             <>
               <input value={altName} onChange={e=>setAltName(e.target.value)} placeholder="환우 성함"
                 style={{ ...inputStyle, border:'2px solid #A5B4FC', marginBottom:10 }} />
+              <input value={altCaregiver} onChange={e=>setAltCaregiver(e.target.value)} placeholder="보호자 성함"
+                style={{ ...inputStyle, border:'2px solid #A5B4FC', marginBottom:10 }} />
               <input value={altPhone} onChange={e=>setAltPhone(e.target.value)} placeholder="연락처 (010-0000-0000)"
                 style={{ ...inputStyle, border:'2px solid #A5B4FC', marginBottom:10 }} />
               <input value={altTime} onChange={e=>setAltTime(e.target.value)} placeholder="예: 6/29 오후 1시, 6/30 오전 중"
                 style={{ ...inputStyle, border:'2px solid #A5B4FC', marginBottom:14 }} />
               <button onClick={handleAlt}
-                disabled={altSubmitting || !altTime.trim() || !altName.trim() || !altPhone.trim()}
+                disabled={altSubmitting || !altTime.trim() || !altName.trim() || !altCaregiver.trim() || !altPhone.trim()}
                 style={{ width:'100%', padding:'15px', borderRadius:14, border:'none',
-                  background:(!altTime.trim()||!altName.trim()||!altPhone.trim()||altSubmitting)?'#C7C7CC':'#4F46E5',
+                  background:(!altTime.trim()||!altName.trim()||!altCaregiver.trim()||!altPhone.trim()||altSubmitting)?'#C7C7CC':'#4F46E5',
                   color:'#fff', fontSize:17, fontWeight:700, cursor:'pointer', fontFamily:F }}>
                 {altSubmitting ? '제출 중…' : '시간 제출하기'}
               </button>

@@ -1763,8 +1763,10 @@ export default function AdminScreeningPage() {
           bs.eyeMouse=hasExp(a.eyeMouseExperience)?5:0;
           bs.duration=0;
           if(a.onsetDate){const d=a.onsetDate.replace(/\D/g,'');if(d.length>=4){const yr=parseInt(d.slice(0,4)),mo=parseInt(d.slice(4,6)||'1')||1;if((Date.now()-new Date(yr,mo-1,1).getTime())/(1000*60*60*24*365.25)>=3)bs.duration=5;}}
-          return Object.values(bs).reduce((s,v)=>s+v,0);
+          return {bs, total:Object.values(bs).reduce((s,v)=>s+v,0)};
         };
+        const F_COLS=['기관절개술','연수마비','보호자협조','전자기기','안구마우스','투병3년+'] as const;
+        const F_KEYS=['tracheotomy','bulbar','caregiver','device','eyeMouse','duration'] as const;
 
         const findAppF = (r: Result) => {
           const p=normalizePhone(r.caregiverContact??'');
@@ -1777,9 +1779,9 @@ export default function AdminScreeningPage() {
           });
         };
 
-        // ranked 구성 (종합과 동일 로직)
+        // ranked 구성 (종합과 동일 로직 + bs breakdown 포함)
         const seen=new Set<string>();
-        const ranked: {key:string;name:string;phone:string;screening?:Result;application?:Application;appTotal:number;qualTotal:number;finalTotal:number}[]=[];
+        const ranked: {key:string;name:string;phone:string;screening?:Result;application?:Application;bs?:Record<string,number>;appTotal:number;qualTotal:number;finalTotal:number}[]=[];
 
         const bestScreening=new Map<string,Result>();
         results.forEach(r=>{
@@ -1793,23 +1795,23 @@ export default function AdminScreeningPage() {
           seen.add(key);
           const app=findAppF(r);
           if(app){const appKey=normalizePhone(app.contactPhone??'')||normalizeStr(app.patientName??'');if(appKey)seen.add(appKey);}
-          const appTotal=app?appScoreF(app):0;
+          const aScore=app?appScoreF(app):null;
           const qualKey=key.replace(/\//g,'_');
           const evals=qualEvals.get(qualKey)??{};
           const qa=computeEvalAvg(evals);
           const qualTotal=qa?Math.round(qa.total*10)/10:0;
-          ranked.push({key,name:r.patientName,phone:r.caregiverContact??'',screening:r,application:app,appTotal,qualTotal,finalTotal:appTotal+qualTotal});
+          ranked.push({key,name:r.patientName,phone:r.caregiverContact??'',screening:r,application:app,bs:aScore?.bs,appTotal:aScore?.total??0,qualTotal,finalTotal:(aScore?.total??0)+qualTotal});
         });
         applications.forEach(a=>{
           const key=normalizePhone(a.contactPhone??'')||normalizeStr(a.patientName??'');
           if(!key||seen.has(key))return;
           seen.add(key);
-          const appTotal=appScoreF(a);
+          const aScore=appScoreF(a);
           const qualKey=key.replace(/\//g,'_');
           const evals=qualEvals.get(qualKey)??{};
           const qa=computeEvalAvg(evals);
           const qualTotal=qa?Math.round(qa.total*10)/10:0;
-          ranked.push({key,name:a.patientName,phone:a.contactPhone??'',application:a,appTotal,qualTotal,finalTotal:appTotal+qualTotal});
+          ranked.push({key,name:a.patientName,phone:a.contactPhone??'',application:a,bs:aScore.bs,appTotal:aScore.total,qualTotal,finalTotal:aScore.total+qualTotal});
         });
 
         ranked.sort((a,b)=>{
@@ -1828,13 +1830,13 @@ export default function AdminScreeningPage() {
               <table style={{ width:'100%',minWidth:'max-content',borderCollapse:'collapse',fontSize:13 }}>
                 <thead>
                   <tr style={{ borderBottom:'1.5px solid #F2F2F7',background:'#FAFAFA' }}>
-                    {['순위','환우명','연락처','스크리닝','신청서점수','정성평가','최종합계'].map(h=>(
+                    {['순위','환우명','연락처','스크리닝',...F_COLS,'신청서합계','정성평가','최종합계'].map(h=>(
                       <th key={h} style={{ padding:'10px 14px',textAlign:'left',color:'#8E8E93',fontWeight:500,whiteSpace:'nowrap',fontSize:11,letterSpacing:'0.03em' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {ranked.length===0&&<tr><td colSpan={7} style={{ padding:60,textAlign:'center',color:'#C7C7CC' }}>데이터를 불러오면 순위가 표시됩니다</td></tr>}
+                  {ranked.length===0&&<tr><td colSpan={13} style={{ padding:60,textAlign:'center',color:'#C7C7CC' }}>데이터를 불러오면 순위가 표시됩니다</td></tr>}
                   {ranked.map((e,i)=>{
                     const isTop20=i<20;
                     const cat=e.screening?statusCatF(e.screening.status):null;
@@ -1850,6 +1852,12 @@ export default function AdminScreeningPage() {
                             ? <span style={{ fontSize:12,fontWeight:700,padding:'2px 10px',borderRadius:20,background:catStyle.bg,color:catStyle.color }}>{cat}</span>
                             : <span style={{ color:'#C7C7CC',fontSize:11 }}>-</span>}
                         </td>
+                        {F_KEYS.map(k=>{
+                          const v=e.bs?.[k]??0;
+                          return <td key={k} style={{ padding:'8px 14px',textAlign:'center' as const }}>
+                            <span style={{ fontSize:11,fontWeight:600,color:v>0?'#1A8C3A':'#C7C7CC' }}>{e.bs?v>0?`+${v}`:'0':'-'}</span>
+                          </td>;
+                        })}
                         <td style={{ padding:'12px 14px',textAlign:'right' as const }}>
                           <span style={{ fontSize:13,fontWeight:600,color:'#3C3C43' }}>{e.appTotal}</span>
                           <span style={{ fontSize:10,color:'#C7C7CC',marginLeft:2 }}>/50</span>

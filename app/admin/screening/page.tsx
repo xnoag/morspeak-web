@@ -205,6 +205,7 @@ export default function AdminScreeningPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [activeView, setActiveView] = useState<'screening' | 'applications' | 'ranking' | 'final' | 'schedule'>('screening');
   const [scheduleBookings, setScheduleBookings] = useState<Record<string, {patientName:string;caregiverName?:string;contactPhone:string;meetingType?:string;bookedAt:string}>>({});
+  const [scheduleAlt, setScheduleAlt] = useState<{id:string;patientName:string;contactPhone:string;preferredTime:string;submittedAt:string}[]>([]);
   const [finalUnlocked, setFinalUnlocked] = useState(false);
   const [finalPw, setFinalPw] = useState('');
   const [expandedRankKey, setExpandedRankKey] = useState<string | null>(null);
@@ -273,12 +274,15 @@ export default function AdminScreeningPage() {
 
   useEffect(() => {
     if (!authed) return;
-    const unsub = onSnapshot(collection(db, 'schedule_slots'), snap => {
-      const map: Record<string, {patientName:string;contactPhone:string;bookedAt:string}> = {};
-      snap.docs.forEach(d => { const data = d.data(); if (data.patientName) map[d.id] = data as {patientName:string;contactPhone:string;bookedAt:string}; });
+    const unsub1 = onSnapshot(collection(db, 'schedule_slots'), snap => {
+      const map: Record<string, {patientName:string;caregiverName?:string;contactPhone:string;meetingType?:string;bookedAt:string}> = {};
+      snap.docs.forEach(d => { const data = d.data(); if (data.patientName) map[d.id] = data as {patientName:string;caregiverName?:string;contactPhone:string;meetingType?:string;bookedAt:string}; });
       setScheduleBookings(map);
     });
-    return () => unsub();
+    const unsub2 = onSnapshot(collection(db, 'schedule_alt'), snap => {
+      setScheduleAlt(snap.docs.map(d => ({id:d.id, ...d.data()} as {id:string;patientName:string;contactPhone:string;preferredTime:string;submittedAt:string})));
+    });
+    return () => { unsub1(); unsub2(); };
   }, [authed]);
 
   const loadQualScores = async () => {
@@ -1733,6 +1737,21 @@ export default function AdminScreeningPage() {
                 </div>
               );
             })()}
+              {/* 대체 시간 신청 */}
+              {scheduleAlt.length > 0 && (
+                <div style={{ background:'#fff',borderRadius:12,overflow:'hidden',boxShadow:'0 1px 4px rgba(0,0,0,0.06)',marginTop:16 }}>
+                  <div style={{ padding:'12px 16px',borderBottom:'1px solid #F2F2F7',background:'#FAFAFA' }}>
+                    <span style={{ fontSize:14,fontWeight:700,color:'#CC7000' }}>⏰ 시간 조율 요청 {scheduleAlt.length}건</span>
+                  </div>
+                  {scheduleAlt.map((a,i)=>(
+                    <div key={a.id} style={{ padding:'10px 16px',borderBottom:i<scheduleAlt.length-1?'1px solid #F7F7F9':'none',display:'flex',alignItems:'center',gap:8,flexWrap:'wrap' as const }}>
+                      <span style={{ fontSize:13,fontWeight:600,color:'#000' }}>{a.patientName}</span>
+                      <span style={{ fontSize:12,color:'#8E8E93' }}>{a.contactPhone}</span>
+                      <span style={{ fontSize:12,color:'#3C3C43' }}>희망: {a.preferredTime}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         );
@@ -1895,9 +1914,10 @@ export default function AdminScreeningPage() {
       {/* 일정 탭 */}
       {activeView === 'schedule' && (() => {
         const SLOTS: Record<string, string[]> = {
-          '2026-06-29': ['15:00','15:30','16:00','16:30','17:00','17:30'],
+          '2026-06-29': ['09:00','09:30','10:00','10:30','11:00','15:00','15:30','16:00','16:30','17:00','17:30'],
           '2026-06-30': ['13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30'],
         };
+        const BLOCKED_ADMIN = new Set(['20260629-1530','20260629-1630']);
         const DATE_LABELS: Record<string, string> = {
           '2026-06-29': '6/29 (월)', '2026-06-30': '6/30 (화)',
         };
@@ -1941,13 +1961,15 @@ export default function AdminScreeningPage() {
                         <div key={time} style={{ padding:'10px 16px',borderBottom:'1px solid #F7F7F9',display:'flex',alignItems:'center',justifyContent:'space-between' }}>
                           <div style={{ display:'flex',alignItems:'center',gap:10 }}>
                             <span style={{ fontSize:14,fontWeight:600,color:'#1C1C1E',width:44 }}>{time}</span>
-                            {b
+                            {BLOCKED_ADMIN.has(slotKey(date,time))&&!b
+                              ? <span style={{ fontSize:11,color:'#CC7000',background:'#FFF0D4',padding:'1px 7px',borderRadius:20,fontWeight:600 }}>예약 차단</span>
+                              : b
                               ? <>
                                   <span style={{ fontSize:13,color:'#000',fontWeight:500 }}>{b.patientName}</span>
                                   {b.caregiverName&&<span style={{ fontSize:12,color:'#8E8E93' }}>({b.caregiverName})</span>}
                                   <span style={{ fontSize:12,color:'#8E8E93' }}>{b.contactPhone}</span>
                                   {b.meetingType&&<span style={{ fontSize:10,fontWeight:600,padding:'1px 6px',borderRadius:20,background:b.meetingType==='kakao'?'#FFF0D4':'#E3F2FF',color:b.meetingType==='kakao'?'#CC7000':'#0071E3' }}>
-                                    {b.meetingType==='kakao'?'카카오':'ZOOM'}
+                                    {b.meetingType==='kakao'?'카카오 영상':'ZOOM'}
                                   </span>}
                                 </>
                               : <span style={{ fontSize:12,color:'#C7C7CC' }}>미신청</span>}

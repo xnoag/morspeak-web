@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, doc, setDoc, addDoc, getDoc } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, addDoc, runTransaction } from 'firebase/firestore';
 import { getAuth, signInAnonymously } from 'firebase/auth';
 import { db } from '@/lib/firebase';
 
@@ -86,25 +86,32 @@ export default function SchedulePage() {
   const handleBook = async () => {
     if (!selected || !patientName.trim() || !caregiverName.trim() || !phone.trim() || !meetingType) return;
     const id = slotId(selected.date, selected.time);
+    const savedSelected = { ...selected };
     setSubmitting(true);
     try {
-      const snap = await getDoc(doc(db, 'schedule_slots', id));
-      if (snap.exists() && (snap.data() as Booking).patientName) {
-        alert('이미 다른 분이 선택하신 시간입니다. 다른 시간을 선택해주세요.');
-        setSubmitting(false);
-        return;
-      }
-      await setDoc(doc(db, 'schedule_slots', id), {
-        date: selected.date, time: selected.time,
-        patientName: patientName.trim(), caregiverName: caregiverName.trim(),
-        contactPhone: phone.trim(), meetingType,
-        bookedAt: new Date().toISOString(),
+      await runTransaction(db, async (tx) => {
+        const slotDoc = doc(db, 'schedule_slots', id);
+        const snap = await tx.get(slotDoc);
+        if (snap.exists() && (snap.data() as Booking).patientName) {
+          throw new Error('ALREADY_BOOKED');
+        }
+        tx.set(slotDoc, {
+          date: savedSelected.date, time: savedSelected.time,
+          patientName: patientName.trim(), caregiverName: caregiverName.trim(),
+          contactPhone: phone.trim(), meetingType,
+          bookedAt: new Date().toISOString(),
+        });
       });
-      const dateLabel = DATES.find(d => d.date === selected.date)?.label ?? selected.date;
-      setDone({ ...selected, dateLabel });
+      const dateLabel = DATES.find(d => d.date === savedSelected.date)?.label ?? savedSelected.date;
+      setDone({ ...savedSelected, dateLabel });
       setSelected(null); setPatientName(''); setCaregiverName(''); setPhone(''); setMeetingType('');
-    } catch {
-      alert('오류가 발생했습니다. 다시 시도해주세요.');
+    } catch (e) {
+      if ((e as Error).message === 'ALREADY_BOOKED') {
+        alert('방금 다른 분이 이 시간을 예약하셨습니다.\n페이지를 새로고침 후 다른 시간을 선택해주세요.');
+        setSelected(null);
+      } else {
+        alert('오류가 발생했습니다. 다시 시도해주세요.');
+      }
     }
     setSubmitting(false);
   };

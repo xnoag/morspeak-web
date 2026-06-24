@@ -304,16 +304,16 @@ export default function SchedulePage() {
             <>
               <input value={altName} onChange={e=>setAltName(e.target.value)} placeholder="환우 성함"
                 style={{ ...inputStyle, border:'2px solid #A5B4FC', marginBottom:10 }} />
-              <input value={altCaregiver} onChange={e=>setAltCaregiver(e.target.value)} placeholder="보호자 성함"
+              <input value={altCaregiver} onChange={e=>setAltCaregiver(e.target.value)} placeholder="보호자 성함 (선택)"
                 style={{ ...inputStyle, border:'2px solid #A5B4FC', marginBottom:10 }} />
               <input value={altPhone} onChange={e=>setAltPhone(formatPhone(e.target.value))} placeholder="010-0000-0000" inputMode="numeric"
                 style={{ ...inputStyle, border:'2px solid #A5B4FC', marginBottom:10 }} />
               <input value={altTime} onChange={e=>setAltTime(e.target.value)} placeholder="예: 6/29 오후 1시, 6/30 오전 중"
                 style={{ ...inputStyle, border:'2px solid #A5B4FC', marginBottom:14 }} />
               <button onClick={handleAlt}
-                disabled={altSubmitting || !altTime.trim() || !altName.trim() || !altCaregiver.trim() || !altPhone.trim()}
+                disabled={altSubmitting || !altTime.trim() || !altName.trim() || !altPhone.trim()}
                 style={{ width:'100%', padding:'15px', borderRadius:14, border:'none',
-                  background:(!altTime.trim()||!altName.trim()||!altCaregiver.trim()||!altPhone.trim()||altSubmitting)?'#C7C7CC':'#4F46E5',
+                  background:(!altTime.trim()||!altName.trim()||!altPhone.trim()||altSubmitting)?'#C7C7CC':'#4F46E5',
                   color:'#fff', fontSize:17, fontWeight:700, cursor:'pointer', fontFamily:F }}>
                 {altSubmitting ? '제출 중…' : '시간 제출하기'}
               </button>

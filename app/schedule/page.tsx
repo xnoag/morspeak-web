@@ -11,11 +11,18 @@ const DATES: { date: string; label: string; slots: string[] }[] = [
   { date: '2026-06-30', label: '6월 30일 (화)', slots: ['14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30'] },
 ];
 
-// 관리자가 미리 차단한 슬롯 (비활성화 표시)
 const BLOCKED = new Set(['20260629-1530', '20260629-1630']);
 
 type Booking = { patientName: string; caregiverName: string; contactPhone: string; meetingType: string; bookedAt: string };
 const slotId = (date: string, time: string) => `${date.replace(/-/g,'')}-${time.replace(':','')}`;
+
+const inputStyle: React.CSSProperties = {
+  width: '100%', padding: '14px 16px',
+  border: '2px solid #E5E5EA', borderRadius: 12,
+  fontSize: 17, outline: 'none', fontFamily: F,
+  boxSizing: 'border-box', background: '#fff',
+  color: '#1C1C1E',
+};
 
 export default function SchedulePage() {
   const [bookings, setBookings] = useState<Record<string, Booking>>({});
@@ -26,13 +33,11 @@ export default function SchedulePage() {
   const [meetingType, setMeetingType] = useState<'kakao' | 'zoom' | ''>('');
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<{ date: string; time: string; dateLabel: string } | null>(null);
-  // 가능 시간 없을 때
   const [altTime, setAltTime] = useState('');
   const [altName, setAltName] = useState('');
   const [altPhone, setAltPhone] = useState('');
   const [altSubmitting, setAltSubmitting] = useState(false);
   const [altDone, setAltDone] = useState(false);
-  const [altOpen, setAltOpen] = useState(false);
 
   useEffect(() => {
     const auth = getAuth();
@@ -44,14 +49,6 @@ export default function SchedulePage() {
     });
     return () => unsub();
   }, []);
-
-  // 전체 슬롯 중 선택 가능한 게 하나라도 있는지
-  const hasAvailable = DATES.some(({ date, slots }) =>
-    slots.some(time => {
-      const id = slotId(date, time);
-      return !BLOCKED.has(id) && !bookings[id];
-    })
-  );
 
   const handleBook = async () => {
     if (!selected || !patientName.trim() || !caregiverName.trim() || !phone.trim() || !meetingType) return;
@@ -96,13 +93,13 @@ export default function SchedulePage() {
 
   if (done) return (
     <div style={{ minHeight:'100svh', background:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:F, padding:24 }}>
-      <div style={{ textAlign:'center', maxWidth:360 }}>
-        <div style={{ fontSize:52, marginBottom:16 }}>✅</div>
-        <h2 style={{ fontSize:22, fontWeight:700, color:'#1C1C1E', marginBottom:8 }}>신청이 완료됐습니다</h2>
-        <p style={{ fontSize:15, color:'#3C3C43', lineHeight:1.7, marginBottom:6 }}>
+      <div style={{ textAlign:'center', maxWidth:400 }}>
+        <div style={{ fontSize:64, marginBottom:20 }}>✅</div>
+        <h2 style={{ fontSize:26, fontWeight:700, color:'#1C1C1E', marginBottom:10 }}>신청이 완료됐습니다</h2>
+        <p style={{ fontSize:18, color:'#3C3C43', lineHeight:1.7, marginBottom:8 }}>
           <strong>{done.dateLabel}</strong> {done.time}
         </p>
-        <p style={{ fontSize:14, color:'#8E8E93', lineHeight:1.6 }}>
+        <p style={{ fontSize:16, color:'#8E8E93', lineHeight:1.7 }}>
           확인 후 담당자가 연락드릴 예정입니다.<br/>감사합니다 🙏
         </p>
       </div>
@@ -110,127 +107,160 @@ export default function SchedulePage() {
   );
 
   return (
-    <div style={{ minHeight:'100svh', background:'#F7F7F9', fontFamily:F }}>
+    <div style={{ minHeight:'100svh', background:'#F5F5F7', fontFamily:F }}>
       {/* 헤더 */}
-      <div style={{ background:'#fff', borderBottom:'1px solid rgba(0,0,0,0.06)', padding:'20px 24px', textAlign:'center' }}>
-        <img src="/morspeak-logo-icon.png" alt="Morspeak" style={{ height:32, display:'block', margin:'0 auto 10px' }} />
-        <h1 style={{ fontSize:19, fontWeight:700, color:'#1C1C1E', marginBottom:4 }}>일정 신청</h1>
-        <p style={{ fontSize:13, color:'#8E8E93', lineHeight:1.6 }}>
-          카카오톡 영상통화 또는 ZOOM으로 진행됩니다<br/>
-          원하시는 날짜와 시간을 선택해주세요
+      <div style={{ background:'#fff', borderBottom:'1px solid rgba(0,0,0,0.08)', padding:'22px 24px', textAlign:'center' }}>
+        <img src="/morspeak-logo-icon.png" alt="Morspeak" style={{ height:36, display:'block', margin:'0 auto 12px' }} />
+        <h1 style={{ fontSize:22, fontWeight:700, color:'#1C1C1E', marginBottom:6 }}>일정 신청</h1>
+        <p style={{ fontSize:16, color:'#6E6E73', lineHeight:1.6 }}>
+          카카오톡 영상통화 또는 ZOOM으로 진행됩니다
         </p>
       </div>
 
-      <div style={{ maxWidth:520, margin:'0 auto', padding:'20px 16px 40px' }}>
+      <div style={{ maxWidth:540, margin:'0 auto', padding:'24px 16px 48px' }}>
 
-        {/* 전체 슬롯 */}
-        {DATES.map(({ date, label, slots }) => (
-          <div key={date} style={{ marginBottom:20 }}>
-            <div style={{ background:'#1C1C1E', borderRadius:10, padding:'10px 16px', marginBottom:10 }}>
-              <p style={{ fontSize:15, fontWeight:700, color:'#fff', margin:0 }}>{label}</p>
-            </div>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8 }}>
-              {slots.map(time => {
-                const id = slotId(date, time);
-                const blocked = BLOCKED.has(id);
-                const booked = !!bookings[id];
-                const unavailable = blocked || booked;
-                const isSelected = selected?.date === date && selected?.time === time;
-                return (
-                  <button key={time} disabled={unavailable}
-                    onClick={() => setSelected(unavailable ? null : isSelected ? null : { date, time })}
-                    style={{ padding:'11px 0', borderRadius:10,
-                      border:`1.5px solid ${isSelected?'#1C1C1E':unavailable?'#F2F2F7':'#E5E5EA'}`,
-                      background:isSelected?'#1C1C1E':unavailable?'#F7F7F9':'#fff',
-                      color:isSelected?'#fff':unavailable?'#C7C7CC':'#1C1C1E',
-                      fontFamily:F, fontSize:14, fontWeight:600,
-                      cursor:unavailable?'not-allowed':'pointer', transition:'all 0.12s' }}>
-                    {time}
-                    {(blocked||booked) && <div style={{ fontSize:10, color:'#C7C7CC', fontWeight:400, marginTop:1 }}>마감</div>}
-                  </button>
-                );
-              })}
-            </div>
+        {/* ── SECTION 1: 날짜·시간 선택 ── */}
+        <div style={{ background:'#fff', borderRadius:20, padding:'22px 20px', marginBottom:16, boxShadow:'0 2px 12px rgba(0,0,0,0.07)' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:20 }}>
+            <div style={{ width:32, height:32, borderRadius:'50%', background:'#1C1C1E', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, fontWeight:700, flexShrink:0 }}>1</div>
+            <p style={{ fontSize:18, fontWeight:700, color:'#1C1C1E', margin:0 }}>날짜와 시간을 선택해주세요</p>
           </div>
-        ))}
 
-        {/* 입력 폼 */}
-        {selected && (
-          <div style={{ background:'#fff', borderRadius:14, padding:20, marginTop:4, boxShadow:'0 2px 10px rgba(0,0,0,0.08)' }}>
-            <p style={{ fontSize:14, fontWeight:700, color:'#1C1C1E', marginBottom:16 }}>
-              📅 {DATES.find(d=>d.date===selected.date)?.label} {selected.time} 신청
-            </p>
-            <div style={{ marginBottom:12 }}>
-              <label style={{ display:'block', fontSize:11, fontWeight:600, color:'#8E8E93', marginBottom:5, textTransform:'uppercase' as const, letterSpacing:'0.04em' }}>환우 성함</label>
-              <input value={patientName} onChange={e=>setPatientName(e.target.value)} placeholder="홍길동"
-                style={{ width:'100%', padding:'11px 14px', border:'1.5px solid #E5E5EA', borderRadius:10, fontSize:14, outline:'none', fontFamily:F, boxSizing:'border-box' as const }} />
+          {DATES.map(({ date, label, slots }) => (
+            <div key={date} style={{ marginBottom:20 }}>
+              <div style={{ background:'#1C1C1E', borderRadius:10, padding:'10px 16px', marginBottom:12 }}>
+                <p style={{ fontSize:17, fontWeight:700, color:'#fff', margin:0 }}>{label}</p>
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8 }}>
+                {slots.map(time => {
+                  const id = slotId(date, time);
+                  const blocked = BLOCKED.has(id);
+                  const booked = !!bookings[id];
+                  const unavailable = blocked || booked;
+                  const isSelected = selected?.date === date && selected?.time === time;
+                  return (
+                    <button key={time} disabled={unavailable}
+                      onClick={() => setSelected(unavailable ? null : isSelected ? null : { date, time })}
+                      style={{
+                        height: 58,
+                        borderRadius: 12,
+                        border: `2px solid ${isSelected ? '#1C1C1E' : unavailable ? '#E5E5EA' : '#D1D1D6'}`,
+                        background: isSelected ? '#1C1C1E' : unavailable ? '#F5F5F7' : '#fff',
+                        color: isSelected ? '#fff' : unavailable ? '#C7C7CC' : '#1C1C1E',
+                        fontFamily: F, fontSize: 17, fontWeight: 600,
+                        cursor: unavailable ? 'not-allowed' : 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        transition: 'all 0.12s',
+                        textDecoration: unavailable ? 'line-through' : 'none',
+                      }}>
+                      {time}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            <div style={{ marginBottom:12 }}>
-              <label style={{ display:'block', fontSize:11, fontWeight:600, color:'#8E8E93', marginBottom:5, textTransform:'uppercase' as const, letterSpacing:'0.04em' }}>보호자 성함</label>
-              <input value={caregiverName} onChange={e=>setCaregiverName(e.target.value)} placeholder="홍보호자"
-                style={{ width:'100%', padding:'11px 14px', border:'1.5px solid #E5E5EA', borderRadius:10, fontSize:14, outline:'none', fontFamily:F, boxSizing:'border-box' as const }} />
+          ))}
+
+          <p style={{ fontSize:14, color:'#AEAEB2', textAlign:'center', marginTop:4 }}>
+            취소선 표시된 시간은 이미 마감됐습니다
+          </p>
+        </div>
+
+        {/* ── SECTION 2: 정보 입력 (슬롯 선택 시) ── */}
+        {selected && (
+          <div style={{ background:'#fff', borderRadius:20, padding:'22px 20px', marginBottom:16, boxShadow:'0 2px 12px rgba(0,0,0,0.07)', border:'2px solid #1C1C1E' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:20 }}>
+              <div style={{ width:32, height:32, borderRadius:'50%', background:'#1C1C1E', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, fontWeight:700, flexShrink:0 }}>2</div>
+              <p style={{ fontSize:18, fontWeight:700, color:'#1C1C1E', margin:0 }}>정보를 입력해주세요</p>
+            </div>
+
+            <div style={{ background:'#F5F5F7', borderRadius:12, padding:'12px 16px', marginBottom:20, display:'flex', alignItems:'center', gap:8 }}>
+              <span style={{ fontSize:22 }}>📅</span>
+              <div>
+                <p style={{ fontSize:14, color:'#8E8E93', margin:0 }}>선택하신 시간</p>
+                <p style={{ fontSize:18, fontWeight:700, color:'#1C1C1E', margin:0 }}>
+                  {DATES.find(d=>d.date===selected.date)?.label} {selected.time}
+                </p>
+              </div>
+              <button onClick={()=>setSelected(null)}
+                style={{ marginLeft:'auto', fontSize:13, color:'#8E8E93', background:'none', border:'none', cursor:'pointer', fontFamily:F, padding:'4px 8px' }}>
+                변경
+              </button>
+            </div>
+
+            <div style={{ marginBottom:14 }}>
+              <label style={{ display:'block', fontSize:15, fontWeight:600, color:'#3C3C43', marginBottom:8 }}>환우 성함</label>
+              <input value={patientName} onChange={e=>setPatientName(e.target.value)} placeholder="홍길동" style={inputStyle} />
             </div>
             <div style={{ marginBottom:14 }}>
-              <label style={{ display:'block', fontSize:11, fontWeight:600, color:'#8E8E93', marginBottom:5, textTransform:'uppercase' as const, letterSpacing:'0.04em' }}>연락처</label>
-              <input value={phone} onChange={e=>setPhone(e.target.value)} placeholder="010-0000-0000"
-                style={{ width:'100%', padding:'11px 14px', border:'1.5px solid #E5E5EA', borderRadius:10, fontSize:14, outline:'none', fontFamily:F, boxSizing:'border-box' as const }} />
+              <label style={{ display:'block', fontSize:15, fontWeight:600, color:'#3C3C43', marginBottom:8 }}>보호자 성함</label>
+              <input value={caregiverName} onChange={e=>setCaregiverName(e.target.value)} placeholder="홍보호자" style={inputStyle} />
             </div>
-            <div style={{ marginBottom:18 }}>
-              <label style={{ display:'block', fontSize:11, fontWeight:600, color:'#8E8E93', marginBottom:8, textTransform:'uppercase' as const, letterSpacing:'0.04em' }}>면담 방식</label>
-              <div style={{ display:'flex', gap:8 }}>
+            <div style={{ marginBottom:20 }}>
+              <label style={{ display:'block', fontSize:15, fontWeight:600, color:'#3C3C43', marginBottom:8 }}>연락처</label>
+              <input value={phone} onChange={e=>setPhone(e.target.value)} placeholder="010-0000-0000" style={inputStyle} />
+            </div>
+
+            <div style={{ marginBottom:22 }}>
+              <label style={{ display:'block', fontSize:15, fontWeight:600, color:'#3C3C43', marginBottom:10 }}>면담 방식</label>
+              <div style={{ display:'flex', gap:10 }}>
                 {[{val:'kakao',label:'카카오톡 영상통화'},{val:'zoom',label:'온라인 ZOOM'}].map(({val,label})=>(
                   <button key={val} type="button" onClick={()=>setMeetingType(val as 'kakao'|'zoom')}
-                    style={{ flex:1, padding:'11px 0', borderRadius:10,
-                      border:`1.5px solid ${meetingType===val?'#1C1C1E':'#E5E5EA'}`,
+                    style={{ flex:1, padding:'14px 0', borderRadius:12,
+                      border:`2px solid ${meetingType===val?'#1C1C1E':'#D1D1D6'}`,
                       background:meetingType===val?'#1C1C1E':'#fff',
                       color:meetingType===val?'#fff':'#3C3C43',
-                      fontFamily:F, fontSize:13, fontWeight:meetingType===val?600:400, cursor:'pointer', transition:'all 0.12s' }}>
+                      fontFamily:F, fontSize:16, fontWeight:meetingType===val?700:400, cursor:'pointer' }}>
                     {label}
                   </button>
                 ))}
               </div>
             </div>
+
             <button onClick={handleBook}
               disabled={submitting || !patientName.trim() || !caregiverName.trim() || !phone.trim() || !meetingType}
-              style={{ width:'100%', padding:'13px', borderRadius:10, border:'none',
+              style={{ width:'100%', padding:'16px', borderRadius:14, border:'none',
                 background:(!patientName.trim()||!caregiverName.trim()||!phone.trim()||!meetingType||submitting)?'#C7C7CC':'#1C1C1E',
-                color:'#fff', fontSize:15, fontWeight:600, cursor:'pointer', fontFamily:F }}>
+                color:'#fff', fontSize:18, fontWeight:700, cursor:'pointer', fontFamily:F }}>
               {submitting ? '신청 중…' : '신청하기'}
             </button>
           </div>
         )}
 
-        {/* 가능한 시간 없을 때 — 항상 표시 */}
-        <div style={{ marginTop:16, background:'#F0F4FF', border:'2px solid #C7D7FF', borderRadius:16, padding:'20px 18px' }}>
-          <p style={{ fontSize:15, fontWeight:700, color:'#1C1C1E', marginBottom:4 }}>⏰ 가능한 시간이 없으신가요?</p>
-          <p style={{ fontSize:13, color:'#5C6BC0', marginBottom:16, lineHeight:1.5 }}>
-            원하시는 일자와 시간대를 입력해주시면 조율해보겠습니다.
+        {/* ── SECTION 3: 가능한 시간 없을 때 ── */}
+        <div style={{ background:'#EEF2FF', border:'2px solid #A5B4FC', borderRadius:20, padding:'22px 20px', boxShadow:'0 2px 12px rgba(0,0,0,0.05)' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14 }}>
+            <span style={{ fontSize:28 }}>⏰</span>
+            <p style={{ fontSize:18, fontWeight:700, color:'#1C1C1E', margin:0 }}>가능한 시간이 없으신가요?</p>
+          </div>
+          <p style={{ fontSize:16, color:'#4C5880', marginBottom:18, lineHeight:1.6 }}>
+            원하시는 일자와 시간대를 적어주시면<br/>담당자가 조율해드리겠습니다.
           </p>
           {altDone ? (
-            <div style={{ textAlign:'center', padding:'12px 0' }}>
-              <p style={{ fontSize:15, fontWeight:600, color:'#1C1C1E', marginBottom:4 }}>접수됐습니다 ✓</p>
-              <p style={{ fontSize:13, color:'#8E8E93' }}>담당자가 확인 후 연락드릴게요.</p>
+            <div style={{ textAlign:'center', padding:'14px 0' }}>
+              <p style={{ fontSize:18, fontWeight:700, color:'#1C1C1E', marginBottom:6 }}>접수됐습니다 ✓</p>
+              <p style={{ fontSize:15, color:'#6E6E73' }}>담당자가 확인 후 연락드릴게요.</p>
             </div>
           ) : (
             <>
               <input value={altName} onChange={e=>setAltName(e.target.value)} placeholder="환우 성함"
-                style={{ width:'100%', padding:'11px 14px', border:'1.5px solid #C7D7FF', borderRadius:10, fontSize:14, outline:'none', fontFamily:F, boxSizing:'border-box' as const, marginBottom:8, background:'#fff' }} />
+                style={{ ...inputStyle, border:'2px solid #A5B4FC', marginBottom:10 }} />
               <input value={altPhone} onChange={e=>setAltPhone(e.target.value)} placeholder="연락처 (010-0000-0000)"
-                style={{ width:'100%', padding:'11px 14px', border:'1.5px solid #C7D7FF', borderRadius:10, fontSize:14, outline:'none', fontFamily:F, boxSizing:'border-box' as const, marginBottom:8, background:'#fff' }} />
+                style={{ ...inputStyle, border:'2px solid #A5B4FC', marginBottom:10 }} />
               <input value={altTime} onChange={e=>setAltTime(e.target.value)} placeholder="예: 6/29 오후 1시, 6/30 오전 중"
-                style={{ width:'100%', padding:'11px 14px', border:'1.5px solid #C7D7FF', borderRadius:10, fontSize:14, outline:'none', fontFamily:F, boxSizing:'border-box' as const, marginBottom:12, background:'#fff' }} />
-              <button onClick={handleAlt} disabled={altSubmitting || !altTime.trim() || !altName.trim() || !altPhone.trim()}
-                style={{ width:'100%', padding:'12px', borderRadius:10, border:'none',
-                  background:(!altTime.trim()||!altName.trim()||!altPhone.trim()||altSubmitting)?'#C7C7CC':'#3D5AFE',
-                  color:'#fff', fontSize:14, fontWeight:600, cursor:'pointer', fontFamily:F }}>
+                style={{ ...inputStyle, border:'2px solid #A5B4FC', marginBottom:14 }} />
+              <button onClick={handleAlt}
+                disabled={altSubmitting || !altTime.trim() || !altName.trim() || !altPhone.trim()}
+                style={{ width:'100%', padding:'15px', borderRadius:14, border:'none',
+                  background:(!altTime.trim()||!altName.trim()||!altPhone.trim()||altSubmitting)?'#C7C7CC':'#4F46E5',
+                  color:'#fff', fontSize:17, fontWeight:700, cursor:'pointer', fontFamily:F }}>
                 {altSubmitting ? '제출 중…' : '시간 제출하기'}
               </button>
             </>
           )}
         </div>
-          
 
-        <p style={{ textAlign:'center', fontSize:12, color:'#C7C7CC', marginTop:24 }}>문의: 모스픽팀</p>
+        <p style={{ textAlign:'center', fontSize:14, color:'#AEAEB2', marginTop:28 }}>문의: 모스픽팀</p>
       </div>
     </div>
   );

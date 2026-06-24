@@ -203,7 +203,8 @@ export default function AdminScreeningPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [sortField, setSortField] = useState<'date' | 'score'>('date');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
-  const [activeView, setActiveView] = useState<'screening' | 'applications' | 'ranking' | 'final'>('screening');
+  const [activeView, setActiveView] = useState<'screening' | 'applications' | 'ranking' | 'final' | 'schedule'>('screening');
+  const [scheduleBookings, setScheduleBookings] = useState<Record<string, {patientName:string;contactPhone:string;bookedAt:string}>>({});
   const [finalUnlocked, setFinalUnlocked] = useState(false);
   const [finalPw, setFinalPw] = useState('');
   const [expandedRankKey, setExpandedRankKey] = useState<string | null>(null);
@@ -269,6 +270,16 @@ export default function AdminScreeningPage() {
       () => setLoading(false)
     );
   };
+
+  useEffect(() => {
+    if (!authed) return;
+    const unsub = onSnapshot(collection(db, 'schedule_slots'), snap => {
+      const map: Record<string, {patientName:string;contactPhone:string;bookedAt:string}> = {};
+      snap.docs.forEach(d => { const data = d.data(); if (data.patientName) map[d.id] = data as {patientName:string;contactPhone:string;bookedAt:string}; });
+      setScheduleBookings(map);
+    });
+    return () => unsub();
+  }, [authed]);
 
   const loadQualScores = async () => {
     setQualLoading(true);
@@ -641,7 +652,7 @@ export default function AdminScreeningPage() {
             <img src="/morspeak-logo-icon.png" alt="Morspeak" style={{ height:36, width:'auto', display:'block' }} />
             {/* 뷰 전환 */}
             <div style={{ display:'flex',gap:2,background:'#1C1C1E',borderRadius:10,padding:3 }}>
-              {(['screening','applications','ranking','final'] as const).map(v => (
+              {(['screening','applications','ranking','final','schedule'] as const).map(v => (
                 <button key={v}
                   onClick={() => { setActiveView(v); if ((v==='applications'||v==='ranking'||v==='final') && applications.length===0) loadApplications(); }}
                   style={{ padding:'5px 14px',borderRadius:8,border:'none',cursor:'pointer',fontFamily:F,
@@ -655,7 +666,8 @@ export default function AdminScreeningPage() {
                     : v==='applications'
                     ? <>서비스 신청서 <span style={{ opacity:0.5, fontWeight:400 }}>{applications.length||''}</span></>
                     : v==='ranking' ? <>종합</>
-                    : <>🔒 최종</>}
+                    : v==='final' ? <>🔒 최종</>
+                    : <>📅 일정</>}
                 </button>
               ))}
             </div>
@@ -1876,6 +1888,72 @@ export default function AdminScreeningPage() {
                   })}
                 </tbody>
               </table>
+            </div>
+          </div>
+        );
+      })()}
+      {/* 일정 탭 */}
+      {activeView === 'schedule' && (() => {
+        const SLOTS: Record<string, string[]> = {
+          '2026-06-29': ['15:00','15:30','16:00','16:30','17:00','17:30'],
+          '2026-06-30': ['13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30'],
+        };
+        const DATE_LABELS: Record<string, string> = {
+          '2026-06-29': '6/29 (월)', '2026-06-30': '6/30 (화)',
+        };
+        const slotKey = (date: string, time: string) => `${date.replace(/-/g,'')}-${time.replace(':','')}`;
+        const booked = Object.entries(scheduleBookings).sort((a,b)=>a[0].localeCompare(b[0]));
+        const totalBooked = booked.length;
+        const totalSlots = Object.values(SLOTS).reduce((s,v)=>s+v.length,0);
+
+        const cancelSlot = async (id: string) => {
+          if (!confirm('이 예약을 취소하시겠습니까?')) return;
+          const { deleteDoc, doc: firestoreDoc } = await import('firebase/firestore');
+          await deleteDoc(firestoreDoc(db, 'schedule_slots', id));
+        };
+
+        return (
+          <div style={{ flex:1,display:'flex',flexDirection:'column',overflow:'hidden' }}>
+            <div style={{ padding:'12px 24px',borderBottom:'1px solid #F2F2F7',background:'#fff',display:'flex',alignItems:'center',justifyContent:'space-between' }}>
+              <div style={{ display:'flex',alignItems:'center',gap:12 }}>
+                <span style={{ fontSize:13,fontWeight:600,color:'#1C1C1E' }}>면담 일정 신청 현황</span>
+                <span style={{ fontSize:12,color:'#8E8E93' }}>{totalBooked}/{totalSlots} 슬롯 예약됨</span>
+              </div>
+              <a href="/schedule" target="_blank"
+                style={{ fontSize:12,fontWeight:600,padding:'6px 12px',borderRadius:8,background:'#1C1C1E',color:'#fff',textDecoration:'none' }}>
+                신청 링크 열기 ↗
+              </a>
+            </div>
+            <div style={{ flex:1,overflow:'auto',background:'#F7F7F9',padding:20 }}>
+              <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,maxWidth:900 }}>
+                {Object.entries(SLOTS).map(([date, times])=>(
+                  <div key={date} style={{ background:'#fff',borderRadius:12,overflow:'hidden',boxShadow:'0 1px 4px rgba(0,0,0,0.06)' }}>
+                    <div style={{ padding:'12px 16px',borderBottom:'1px solid #F2F2F7',background:'#FAFAFA' }}>
+                      <span style={{ fontSize:14,fontWeight:700,color:'#1C1C1E' }}>{DATE_LABELS[date]}</span>
+                      <span style={{ fontSize:11,color:'#8E8E93',marginLeft:8 }}>
+                        {times.filter(t=>scheduleBookings[slotKey(date,t)]).length}/{times.length}
+                      </span>
+                    </div>
+                    {times.map(time=>{
+                      const id=slotKey(date,time);
+                      const b=scheduleBookings[id];
+                      return (
+                        <div key={time} style={{ padding:'10px 16px',borderBottom:'1px solid #F7F7F9',display:'flex',alignItems:'center',justifyContent:'space-between' }}>
+                          <div style={{ display:'flex',alignItems:'center',gap:10 }}>
+                            <span style={{ fontSize:14,fontWeight:600,color:'#1C1C1E',width:44 }}>{time}</span>
+                            {b
+                              ? <><span style={{ fontSize:13,color:'#000',fontWeight:500 }}>{b.patientName}</span>
+                                  <span style={{ fontSize:12,color:'#8E8E93' }}>{b.contactPhone}</span></>
+                              : <span style={{ fontSize:12,color:'#C7C7CC' }}>미신청</span>}
+                          </div>
+                          {b && <button onClick={()=>cancelSlot(id)}
+                            style={{ fontSize:11,color:'#FF3B30',background:'none',border:'none',cursor:'pointer',fontFamily:F,padding:'2px 6px' }}>취소</button>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         );

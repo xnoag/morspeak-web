@@ -203,7 +203,9 @@ export default function AdminScreeningPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [sortField, setSortField] = useState<'date' | 'score'>('date');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
-  const [activeView, setActiveView] = useState<'screening' | 'applications' | 'ranking'>('screening');
+  const [activeView, setActiveView] = useState<'screening' | 'applications' | 'ranking' | 'final'>('screening');
+  const [finalUnlocked, setFinalUnlocked] = useState(false);
+  const [finalPw, setFinalPw] = useState('');
   const [expandedRankKey, setExpandedRankKey] = useState<string | null>(null);
   const [selectedRankKeys, setSelectedRankKeys] = useState<Set<string>>(new Set());
   const [rankFilter, setRankFilter] = useState<'all'|'complete'|'no_screening'|'no_app'>('all');
@@ -639,9 +641,9 @@ export default function AdminScreeningPage() {
             <img src="/morspeak-logo-icon.png" alt="Morspeak" style={{ height:36, width:'auto', display:'block' }} />
             {/* 뷰 전환 */}
             <div style={{ display:'flex',gap:2,background:'#1C1C1E',borderRadius:10,padding:3 }}>
-              {(['screening','applications','ranking'] as const).map(v => (
+              {(['screening','applications','ranking','final'] as const).map(v => (
                 <button key={v}
-                  onClick={() => { setActiveView(v); if ((v==='applications'||v==='ranking') && applications.length===0) loadApplications(); }}
+                  onClick={() => { setActiveView(v); if ((v==='applications'||v==='ranking'||v==='final') && applications.length===0) loadApplications(); }}
                   style={{ padding:'5px 14px',borderRadius:8,border:'none',cursor:'pointer',fontFamily:F,
                     fontSize:12,fontWeight:activeView===v?600:400,
                     background:activeView===v?'#fff':'transparent',
@@ -652,7 +654,8 @@ export default function AdminScreeningPage() {
                     ? <>스크리닝 결과 <span style={{ opacity:0.5, fontWeight:400 }}>{new Set(results.map(r=>normalizePhone(r.caregiverContact??'')||normalizeStr(r.patientName??''))).size}</span></>
                     : v==='applications'
                     ? <>서비스 신청서 <span style={{ opacity:0.5, fontWeight:400 }}>{applications.length||''}</span></>
-                    : <>종합</>}
+                    : v==='ranking' ? <>종합</>
+                    : <>🔒 최종</>}
                 </button>
               ))}
             </div>
@@ -1718,6 +1721,153 @@ export default function AdminScreeningPage() {
                 </div>
               );
             })()}
+            </div>
+          </div>
+        );
+      })()}
+      {/* 최종 탭 */}
+      {activeView === 'final' && (() => {
+        // 비밀번호 게이트
+        if (!finalUnlocked) return (
+          <div style={{ flex:1,display:'flex',alignItems:'center',justifyContent:'center',background:'#F7F7F9' }}>
+            <div style={{ background:'#fff',borderRadius:16,padding:'40px 36px',boxShadow:'0 4px 24px rgba(0,0,0,0.08)',width:320,textAlign:'center' }}>
+              <p style={{ fontSize:20,fontWeight:700,color:'#1C1C1E',marginBottom:8 }}>🔒 최종 순위</p>
+              <p style={{ fontSize:13,color:'#8E8E93',marginBottom:24 }}>관리자 비밀번호를 입력해주세요</p>
+              <input type="password" value={finalPw} onChange={e=>setFinalPw(e.target.value)}
+                onKeyDown={e=>{ if(e.key==='Enter'){ if(finalPw===QUAL_VIEW_PW){setFinalUnlocked(true);setFinalPw('');}else alert('비밀번호가 틀렸습니다.'); }}}
+                placeholder="비밀번호"
+                style={{ width:'100%',padding:'11px 14px',border:'1.5px solid #E5E5EA',borderRadius:10,fontSize:14,outline:'none',fontFamily:F,boxSizing:'border-box' as const,marginBottom:12,textAlign:'center' as const }} />
+              <button onClick={()=>{ if(finalPw===QUAL_VIEW_PW){setFinalUnlocked(true);setFinalPw('');}else alert('비밀번호가 틀렸습니다.');}}
+                style={{ width:'100%',padding:'11px',borderRadius:10,border:'none',background:'#1C1C1E',color:'#fff',fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:F }}>
+                확인
+              </button>
+            </div>
+          </div>
+        );
+
+        // 최종 순위 계산
+        const statusCatF = (s?: Status) => s==='실기기검증적합'?'PP':s==='적합예상'?'P':'N';
+        const catOrderF = (e: {screening?: Result}) =>
+          (e.screening?.status==='실기기검증적합'||e.screening?.status==='적합예상')?1:e.screening?0:-1;
+
+        const appScoreF = (a: Application) => {
+          const bs: Record<string,number> = {};
+          const hasExp = (s?: string) => { const v=(s??'').trim(); return v.length>0&&!/^(없음?|없어요|아니[요오]?|해당\s*없음|X|x|-)$/i.test(v); };
+          const trach=a.tracheotomy??'';
+          bs.tracheotomy=trach?(/시행/.test(trach)&&!/안|않|미시행|하지/.test(trach)?10:8):0;
+          const bulbar=a.bulbarPalsyProgress??'';
+          bs.bulbar=!bulbar?0:(/마비|진행/.test(bulbar)&&!/아님|아니|없음|않|미/.test(bulbar)?10:8);
+          const cg=a.caregiverCooperation??'';
+          bs.caregiver=/가능|협조/.test(cg)?10:/불가|어렵|못/.test(cg)?5:0;
+          bs.device=hasExp(a.electronicDeviceExperience)?10:0;
+          bs.eyeMouse=hasExp(a.eyeMouseExperience)?5:0;
+          bs.duration=0;
+          if(a.onsetDate){const d=a.onsetDate.replace(/\D/g,'');if(d.length>=4){const yr=parseInt(d.slice(0,4)),mo=parseInt(d.slice(4,6)||'1')||1;if((Date.now()-new Date(yr,mo-1,1).getTime())/(1000*60*60*24*365.25)>=3)bs.duration=5;}}
+          return Object.values(bs).reduce((s,v)=>s+v,0);
+        };
+
+        const findAppF = (r: Result) => {
+          const p=normalizePhone(r.caregiverContact??'');
+          if(p){const a=applications.find(a=>normalizePhone(a.contactPhone??'')===p);if(a)return a;}
+          const name=normalizeStr(r.patientName??''),region=normalizeStr(r.region??''),sub=normalizeStr(r.subRegion??'');
+          return applications.find(a=>{
+            if(normalizeStr(a.patientName??'')!==name)return false;
+            const addr=normalizeStr(a.address??'');
+            return (region&&regionInAddr(addr,region))||(sub&&addr.includes(sub));
+          });
+        };
+
+        // ranked 구성 (종합과 동일 로직)
+        const seen=new Set<string>();
+        const ranked: {key:string;name:string;phone:string;screening?:Result;application?:Application;appTotal:number;qualTotal:number;finalTotal:number}[]=[];
+
+        const bestScreening=new Map<string,Result>();
+        results.forEach(r=>{
+          const key=normalizePhone(r.caregiverContact??'')||normalizeStr(r.patientName??'');
+          if(!key)return;
+          const prev=bestScreening.get(key);
+          const cv=(s?:Status)=>s==='실기기검증적합'?2:s==='적합예상'?1:0;
+          if(!prev||cv(r.status)>cv(prev.status))bestScreening.set(key,r);
+        });
+        bestScreening.forEach((r,key)=>{
+          seen.add(key);
+          const app=findAppF(r);
+          if(app){const appKey=normalizePhone(app.contactPhone??'')||normalizeStr(app.patientName??'');if(appKey)seen.add(appKey);}
+          const appTotal=app?appScoreF(app):0;
+          const qualKey=key.replace(/\//g,'_');
+          const evals=qualEvals.get(qualKey)??{};
+          const qa=computeEvalAvg(evals);
+          const qualTotal=qa?Math.round(qa.total*10)/10:0;
+          ranked.push({key,name:r.patientName,phone:r.caregiverContact??'',screening:r,application:app,appTotal,qualTotal,finalTotal:appTotal+qualTotal});
+        });
+        applications.forEach(a=>{
+          const key=normalizePhone(a.contactPhone??'')||normalizeStr(a.patientName??'');
+          if(!key||seen.has(key))return;
+          seen.add(key);
+          const appTotal=appScoreF(a);
+          const qualKey=key.replace(/\//g,'_');
+          const evals=qualEvals.get(qualKey)??{};
+          const qa=computeEvalAvg(evals);
+          const qualTotal=qa?Math.round(qa.total*10)/10:0;
+          ranked.push({key,name:a.patientName,phone:a.contactPhone??'',application:a,appTotal,qualTotal,finalTotal:appTotal+qualTotal});
+        });
+
+        ranked.sort((a,b)=>{
+          const cd=catOrderF(b)-catOrderF(a);
+          if(cd!==0)return cd;
+          return b.finalTotal-a.finalTotal;
+        });
+
+        return (
+          <div style={{ flex:1,display:'flex',flexDirection:'column',overflow:'hidden' }}>
+            <div style={{ padding:'10px 20px',borderBottom:'1px solid #F2F2F7',background:'#fff',display:'flex',alignItems:'center',justifyContent:'space-between' }}>
+              <span style={{ fontSize:12,color:'#8E8E93' }}>신청서 배점 + 정성평가 평균 합산 순위 · {ranked.length}명</span>
+              <button onClick={()=>setFinalUnlocked(false)} style={{ fontSize:11,color:'#8E8E93',background:'none',border:'none',cursor:'pointer',fontFamily:F }}>잠금</button>
+            </div>
+            <div style={{ flex:1,overflow:'auto',background:'#fff' }}>
+              <table style={{ width:'100%',minWidth:'max-content',borderCollapse:'collapse',fontSize:13 }}>
+                <thead>
+                  <tr style={{ borderBottom:'1.5px solid #F2F2F7',background:'#FAFAFA' }}>
+                    {['순위','환우명','연락처','스크리닝','신청서점수','정성평가','최종합계'].map(h=>(
+                      <th key={h} style={{ padding:'10px 14px',textAlign:'left',color:'#8E8E93',fontWeight:500,whiteSpace:'nowrap',fontSize:11,letterSpacing:'0.03em' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {ranked.length===0&&<tr><td colSpan={7} style={{ padding:60,textAlign:'center',color:'#C7C7CC' }}>데이터를 불러오면 순위가 표시됩니다</td></tr>}
+                  {ranked.map((e,i)=>{
+                    const isTop20=i<20;
+                    const cat=e.screening?statusCatF(e.screening.status):null;
+                    const catStyle=cat==='PP'?{bg:'#D4F5DF',color:'#1A8C3A'}:cat==='P'?{bg:'#E3F2FF',color:'#0071E3'}:cat?{bg:'#F2F2F7',color:'#8E8E93'}:null;
+                    const hasQual=e.qualTotal>0;
+                    return (
+                      <tr key={e.key} style={{ borderTop:i>0?'1px solid #F7F7F9':'none', background:isTop20?'rgba(0,0,0,0.015)':'transparent' }}>
+                        <td style={{ padding:'12px 14px',textAlign:'center',fontWeight:isTop20?700:400,color:isTop20?'#1C1C1E':'#8E8E93',fontSize:isTop20?14:13 }}>{i+1}</td>
+                        <td style={{ padding:'12px 14px',fontWeight:600,color:'#000',whiteSpace:'nowrap' }}>{e.name}</td>
+                        <td style={{ padding:'12px 14px',color:'#8E8E93',fontSize:12,whiteSpace:'nowrap' }}>{e.phone}</td>
+                        <td style={{ padding:'8px 14px' }}>
+                          {catStyle
+                            ? <span style={{ fontSize:12,fontWeight:700,padding:'2px 10px',borderRadius:20,background:catStyle.bg,color:catStyle.color }}>{cat}</span>
+                            : <span style={{ color:'#C7C7CC',fontSize:11 }}>-</span>}
+                        </td>
+                        <td style={{ padding:'12px 14px',textAlign:'right' as const }}>
+                          <span style={{ fontSize:13,fontWeight:600,color:'#3C3C43' }}>{e.appTotal}</span>
+                          <span style={{ fontSize:10,color:'#C7C7CC',marginLeft:2 }}>/50</span>
+                        </td>
+                        <td style={{ padding:'12px 14px',textAlign:'right' as const }}>
+                          {hasQual
+                            ? <><span style={{ fontSize:13,fontWeight:600,color:'#7C3AED' }}>{e.qualTotal}</span><span style={{ fontSize:10,color:'#C7C7CC',marginLeft:2 }}>/60</span></>
+                            : <span style={{ color:'#C7C7CC',fontSize:11 }}>미평가</span>}
+                        </td>
+                        <td style={{ padding:'12px 14px',textAlign:'right' as const }}>
+                          <span style={{ fontSize:16,fontWeight:700,color:'#1C1C1E' }}>{e.finalTotal}</span>
+                          <span style={{ fontSize:10,color:'#8E8E93',marginLeft:2 }}>/110</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
         );

@@ -200,44 +200,34 @@ export default function SchedulePage() {
           </div>
         )}
 
-        {/* 가능한 시간 없을 때 — 항상 하단 표시 */}
-        <div style={{ marginTop:8 }}>
-              <button onClick={()=>setAltOpen(o=>!o)}
-                style={{ width:'100%', padding:'13px 16px', borderRadius:12, border:'1.5px solid #E5E5EA', background:'#fff',
-                  color:'#3C3C43', fontFamily:F, fontSize:14, fontWeight:500, cursor:'pointer',
-                  display:'flex', alignItems:'center', justifyContent:'space-between', boxShadow:'0 1px 4px rgba(0,0,0,0.04)' }}>
-                <span>혹시 가능한 시간이 없으신가요?</span>
-                <span style={{ fontSize:16, transform:altOpen?'rotate(180deg)':'rotate(0deg)', transition:'transform 0.2s', display:'inline-block' }}>⌄</span>
-              </button>
-              {altOpen && (
-                <div style={{ background:'#fff', borderRadius:'0 0 12px 12px', padding:'16px 16px 20px', border:'1.5px solid #E5E5EA', borderTop:'none', marginTop:-2 }}>
-                  {altDone ? (
-                    <div style={{ textAlign:'center', padding:'12px 0' }}>
-                      <p style={{ fontSize:15, fontWeight:600, color:'#1C1C1E', marginBottom:4 }}>접수됐습니다 ✓</p>
-                      <p style={{ fontSize:13, color:'#8E8E93' }}>담당자가 확인 후 연락드릴게요.</p>
-                    </div>
-                  ) : (
-                    <>
-                      <p style={{ fontSize:13, color:'#8E8E93', marginBottom:14, lineHeight:1.5 }}>
-                        원하시는 일자와 시간대를 입력해주시면 조율해보겠습니다.
-                      </p>
-                      <input value={altName} onChange={e=>setAltName(e.target.value)} placeholder="환우 성함"
-                        style={{ width:'100%', padding:'10px 14px', border:'1.5px solid #E5E5EA', borderRadius:10, fontSize:14, outline:'none', fontFamily:F, boxSizing:'border-box' as const, marginBottom:8 }} />
-                      <input value={altPhone} onChange={e=>setAltPhone(e.target.value)} placeholder="연락처 (010-0000-0000)"
-                        style={{ width:'100%', padding:'10px 14px', border:'1.5px solid #E5E5EA', borderRadius:10, fontSize:14, outline:'none', fontFamily:F, boxSizing:'border-box' as const, marginBottom:8 }} />
-                      <input value={altTime} onChange={e=>setAltTime(e.target.value)} placeholder="예: 6/29 오후 1시, 6/30 오전 중"
-                        style={{ width:'100%', padding:'10px 14px', border:'1.5px solid #E5E5EA', borderRadius:10, fontSize:14, outline:'none', fontFamily:F, boxSizing:'border-box' as const, marginBottom:12 }} />
-                      <button onClick={handleAlt} disabled={altSubmitting || !altTime.trim() || !altName.trim() || !altPhone.trim()}
-                        style={{ width:'100%', padding:'11px', borderRadius:10, border:'none',
-                          background:(!altTime.trim()||!altName.trim()||!altPhone.trim()||altSubmitting)?'#C7C7CC':'#3C3C43',
-                          color:'#fff', fontSize:14, fontWeight:600, cursor:'pointer', fontFamily:F }}>
-                        {altSubmitting ? '제출 중…' : '시간 제출하기'}
-                      </button>
-                    </>
-                  )}
-                </div>
-              )}
+        {/* 가능한 시간 없을 때 — 항상 표시 */}
+        <div style={{ marginTop:16, background:'#F0F4FF', border:'2px solid #C7D7FF', borderRadius:16, padding:'20px 18px' }}>
+          <p style={{ fontSize:15, fontWeight:700, color:'#1C1C1E', marginBottom:4 }}>⏰ 가능한 시간이 없으신가요?</p>
+          <p style={{ fontSize:13, color:'#5C6BC0', marginBottom:16, lineHeight:1.5 }}>
+            원하시는 일자와 시간대를 입력해주시면 조율해보겠습니다.
+          </p>
+          {altDone ? (
+            <div style={{ textAlign:'center', padding:'12px 0' }}>
+              <p style={{ fontSize:15, fontWeight:600, color:'#1C1C1E', marginBottom:4 }}>접수됐습니다 ✓</p>
+              <p style={{ fontSize:13, color:'#8E8E93' }}>담당자가 확인 후 연락드릴게요.</p>
             </div>
+          ) : (
+            <>
+              <input value={altName} onChange={e=>setAltName(e.target.value)} placeholder="환우 성함"
+                style={{ width:'100%', padding:'11px 14px', border:'1.5px solid #C7D7FF', borderRadius:10, fontSize:14, outline:'none', fontFamily:F, boxSizing:'border-box' as const, marginBottom:8, background:'#fff' }} />
+              <input value={altPhone} onChange={e=>setAltPhone(e.target.value)} placeholder="연락처 (010-0000-0000)"
+                style={{ width:'100%', padding:'11px 14px', border:'1.5px solid #C7D7FF', borderRadius:10, fontSize:14, outline:'none', fontFamily:F, boxSizing:'border-box' as const, marginBottom:8, background:'#fff' }} />
+              <input value={altTime} onChange={e=>setAltTime(e.target.value)} placeholder="예: 6/29 오후 1시, 6/30 오전 중"
+                style={{ width:'100%', padding:'11px 14px', border:'1.5px solid #C7D7FF', borderRadius:10, fontSize:14, outline:'none', fontFamily:F, boxSizing:'border-box' as const, marginBottom:12, background:'#fff' }} />
+              <button onClick={handleAlt} disabled={altSubmitting || !altTime.trim() || !altName.trim() || !altPhone.trim()}
+                style={{ width:'100%', padding:'12px', borderRadius:10, border:'none',
+                  background:(!altTime.trim()||!altName.trim()||!altPhone.trim()||altSubmitting)?'#C7C7CC':'#3D5AFE',
+                  color:'#fff', fontSize:14, fontWeight:600, cursor:'pointer', fontFamily:F }}>
+                {altSubmitting ? '제출 중…' : '시간 제출하기'}
+              </button>
+            </>
+          )}
+        </div>
           
 
         <p style={{ textAlign:'center', fontSize:12, color:'#C7C7CC', marginTop:24 }}>문의: 모스픽팀</p>

@@ -152,7 +152,7 @@ export default function SchedulePage() {
             const morning = slots.filter(t => parseInt(t)<12);
             const afternoon = slots.filter(t => parseInt(t)>=12);
             const renderSlots = (list: string[]) => (
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:8, marginBottom:8 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:8 }}>
                 {list.map(time => {
                   const id = slotId(date, time);
                   const blocked = BLOCKED.has(id);
@@ -165,11 +165,11 @@ export default function SchedulePage() {
                     <button key={time} disabled={unavailable}
                       onClick={() => setSelected(unavailable ? null : isSelected ? null : { date, time })}
                       style={{
-                        height: 58, borderRadius: 12,
+                        height: 64, borderRadius: 12,
                         border: `2px solid ${isSelected?'#1C1C1E':unavailable?'#E5E5EA':'#D1D1D6'}`,
                         background: isSelected?'#1C1C1E':unavailable?'#F5F5F7':'#fff',
                         color: isSelected?'#fff':unavailable?'#C7C7CC':'#1C1C1E',
-                        fontFamily:F, fontSize:15, fontWeight:600,
+                        fontFamily:F, fontSize:17, fontWeight:600,
                         cursor:unavailable?'not-allowed':'pointer',
                         display:'flex', alignItems:'center', justifyContent:'center',
                         transition:'all 0.12s',

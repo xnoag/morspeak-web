@@ -23,6 +23,13 @@ const DATES: { date: string; label: string; slots: string[] }[] = [
 
 const BLOCKED = new Set(['20260629-1530', '20260629-1630']);
 
+const formatPhone = (v: string) => {
+  const d = v.replace(/\D/g,'').slice(0,11);
+  if (d.length <= 3) return d;
+  if (d.length <= 7) return `${d.slice(0,3)}-${d.slice(3)}`;
+  return `${d.slice(0,3)}-${d.slice(3,7)}-${d.slice(7)}`;
+};
+
 const fmtTime = (t: string) => {
   const [h, m] = t.split(':').map(Number);
   const period = h < 12 ? '오전' : '오후';
@@ -236,11 +243,11 @@ export default function SchedulePage() {
             </div>
             <div style={{ marginBottom:14 }}>
               <label style={{ display:'block', fontSize:15, fontWeight:600, color:'#3C3C43', marginBottom:8 }}>보호자 성함</label>
-              <input value={caregiverName} onChange={e=>setCaregiverName(e.target.value)} placeholder="홍보호자" style={inputStyle} />
+              <input value={caregiverName} onChange={e=>setCaregiverName(e.target.value)} placeholder="보호자" style={inputStyle} />
             </div>
             <div style={{ marginBottom:20 }}>
               <label style={{ display:'block', fontSize:15, fontWeight:600, color:'#3C3C43', marginBottom:8 }}>연락처</label>
-              <input value={phone} onChange={e=>setPhone(e.target.value)} placeholder="010-0000-0000" style={inputStyle} />
+              <input value={phone} onChange={e=>setPhone(formatPhone(e.target.value))} placeholder="010-0000-0000" inputMode="numeric" style={inputStyle} />
             </div>
 
             <div style={{ marginBottom:22 }}>
@@ -289,7 +296,7 @@ export default function SchedulePage() {
                 style={{ ...inputStyle, border:'2px solid #A5B4FC', marginBottom:10 }} />
               <input value={altCaregiver} onChange={e=>setAltCaregiver(e.target.value)} placeholder="보호자 성함"
                 style={{ ...inputStyle, border:'2px solid #A5B4FC', marginBottom:10 }} />
-              <input value={altPhone} onChange={e=>setAltPhone(e.target.value)} placeholder="연락처 (010-0000-0000)"
+              <input value={altPhone} onChange={e=>setAltPhone(formatPhone(e.target.value))} placeholder="010-0000-0000" inputMode="numeric"
                 style={{ ...inputStyle, border:'2px solid #A5B4FC', marginBottom:10 }} />
               <input value={altTime} onChange={e=>setAltTime(e.target.value)} placeholder="예: 6/29 오후 1시, 6/30 오전 중"
                 style={{ ...inputStyle, border:'2px solid #A5B4FC', marginBottom:14 }} />

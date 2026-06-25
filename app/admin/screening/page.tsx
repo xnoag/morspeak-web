@@ -1843,8 +1843,12 @@ export default function AdminScreeningPage() {
         });
 
         // 심사위원 가나다순 → A,B,C... 코드 매핑
+        // 오타 이름 통합
+        const EV_NAME_FIX: Record<string,string> = {'빅성자':'박성자'};
+        const fixEvName = (n: string) => EV_NAME_FIX[n] || n;
+
         const allEvNames=new Set<string>();
-        finalRanked.forEach(r=>Object.values(r.evals||{}).forEach((e:EvalEntry)=>{if(e.name)allEvNames.add(e.name)}));
+        finalRanked.forEach(r=>Object.values(r.evals||{}).forEach((e:EvalEntry)=>{if(e.name)allEvNames.add(fixEvName(e.name))}));
         const evSorted=[...allEvNames].sort();
         const evCode:Record<string,string>={};
         evSorted.forEach((n,i)=>{evCode[n]=String.fromCharCode(65+i);});
@@ -1855,36 +1859,41 @@ export default function AdminScreeningPage() {
           const wb = new ExcelJS.Workbook();
           const ws = wb.addWorksheet('최종순위');
 
-          const SC=['기관절개술','연수마비','보호자협조','전자기기','안구마우스','투병3년+'];
-          const headerRow=['전송완료','순위','환우명','보호자','연락처','스크리닝',...SC,'신청서합계',...evCodes,'정성평가평균','최종합계'];
+          // F_COLS: 표시용 한글, F_KEYS: r.bs 조회용 영문 (appScoreF가 영문 키 사용)
+          const SC_LABELS=F_COLS as unknown as string[];
+          const SC_KEYS=F_KEYS as unknown as string[];
+          const headerRow=['전송완료','순위','환우명','보호자','연락처','스크리닝',...SC_LABELS,'신청서합계',...evCodes,'정성평가평균','최종합계'];
 
-          // 컬럼 너비 설정
+          // 컬럼 너비
           ws.columns=[
             {width:8},{width:6},{width:12},{width:10},{width:15},{width:8},
-            ...SC.map(()=>({width:10})),
+            ...SC_LABELS.map(()=>({width:10})),
             {width:10},...evCodes.map(()=>({width:8})),{width:12},{width:10}
           ];
 
           // 헤더 행
           const hRow=ws.addRow(headerRow);
           hRow.height=24;
-          hRow.eachCell(cell=>{
+          // includeEmpty:true 로 A1 포함 전체 셀 스타일 적용
+          hRow.eachCell({includeEmpty:true},(cell)=>{
             cell.font={bold:true,color:{argb:'FFFFFFFF'},size:10};
             cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1C1C1E'}};
             cell.alignment={horizontal:'center',vertical:'middle',wrapText:true};
             cell.border={bottom:{style:'thin',color:{argb:'FFE5E5EA'}}};
           });
+          // 신청서합계 = col 13 (= 7+SC_LABELS.length), evCodes 시작 = col 14
+          const COL_APP = 7 + SC_LABELS.length;       // 13
+          const COL_EV0 = COL_APP + 1;                // 14
+          const COL_AVG = COL_EV0 + evCodes.length;   // 14+n
+          const COL_TOT = COL_AVG + 1;                // 15+n
+
           // 심사위원 열 보라색
           evCodes.forEach((_,i)=>{
-            const ci=7+SC.length+1+i+1;
-            const cell=hRow.getCell(ci);
-            cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF5B21B6'}};
+            hRow.getCell(COL_EV0+i).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF5B21B6'}};
           });
-          // 마지막 두 열 색상
-          const avgCell=hRow.getCell(headerRow.length-1);
-          avgCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF4C1D95'}};
-          const totalCell=hRow.getCell(headerRow.length);
-          totalCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF92400E'}};
+          // 정성평가평균/최종합계 색상
+          hRow.getCell(COL_AVG).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF4C1D95'}};
+          hRow.getCell(COL_TOT).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF92400E'}};
 
           ws.views=[{state:'frozen',ySplit:1,activeCell:'A2'}];
 
@@ -1892,38 +1901,35 @@ export default function AdminScreeningPage() {
           finalRanked.forEach((r,i)=>{
             const sl=r.screening?.status==='실기기검증적합'?'PP':r.screening?.status==='적합예상'?'P':'N';
             const evScores=evSorted.map(name=>{
-              const ev=Object.values(r.evals).find(e=>e.name===name);
+              const ev=Object.values(r.evals).find(e=>fixEvName(e.name??'')===name);
               return ev?Math.round((ev.c1+ev.c2+ev.c3)*10)/10:'';
             });
+            // SC_KEYS로 r.bs 조회 (영문 키)
             const rowData=['',i+1,r.name,r.caregiver||'',r.phone,sl,
-              ...SC.map(k=>r.bs?.[k]??0),r.appTotal,...evScores,
+              ...SC_KEYS.map(k=>r.bs?.[k]??0),r.appTotal,...evScores,
               r.qualTotal||'',r.finalTotal];
             const dRow=ws.addRow(rowData);
             dRow.height=20;
             dRow.eachCell({includeEmpty:true},(cell,ci)=>{
               cell.alignment={horizontal:'center',vertical:'middle'};
               cell.font={size:10};
-              if(i%2===1) cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF9FAFB'}};
+              if(i%2===1&&ci!==1) cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF9FAFB'}};
             });
-            // 이름 왼쪽 정렬
             dRow.getCell(3).alignment={horizontal:'left',vertical:'middle'};
             dRow.getCell(4).alignment={horizontal:'left',vertical:'middle'};
             dRow.getCell(3).font={bold:true,size:10};
-            // 스크리닝 뱃지 색
             const slCell=dRow.getCell(6);
             if(sl==='PP') slCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFD1FAE5'}};
             else if(sl==='P') slCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFDBEAFE'}};
-            // 신청서합계 노란색
-            dRow.getCell(7+SC.length).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFEF9C3'}};
-            dRow.getCell(7+SC.length).font={bold:true,size:10};
-            // 최종합계 강조
-            const ftCell=dRow.getCell(rowData.length);
+            dRow.getCell(COL_APP).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFEF9C3'}};
+            dRow.getCell(COL_APP).font={bold:true,size:10};
+            const ftCell=dRow.getCell(COL_TOT);
             if(r.finalTotal>0){ftCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFDE68A'}};ftCell.font={bold:true,size:11};}
-            // 정성평가 평균 보라
-            const qaCell=dRow.getCell(rowData.length-1);
+            const qaCell=dRow.getCell(COL_AVG);
             if(r.qualTotal) qaCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF3E8FF'}};
-            // 1열(전송완료) 연두 배경
-            dRow.getCell(1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF0FFF0'}};
+            // 전송완료 열: 연두 배경 + 드롭다운
+            dRow.getCell(1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF0FFF4'}};
+            dRow.getCell(1).dataValidation={type:'list',allowBlank:true,formulae:['"✓,-"'],showErrorMessage:false};
           });
 
           const buf=await wb.xlsx.writeBuffer();

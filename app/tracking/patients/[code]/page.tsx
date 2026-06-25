@@ -62,7 +62,7 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
         getDocs(query(collection(db,'patients'),where('chatCode','==',code))), getDoc(doc(db,'patients',code)),
         getDoc(doc(db,'shortcuts',code)), getDoc(doc(db,'youtubeSuggestions',code)),
         getDoc(doc(db,'usageStats',code,'daily',todayKey())),
-        getDocs(query(collection(db,'usageStats',code,'speaks'),orderBy('timestamp','desc'),limit(50))),
+        getDocs(query(collection(db,'usageStats',code,'speaks'),orderBy('timestamp','desc'),limit(500))),
       ])
       let m: Record<string,any> = sS.exists() ? sS.data() : {}
       if (!pS.empty) m={...pS.docs[0].data(),...m}
@@ -328,51 +328,7 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
         )}
 
         {/* ── 발화 기록 ── */}
-        {tab==='발화 기록' && (
-          <>
-            <div style={{marginBottom:24}}>
-              <p style={{fontSize:13,color:'#6e6e73',lineHeight:1.7,margin:'0 0 4px'}}>최근 {speaks.length}회 발화 기록입니다. 색상은 입력 방법을 나타냅니다: <span style={{color:'#06c',fontWeight:500}}>파랑=키보드</span>, <span style={{color:'#5856d6',fontWeight:500}}>보라=AI</span>, <span style={{color:'#34c759',fontWeight:500}}>초록=단축어</span></p>
-            </div>
-            <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
-              <thead>
-                <tr style={{borderBottom:'2px solid #1d1d1f'}}>
-                  {['시각','내용','키보드','AI','단축어','AI 단어','단축어 표현'].map((h,i)=>(
-                    <th key={h} style={{padding:'8px 12px 10px',textAlign:i<=1?'left':'right',fontSize:11,fontWeight:600,color:'#6e6e73',textTransform:'uppercase',letterSpacing:'.07em',fontFamily:F}}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {speaks.map((s:any,i:number)=>{
-                  const ts=s.timestamp?.toDate?s.timestamp.toDate():null
-                  const timeStr=ts?ts.toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'—'
-                  const aiW:string[]=s.aiWords||[], scW:string[]=s.shortcutWords||[]
-                  const tokens=buildTokens(s.text||'',aiW,scW)
-                  return (
-                    <tr key={i} style={{borderBottom:'1px solid #f5f5f7',verticalAlign:'top'}}>
-                      <td style={{padding:'10px 12px',color:'#aeaeb2',whiteSpace:'nowrap',fontFamily:M,fontSize:11}}>{timeStr}</td>
-                      <td style={{padding:'10px 12px',maxWidth:280}}>
-                        <div style={{display:'flex',flexWrap:'wrap',gap:3}}>
-                          {tokens.map((t,j)=>(
-                            <span key={j} style={{padding:'1px 6px',borderRadius:4,fontSize:13,fontWeight:500,
-                              background:t.source==='ai'?'#f0efff':t.source==='shortcut'?'#edfaee':'#eef4ff',
-                              color:t.source==='ai'?'#5856d6':t.source==='shortcut'?'#34c759':'#06c'}}>
-                              {t.text}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td style={{padding:'10px 12px',textAlign:'right',fontFamily:M,color:s.keyboardCount>0?'#06c':'#d1d1d6',fontSize:12}}>{s.keyboardCount>0?s.keyboardCount:'—'}</td>
-                      <td style={{padding:'10px 12px',textAlign:'right',fontFamily:M,color:s.aiCount>0?'#5856d6':'#d1d1d6',fontSize:12}}>{s.aiCount>0?s.aiCount:'—'}</td>
-                      <td style={{padding:'10px 12px',textAlign:'right',fontFamily:M,color:s.shortcutCount>0?'#34c759':'#d1d1d6',fontSize:12}}>{s.shortcutCount>0?s.shortcutCount:'—'}</td>
-                      <td style={{padding:'10px 12px',color:'#5856d6',fontSize:12}}>{aiW.join(', ')||'—'}</td>
-                      <td style={{padding:'10px 12px',color:'#34c759',fontSize:12}}>{scW.join(', ')||'—'}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </>
-        )}
+        {tab==='발화 기록' && <SpeakLogSection speaks={speaks} />}
 
         {/* ── 버튼 통계 ── */}
         {tab==='버튼 통계' && (
@@ -452,54 +408,7 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
         )}
 
         {/* ── 일별 데이터 ── */}
-        {tab==='일별 데이터' && (
-          <>
-            <p style={{fontSize:13,color:'#6e6e73',lineHeight:1.7,marginBottom:24}}>일별 사용 데이터입니다. 첫 번째 행(●)은 오늘입니다.</p>
-
-            {/* 미니 바 차트 - 말하기 추이 */}
-            {daily.length > 0 && (
-              <div style={{marginBottom:40}}>
-                <div style={{fontSize:11,fontWeight:600,color:'#6e6e73',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:12}}>말하기 횟수 추이</div>
-                <div style={{display:'flex',alignItems:'flex-end',gap:4,height:60}}>
-                  {daily.slice(0,14).reverse().map((d:any,i:number,arr:any[])=>{
-                    const val=n(d.speakCount)
-                    const isToday=i===arr.length-1
-                    return (
-                      <div key={d.id} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
-                        <div style={{width:'100%',borderRadius:'3px 3px 0 0',background:isToday?'#1d1d1f':'#d2d2d7',height:`${Math.round(val/maxSpeak*52)+4}px`,minHeight:4}}/>
-                        <span style={{fontSize:9,color:'#aeaeb2',transform:'rotate(-45deg)',transformOrigin:'top left',marginLeft:4,whiteSpace:'nowrap'}}>{d.date?.slice(5)}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
-              <thead>
-                <tr style={{borderBottom:'2px solid #1d1d1f'}}>
-                  {['날짜','말하기','호출','잠금','IoT','YouTube','사용 시간','키보드','AI','단축어','모드:키보드','단축어','기능'].map((h,i)=>(
-                    <th key={h} style={{padding:'8px 10px 10px',textAlign:i===0?'left':'right',fontSize:10,fontWeight:600,color:'#6e6e73',textTransform:'uppercase',letterSpacing:'.07em',whiteSpace:'nowrap',fontFamily:F}}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {daily.map((d:any,i:number)=>(
-                  <tr key={d.id} style={{borderBottom:'1px solid #f5f5f7',background:i===0?'#f5f9ff':''}}>
-                    <td style={{padding:'9px 10px',fontFamily:M,fontSize:11,fontWeight:i===0?700:400,color:i===0?'#06c':'#1d1d1f',whiteSpace:'nowrap'}}>{d.date}{i===0?' ●':''}</td>
-                    <DTd v={d.speakCount} accent/><DTd v={d.callCount}/><DTd v={d.lockCount}/>
-                    <DTd v={d.iotCount}/><DTd v={d.youtubeSelectCount}/>
-                    <td style={{padding:'9px 10px',textAlign:'right',fontFamily:M,fontSize:11,color:'#6e6e73'}}>{fmtT(d.sessionSeconds)}</td>
-                    <DTd v={d.keyboardInputTotal} c='#06c'/><DTd v={d.aiInputTotal} c='#5856d6'/><DTd v={d.shortcutInputTotal} c='#34c759'/>
-                    <td style={{padding:'9px 10px',textAlign:'right',fontFamily:M,fontSize:11,color:'#aeaeb2'}}>{fmtT(d.modeSeconds_keyboard)}</td>
-                    <td style={{padding:'9px 10px',textAlign:'right',fontFamily:M,fontSize:11,color:'#aeaeb2'}}>{fmtT(d.modeSeconds_shortcut)}</td>
-                    <td style={{padding:'9px 10px',textAlign:'right',fontFamily:M,fontSize:11,color:'#aeaeb2'}}>{fmtT(d.modeSeconds_function)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </>
-        )}
+        {tab==='일별 데이터' && <DailySection daily={daily} />}
 
         {/* ── 설정 ── */}
         {tab==='설정' && (
@@ -603,6 +512,249 @@ function DTd({ v, accent, c }: { v?: number; accent?: boolean; c?: string }) {
 }
 const smallBtn: React.CSSProperties = { padding:'5px 14px',borderRadius:7,border:'1px solid #d2d2d7',background:'#1d1d1f',color:'#fff',fontSize:12,fontWeight:500,cursor:'pointer',fontFamily:F }
 const iconBtn: React.CSSProperties = { padding:'2px 5px',border:'1px solid #d2d2d7',borderRadius:4,background:'#fff',color:'#3c3c43',fontSize:10,cursor:'pointer' }
+
+// ── 일별 데이터 섹션 ──────────────────────────────────────────
+const DAILY_METRICS = [
+  { key: 'speakCount',        label: '말하기',    color: '#1d1d1f' },
+  { key: 'callCount',         label: '호출',      color: '#ff3b30' },
+  { key: 'messageSentCount',  label: '문자',      color: '#06c'    },
+  { key: 'iotCount',          label: 'IoT',       color: '#ff9500' },
+  { key: 'youtubeSelectCount',label: 'YouTube',   color: '#5856d6' },
+  { key: 'keyboardInputTotal',label: '키보드',    color: '#06c'    },
+  { key: 'aiInputTotal',      label: 'AI',        color: '#5856d6' },
+  { key: 'shortcutInputTotal',label: '단축어',    color: '#34c759' },
+]
+
+function DailySection({ daily }: { daily: any[] }) {
+  const [focus, setFocus] = useState<string>('speakCount')
+  if (!daily.length) return <p style={{fontSize:13,color:'#aeaeb2'}}>데이터 없음</p>
+
+  // 메트릭별 최대값 계산
+  const maxVal: Record<string, number> = {}
+  DAILY_METRICS.forEach(m => {
+    maxVal[m.key] = Math.max(1, ...daily.map(d => n(d[m.key])))
+  })
+  const maxSession = Math.max(1, ...daily.map(d => n(d.sessionSeconds)))
+
+  // 전일 대비 델타
+  function delta(arr: any[], i: number, key: string) {
+    if (i >= arr.length - 1) return null
+    const cur = n(arr[i][key]), prev = n(arr[i+1][key])
+    if (prev === 0 && cur === 0) return null
+    return cur - prev
+  }
+
+  const focusMetric = DAILY_METRICS.find(m => m.key === focus)!
+
+  return (
+    <div>
+      {/* 메트릭 선택 탭 */}
+      <div style={{display:'flex',gap:4,flexWrap:'wrap',marginBottom:24}}>
+        {DAILY_METRICS.map(m => (
+          <button key={m.key} onClick={()=>setFocus(m.key)} style={{
+            padding:'5px 12px',borderRadius:20,border:'none',
+            background:focus===m.key?m.color:'#f5f5f7',
+            color:focus===m.key?'#fff':'#3c3c43',
+            fontSize:12,fontWeight:focus===m.key?600:400,cursor:'pointer',fontFamily:F
+          }}>{m.label}</button>
+        ))}
+      </div>
+
+      {/* 포커스 메트릭 막대 차트 */}
+      <div style={{marginBottom:32}}>
+        <div style={{fontSize:11,fontWeight:600,color:'#6e6e73',textTransform:'uppercase' as const,letterSpacing:'.08em',marginBottom:12}}>
+          {focusMetric.label} 추이 (최근 {Math.min(daily.length,21)}일)
+        </div>
+        <div style={{display:'flex',alignItems:'flex-end',gap:3,height:80,paddingBottom:20,position:'relative' as const}}>
+          {daily.slice(0,21).reverse().map((d:any,i:number,arr:any[])=>{
+            const val = n(d[focus])
+            const h = Math.round(val / maxVal[focus] * 64)
+            const isToday = i === arr.length - 1
+            return (
+              <div key={d.id} style={{flex:1,display:'flex',flexDirection:'column' as const,alignItems:'center',gap:2}}>
+                {val > 0 && <span style={{fontSize:9,color:focusMetric.color,fontWeight:600,fontFamily:M}}>{val}</span>}
+                <div style={{width:'100%',borderRadius:'3px 3px 0 0',background:isToday?focusMetric.color:`${focusMetric.color}55`,height:`${h+2}px`,minHeight:2,transition:'height .2s'}}/>
+                <span style={{fontSize:8,color:'#aeaeb2',whiteSpace:'nowrap' as const,transform:'rotate(-45deg)',transformOrigin:'top left',marginLeft:3}}>{d.date?.slice(5)}</span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* 전체 지표 히트맵 테이블 */}
+      <div style={{overflowX:'auto' as const}}>
+        <table style={{width:'100%',borderCollapse:'collapse' as const,fontSize:12}}>
+          <thead>
+            <tr style={{borderBottom:'2px solid #1d1d1f'}}>
+              <th style={{padding:'8px 12px 10px',textAlign:'left' as const,fontSize:10,fontWeight:600,color:'#6e6e73',textTransform:'uppercase' as const,letterSpacing:'.07em',minWidth:90}}>날짜</th>
+              {DAILY_METRICS.map(m => (
+                <th key={m.key} onClick={()=>setFocus(m.key)} style={{
+                  padding:'8px 10px 10px',textAlign:'right' as const,fontSize:10,fontWeight:focus===m.key?700:500,
+                  color:focus===m.key?m.color:'#6e6e73',textTransform:'uppercase' as const,
+                  letterSpacing:'.07em',cursor:'pointer',whiteSpace:'nowrap' as const
+                }}>
+                  {focus===m.key?'▸ ':''}{m.label}
+                </th>
+              ))}
+              <th style={{padding:'8px 10px 10px',textAlign:'right' as const,fontSize:10,fontWeight:500,color:'#6e6e73',textTransform:'uppercase' as const,letterSpacing:'.07em',whiteSpace:'nowrap' as const}}>사용 시간</th>
+            </tr>
+          </thead>
+          <tbody>
+            {daily.map((d:any,i:number)=>{
+              const isToday = i === 0
+              return (
+                <tr key={d.id} style={{borderBottom:'1px solid #f5f5f7',background:isToday?'#f5f9ff':''}}>
+                  <td style={{padding:'9px 12px',fontFamily:M,fontSize:11,fontWeight:isToday?700:400,color:isToday?'#06c':'#1d1d1f',whiteSpace:'nowrap' as const}}>
+                    {d.date}{isToday?' ●':''}
+                  </td>
+                  {DAILY_METRICS.map(m => {
+                    const val = n(d[m.key])
+                    const intensity = maxVal[m.key] > 0 ? val / maxVal[m.key] : 0
+                    const d2 = delta(daily, i, m.key)
+                    return (
+                      <td key={m.key} style={{
+                        padding:'7px 10px',textAlign:'right' as const,
+                        background:val>0?`${m.color}${Math.round(intensity*22+6).toString(16).padStart(2,'0')}`:'transparent',
+                      }}>
+                        <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',gap:4}}>
+                          {d2 !== null && (
+                            <span style={{fontSize:9,color:d2>0?'#34c759':d2<0?'#ff3b30':'#aeaeb2',fontWeight:600}}>
+                              {d2>0?`+${d2}`:d2}
+                            </span>
+                          )}
+                          <span style={{fontFamily:M,fontWeight:val>0?600:400,color:val>0?m.color:'#d1d1d6'}}>{val>0?val:'—'}</span>
+                        </div>
+                      </td>
+                    )
+                  })}
+                  <td style={{padding:'9px 10px',textAlign:'right' as const,fontFamily:M,fontSize:11,color:'#6e6e73'}}>
+                    {(() => {
+                      const v = n(d.sessionSeconds)
+                      const p = Math.round(v/maxSession*100)
+                      return (
+                        <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',gap:6}}>
+                          <div style={{width:40,height:3,background:'#f0f0f5',borderRadius:2}}>
+                            <div style={{height:'100%',width:`${p}%`,background:'#1d1d1f',borderRadius:2}}/>
+                          </div>
+                          <span>{fmtT(v)}</span>
+                        </div>
+                      )
+                    })()}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// ── 발화 기록 섹션 (날짜별 + 빈도 순위) ────────────────────────
+function SpeakLogSection({ speaks }: { speaks: any[] }) {
+  const [view, setView] = useState<'daily'|'ranking'>('daily')
+  const [selectedDate, setSelectedDate] = useState<string|null>(null)
+
+  // 날짜별 그룹핑
+  const byDate: Record<string, any[]> = {}
+  speaks.forEach(s => {
+    const d = s.date || (s.timestamp?.toDate ? s.timestamp.toDate().toISOString().slice(0,10) : '—')
+    if (!byDate[d]) byDate[d] = []
+    byDate[d].push(s)
+  })
+  const dates = Object.keys(byDate).sort((a,b) => b.localeCompare(a))
+
+  // 빈도 순위
+  const freq: Record<string, number> = {}
+  speaks.forEach(s => { if (s.text) freq[s.text] = (freq[s.text] || 0) + 1 })
+  const ranked = Object.entries(freq).sort((a,b) => b[1]-a[1])
+  const maxFreq = ranked[0]?.[1] || 1
+
+  const curDate = selectedDate || dates[0]
+  const curSpeak = byDate[curDate] || []
+
+  return (
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:48}}>
+      {/* 왼쪽: 날짜별 목록 */}
+      <div>
+        <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:20}}>
+          <ColTitle>날짜별 발화 내역</ColTitle>
+          <span style={{fontSize:12,color:'#6e6e73'}}>총 {speaks.length}회</span>
+        </div>
+        {/* 날짜 탭 */}
+        <div style={{display:'flex',gap:4,flexWrap:'wrap',marginBottom:16}}>
+          {dates.map(d => (
+            <button key={d} onClick={()=>setSelectedDate(d)} style={{
+              padding:'4px 10px',borderRadius:20,border:'none',
+              background:curDate===d?'#1d1d1f':'#f5f5f7',
+              color:curDate===d?'#fff':'#3c3c43',
+              fontSize:11,fontWeight:curDate===d?600:400,cursor:'pointer',
+              fontFamily:F,whiteSpace:'nowrap'
+            }}>
+              {d.slice(5)} <span style={{opacity:.6}}>({byDate[d].length})</span>
+            </button>
+          ))}
+        </div>
+        {/* 선택된 날짜의 발화 목록 */}
+        <div style={{borderTop:'2px solid #1d1d1f'}}>
+          {curSpeak.length === 0 && <p style={{fontSize:13,color:'#aeaeb2',paddingTop:12}}>데이터 없음</p>}
+          {curSpeak.map((s: any, i: number) => {
+            const ts = s.timestamp?.toDate ? s.timestamp.toDate() : null
+            const timeStr = ts ? ts.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '—'
+            const aiW: string[] = s.aiWords||[], scW: string[] = s.shortcutWords||[]
+            const tokens = buildTokens(s.text||'', aiW, scW)
+            return (
+              <div key={i} style={{display:'flex',gap:12,alignItems:'flex-start',padding:'10px 0',borderBottom:'1px solid #f5f5f7'}}>
+                <span style={{fontFamily:M,fontSize:11,color:'#aeaeb2',whiteSpace:'nowrap',paddingTop:2,minWidth:56}}>{timeStr}</span>
+                <div style={{flex:1}}>
+                  <div style={{display:'flex',flexWrap:'wrap',gap:3,marginBottom:3}}>
+                    {tokens.map((t,j) => (
+                      <span key={j} style={{fontSize:13,fontWeight:500,padding:'1px 6px',borderRadius:4,
+                        background:t.source==='ai'?'#f0efff':t.source==='shortcut'?'#edfaee':'#eef4ff',
+                        color:t.source==='ai'?'#5856d6':t.source==='shortcut'?'#34c759':'#06c'}}>
+                        {t.text}
+                      </span>
+                    ))}
+                  </div>
+                  <div style={{display:'flex',gap:8}}>
+                    {s.keyboardCount>0 && <span style={{fontSize:10,color:'#aeaeb2'}}>키보드 {s.keyboardCount}</span>}
+                    {s.aiCount>0 && <span style={{fontSize:10,color:'#5856d6'}}>AI {aiW.join(', ')}</span>}
+                    {s.shortcutCount>0 && <span style={{fontSize:10,color:'#34c759'}}>단축어 {scW.join(', ')}</span>}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* 오른쪽: 빈도 순위 */}
+      <div>
+        <div style={{marginBottom:20}}>
+          <ColTitle>문장·단어 빈도 순위</ColTitle>
+          <p style={{fontSize:13,color:'#6e6e73',lineHeight:1.7}}>말하기 버튼을 누른 전체 기록에서 가장 많이 입력한 문장/단어 순위입니다.</p>
+        </div>
+        <div style={{borderTop:'2px solid #1d1d1f'}}>
+          {ranked.slice(0,50).map(([text, cnt], i) => (
+            <div key={text} style={{display:'flex',alignItems:'center',gap:12,padding:'9px 0',borderBottom:'1px solid #f5f5f7'}}>
+              <span style={{fontFamily:M,fontSize:11,color:'#d1d1d6',minWidth:20,textAlign:'right'}}>{i+1}</span>
+              <div style={{flex:1}}>
+                <div style={{marginBottom:4,fontSize:13,color:'#1d1d1f',fontWeight:500}}>{text}</div>
+                <div style={{height:3,background:'#f0f0f5',borderRadius:2}}>
+                  <div style={{height:'100%',width:`${Math.round(cnt/maxFreq*100)}%`,background:'#1d1d1f',borderRadius:2}}/>
+                </div>
+              </div>
+              <span style={{fontFamily:M,fontSize:13,fontWeight:700,color:'#1d1d1f',minWidth:24,textAlign:'right'}}>{cnt}</span>
+              <span style={{fontSize:11,color:'#aeaeb2'}}>회</span>
+            </div>
+          ))}
+          {ranked.length === 0 && <p style={{fontSize:13,color:'#aeaeb2',paddingTop:12}}>데이터 없음</p>}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function buildTokens(text: string, aiW: string[], scW: string[]): {text:string;source:'ai'|'shortcut'|'keyboard'}[] {
   if(!text) return []

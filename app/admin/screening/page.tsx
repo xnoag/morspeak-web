@@ -1794,7 +1794,7 @@ export default function AdminScreeningPage() {
 
         // ranked 구성 (종합과 동일 로직 + bs breakdown 포함)
         const seen=new Set<string>();
-        const ranked: {key:string;name:string;phone:string;screening?:Result;application?:Application;bs?:Record<string,number>;appTotal:number;qualTotal:number;finalTotal:number}[]=[];
+        const ranked: {key:string;name:string;phone:string;caregiver:string;screening?:Result;application?:Application;bs?:Record<string,number>;evals:Record<string,EvalEntry>;appTotal:number;qualTotal:number;finalTotal:number}[]=[];
 
         const bestScreening=new Map<string,Result>();
         results.forEach(r=>{
@@ -1813,7 +1813,7 @@ export default function AdminScreeningPage() {
           const evals=qualEvals.get(qualKey)??{};
           const qa=computeEvalAvg(evals);
           const qualTotal=qa?Math.round(qa.total*10)/10:0;
-          ranked.push({key,name:r.patientName,phone:r.caregiverContact??'',screening:r,application:app,bs:aScore?.bs,appTotal:aScore?.total??0,qualTotal,finalTotal:(aScore?.total??0)+qualTotal});
+          ranked.push({key,name:r.patientName,caregiver:r.caregiverName??'',phone:r.caregiverContact??'',screening:r,application:app,bs:aScore?.bs,evals,appTotal:aScore?.total??0,qualTotal,finalTotal:(aScore?.total??0)+qualTotal});
         });
         applications.forEach(a=>{
           const key=normalizePhone(a.contactPhone??'')||normalizeStr(a.patientName??'');
@@ -1824,7 +1824,7 @@ export default function AdminScreeningPage() {
           const evals=qualEvals.get(qualKey)??{};
           const qa=computeEvalAvg(evals);
           const qualTotal=qa?Math.round(qa.total*10)/10:0;
-          ranked.push({key,name:a.patientName,phone:a.contactPhone??'',application:a,bs:aScore.bs,appTotal:aScore.total,qualTotal,finalTotal:aScore.total+qualTotal});
+          ranked.push({key,name:a.patientName,caregiver:'',phone:a.contactPhone??'',application:a,bs:aScore.bs,evals,appTotal:aScore.total,qualTotal,finalTotal:aScore.total+qualTotal});
         });
 
         // STEP 1: 종합 탭 기준 정렬 (신청서 배점만) → 상위 40명 선정
@@ -1842,11 +1842,45 @@ export default function AdminScreeningPage() {
           return b.finalTotal-a.finalTotal;
         });
 
+        // 심사위원 가나다순 → A,B,C... 코드 매핑
+        const allEvNames=new Set<string>();
+        finalRanked.forEach(r=>Object.values(r.evals||{}).forEach((e:EvalEntry)=>{if(e.name)allEvNames.add(e.name)}));
+        const evSorted=[...allEvNames].sort();
+        const evCode:Record<string,string>={};
+        evSorted.forEach((n,i)=>{evCode[n]=String.fromCharCode(65+i);});
+        const evCodes=evSorted.map(n=>evCode[n]);
+
+        const exportExcel = async () => {
+          const XLSX = await import('xlsx');
+          const SC=['기관절개술','연수마비','보호자협조','전자기기','안구마우스','투병3년+'];
+          const headers=['전송완료','순위','환우명','보호자','연락처','스크리닝',...SC,'신청서합계(/50)',...evCodes,'정성평가평균(/60)','최종합계(/110)'];
+          const rows=finalRanked.map((r,i)=>{
+            const sl=r.screening?.status==='실기기검증적합'?'PP':r.screening?.status==='적합예상'?'P':'N';
+            const evScores=evSorted.map(name=>{
+              const ev=Object.values(r.evals).find(e=>e.name===name);
+              return ev?Math.round((e=>e.c1+e.c2+e.c3)(ev)*10)/10:'-';
+            });
+            return ['',i+1,r.name,r.caregiver||'-',r.phone,sl,
+              ...SC.map(k=>r.bs?.[k]??0),
+              r.appTotal,...evScores,r.qualTotal||'-',r.finalTotal];
+          });
+          const ws=XLSX.utils.aoa_to_sheet([headers,...rows]);
+          const wb=XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb,ws,'최종순위');
+          XLSX.writeFile(wb,'모스픽_최종순위.xlsx');
+        };
+
         return (
           <div style={{ flex:1,display:'flex',flexDirection:'column',overflow:'hidden' }}>
             <div style={{ padding:'10px 20px',borderBottom:'1px solid #F2F2F7',background:'#fff',display:'flex',alignItems:'center',justifyContent:'space-between' }}>
               <span style={{ fontSize:12,color:'#8E8E93' }}>종합 상위 40명 기준 · 정성평가 합산 재정렬</span>
-              <button onClick={()=>setFinalUnlocked(false)} style={{ fontSize:11,color:'#8E8E93',background:'none',border:'none',cursor:'pointer',fontFamily:F }}>잠금</button>
+              <div style={{ display:'flex',gap:8 }}>
+                <button onClick={exportExcel}
+                  style={{ padding:'6px 14px',borderRadius:8,border:'none',background:'#1A8C3A',color:'#fff',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:F }}>
+                  📊 엑셀 추출
+                </button>
+                <button onClick={()=>setFinalUnlocked(false)} style={{ fontSize:11,color:'#8E8E93',background:'none',border:'none',cursor:'pointer',fontFamily:F }}>잠금</button>
+              </div>
             </div>
             <div style={{ flex:1,overflow:'auto',background:'#fff' }}>
               <table style={{ width:'100%',minWidth:'max-content',borderCollapse:'collapse',fontSize:13 }}>

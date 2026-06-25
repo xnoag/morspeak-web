@@ -1409,7 +1409,7 @@ export default function AdminScreeningPage() {
                           </td>
                         ))}
                         <td style={{ padding:'8px 12px',textAlign:'right',whiteSpace:'nowrap' }}>
-                          {(e.screening?.status==='실기기검증적합'||e.screening?.status==='적합예상') && (
+                          {i < 40 && (e.screening?.status==='실기기검증적합'||e.screening?.status==='적합예상') && (
                             <span style={{ marginRight:8,fontSize:10,fontWeight:600,padding:'3px 8px',borderRadius:20,background:'#F3E8FF',color:'#7C3AED',display:'inline-block' }}>정성평가</span>
                           )}
                           <span style={{ color:'#C7C7CC',fontSize:16,display:'inline-block',transform:isOpen?'rotate(90deg)':'rotate(0deg)',transition:'transform 0.2s' }}>›</span>
@@ -1564,8 +1564,8 @@ export default function AdminScreeningPage() {
                       </Section>
                     )}
 
-                    {/* 정성 평가 (PP/P만) */}
-                    {(selRank.screening?.status==='실기기검증적합'||selRank.screening?.status==='적합예상') && (() => {
+                    {/* 정성 평가 (PP/P + 상위 40위만) */}
+                    {(visibleRanked.findIndex(e=>e.key===selRank.key) < 40) && (selRank.screening?.status==='실기기검증적합'||selRank.screening?.status==='적합예상') && (() => {
                       const pKey = selRank.key.replace(/\//g,'_');
                       const evals = qualEvals.get(pKey) ?? {};
                       const evalCount = Object.keys(evals).length;

@@ -1851,23 +1851,86 @@ export default function AdminScreeningPage() {
         const evCodes=evSorted.map(n=>evCode[n]);
 
         const exportExcel = async () => {
-          const XLSX = await import('xlsx');
+          const ExcelJS = (await import('exceljs')).default;
+          const wb = new ExcelJS.Workbook();
+          const ws = wb.addWorksheet('최종순위');
+
           const SC=['기관절개술','연수마비','보호자협조','전자기기','안구마우스','투병3년+'];
-          const headers=['전송완료','순위','환우명','보호자','연락처','스크리닝',...SC,'신청서합계(/50)',...evCodes,'정성평가평균(/60)','최종합계(/110)'];
-          const rows=finalRanked.map((r,i)=>{
+          const headerRow=['전송완료','순위','환우명','보호자','연락처','스크리닝',...SC,'신청서합계',...evCodes,'정성평가평균','최종합계'];
+
+          // 컬럼 너비 설정
+          ws.columns=[
+            {width:8},{width:6},{width:12},{width:10},{width:15},{width:8},
+            ...SC.map(()=>({width:10})),
+            {width:10},...evCodes.map(()=>({width:8})),{width:12},{width:10}
+          ];
+
+          // 헤더 행
+          const hRow=ws.addRow(headerRow);
+          hRow.height=24;
+          hRow.eachCell(cell=>{
+            cell.font={bold:true,color:{argb:'FFFFFFFF'},size:10};
+            cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1C1C1E'}};
+            cell.alignment={horizontal:'center',vertical:'middle',wrapText:true};
+            cell.border={bottom:{style:'thin',color:{argb:'FFE5E5EA'}}};
+          });
+          // 심사위원 열 보라색
+          evCodes.forEach((_,i)=>{
+            const ci=7+SC.length+1+i+1;
+            const cell=hRow.getCell(ci);
+            cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF5B21B6'}};
+          });
+          // 마지막 두 열 색상
+          const avgCell=hRow.getCell(headerRow.length-1);
+          avgCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF4C1D95'}};
+          const totalCell=hRow.getCell(headerRow.length);
+          totalCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF92400E'}};
+
+          ws.views=[{state:'frozen',ySplit:1,activeCell:'A2'}];
+
+          // 데이터 행
+          finalRanked.forEach((r,i)=>{
             const sl=r.screening?.status==='실기기검증적합'?'PP':r.screening?.status==='적합예상'?'P':'N';
             const evScores=evSorted.map(name=>{
               const ev=Object.values(r.evals).find(e=>e.name===name);
-              return ev?Math.round((e=>e.c1+e.c2+e.c3)(ev)*10)/10:'-';
+              return ev?Math.round((ev.c1+ev.c2+ev.c3)*10)/10:'';
             });
-            return ['',i+1,r.name,r.caregiver||'-',r.phone,sl,
-              ...SC.map(k=>r.bs?.[k]??0),
-              r.appTotal,...evScores,r.qualTotal||'-',r.finalTotal];
+            const rowData=['',i+1,r.name,r.caregiver||'',r.phone,sl,
+              ...SC.map(k=>r.bs?.[k]??0),r.appTotal,...evScores,
+              r.qualTotal||'',r.finalTotal];
+            const dRow=ws.addRow(rowData);
+            dRow.height=20;
+            dRow.eachCell({includeEmpty:true},(cell,ci)=>{
+              cell.alignment={horizontal:'center',vertical:'middle'};
+              cell.font={size:10};
+              if(i%2===1) cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF9FAFB'}};
+            });
+            // 이름 왼쪽 정렬
+            dRow.getCell(3).alignment={horizontal:'left',vertical:'middle'};
+            dRow.getCell(4).alignment={horizontal:'left',vertical:'middle'};
+            dRow.getCell(3).font={bold:true,size:10};
+            // 스크리닝 뱃지 색
+            const slCell=dRow.getCell(6);
+            if(sl==='PP') slCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFD1FAE5'}};
+            else if(sl==='P') slCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFDBEAFE'}};
+            // 신청서합계 노란색
+            dRow.getCell(7+SC.length).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFEF9C3'}};
+            dRow.getCell(7+SC.length).font={bold:true,size:10};
+            // 최종합계 강조
+            const ftCell=dRow.getCell(rowData.length);
+            if(r.finalTotal>0){ftCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFDE68A'}};ftCell.font={bold:true,size:11};}
+            // 정성평가 평균 보라
+            const qaCell=dRow.getCell(rowData.length-1);
+            if(r.qualTotal) qaCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF3E8FF'}};
+            // 1열(전송완료) 연두 배경
+            dRow.getCell(1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF0FFF0'}};
           });
-          const ws=XLSX.utils.aoa_to_sheet([headers,...rows]);
-          const wb=XLSX.utils.book_new();
-          XLSX.utils.book_append_sheet(wb,ws,'최종순위');
-          XLSX.writeFile(wb,'모스픽_최종순위.xlsx');
+
+          const buf=await wb.xlsx.writeBuffer();
+          const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+          const url=URL.createObjectURL(blob);
+          const a=document.createElement('a'); a.href=url; a.download='모스픽_최종순위.xlsx'; a.click();
+          URL.revokeObjectURL(url);
         };
 
         return (

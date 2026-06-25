@@ -1827,7 +1827,16 @@ export default function AdminScreeningPage() {
           ranked.push({key,name:a.patientName,phone:a.contactPhone??'',application:a,bs:aScore.bs,appTotal:aScore.total,qualTotal,finalTotal:aScore.total+qualTotal});
         });
 
+        // STEP 1: 종합 탭 기준 정렬 (신청서 배점만) → 상위 40명 선정
         ranked.sort((a,b)=>{
+          const cd=catOrderF(b)-catOrderF(a);
+          if(cd!==0)return cd;
+          return b.appTotal-a.appTotal;
+        });
+        const top40pool=ranked.slice(0,40);
+
+        // STEP 2: 그 40명을 정성평가 합산으로 재정렬 → 최종 순위
+        const finalRanked=[...top40pool].sort((a,b)=>{
           const cd=catOrderF(b)-catOrderF(a);
           if(cd!==0)return cd;
           return b.finalTotal-a.finalTotal;
@@ -1836,7 +1845,7 @@ export default function AdminScreeningPage() {
         return (
           <div style={{ flex:1,display:'flex',flexDirection:'column',overflow:'hidden' }}>
             <div style={{ padding:'10px 20px',borderBottom:'1px solid #F2F2F7',background:'#fff',display:'flex',alignItems:'center',justifyContent:'space-between' }}>
-              <span style={{ fontSize:12,color:'#8E8E93' }}>신청서 배점 + 정성평가 평균 합산 순위 · {ranked.length}명</span>
+              <span style={{ fontSize:12,color:'#8E8E93' }}>종합 상위 40명 기준 · 정성평가 합산 재정렬</span>
               <button onClick={()=>setFinalUnlocked(false)} style={{ fontSize:11,color:'#8E8E93',background:'none',border:'none',cursor:'pointer',fontFamily:F }}>잠금</button>
             </div>
             <div style={{ flex:1,overflow:'auto',background:'#fff' }}>
@@ -1849,8 +1858,8 @@ export default function AdminScreeningPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {ranked.length===0&&<tr><td colSpan={13} style={{ padding:60,textAlign:'center',color:'#C7C7CC' }}>데이터를 불러오면 순위가 표시됩니다</td></tr>}
-                  {ranked.map((e,i)=>{
+                  {finalRanked.length===0&&<tr><td colSpan={13} style={{ padding:60,textAlign:'center',color:'#C7C7CC' }}>데이터를 불러오면 순위가 표시됩니다</td></tr>}
+                  {finalRanked.map((e,i)=>{
                     const isTop20=i<20;
                     const cat=e.screening?statusCatF(e.screening.status):null;
                     const catStyle=cat==='PP'?{bg:'#D4F5DF',color:'#1A8C3A'}:cat==='P'?{bg:'#E3F2FF',color:'#0071E3'}:cat?{bg:'#F2F2F7',color:'#8E8E93'}:null;

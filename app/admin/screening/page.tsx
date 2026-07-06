@@ -84,6 +84,28 @@ function computeEvalAvg(evals: Record<string, EvalEntry>) {
   return {c1,c2,c3,total:c1+c2+c3,count:entries.length,entries};
 }
 
+type CallNote = {
+  completed?: boolean; completedAt?: string;
+  // 환자 사용 의사 (핵심)
+  patientWants?: string;  // '원함 (짧게 1번)' | '원하지 않음 (여러번)' | '환자 확인 불가' | '보호자 대신 확인'
+  patientWantsNote?: string;
+  // 눈 깜빡임 관찰
+  blink?: string; blinkNote?: string;
+  // 보호자 의사
+  consent?: string;
+  // 환경
+  location?: string; posture?: string;
+  wifi?: string; tech?: string; deviceNote?: string;
+  // 니즈
+  goal?: string; goalNote?: string;
+  // 설치
+  installPerson?: string; installNote?: string;
+  // 온보딩 일정
+  scheduleTime?: string; scheduleNote?: string;
+  contactNote?: string; specialNote?: string;
+  overallResult?: string; // '적합' | '일단보류' | '부적합'
+};
+
 const ADMIN_PW = '0621';
 const QUAL_VIEW_PW = '1004';
 const F = "-apple-system,'SF Pro Display',BlinkMacSystemFont,'Helvetica Neue',sans-serif";
@@ -205,6 +227,15 @@ export default function AdminScreeningPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [activeView, setActiveView] = useState<'screening' | 'applications' | 'ranking' | 'final' | 'schedule'>('screening');
   const [scheduleBookings, setScheduleBookings] = useState<Record<string, {patientName:string;caregiverName?:string;contactPhone:string;meetingType?:string;bookedAt:string}>>({});
+  const [callNotes, setCallNotes] = useState<Record<string, CallNote>>({});
+  const [callScriptSlot, setCallScriptSlot] = useState<string | null>(null);
+  const [callDraft, setCallDraft] = useState<CallNote>({});
+  const [callStep, setCallStep] = useState(0);
+  const callTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [callTimer, setCallTimer] = useState(900);
+  const [callTimerRunning, setCallTimerRunning] = useState(false);
+  const [expandedNote, setExpandedNote] = useState<string|null>(null);
+  const [excludedKeys, setExcludedKeys] = useState<Set<string>>(new Set());
   const [finalUnlocked, setFinalUnlocked] = useState(false);
   const [finalPw, setFinalPw] = useState('');
   const [expandedRankKey, setExpandedRankKey] = useState<string | null>(null);
@@ -278,7 +309,16 @@ export default function AdminScreeningPage() {
       snap.docs.forEach(d => { const data = d.data(); if (data.patientName) map[d.id] = data as {patientName:string;caregiverName?:string;contactPhone:string;meetingType?:string;bookedAt:string}; });
       setScheduleBookings(map);
     });
-    return () => { unsub1(); };
+    const unsub2 = onSnapshot(collection(db, 'call_notes'), snap => {
+      const m: Record<string, CallNote> = {};
+      snap.docs.forEach(d => { m[d.id] = d.data() as CallNote; });
+      setCallNotes(m);
+    });
+    const unsub3 = onSnapshot(doc(db, 'final_config', 'overrides'), snap => {
+      const data = snap.data();
+      setExcludedKeys(new Set((data?.excluded ?? []) as string[]));
+    });
+    return () => { unsub1(); unsub2(); unsub3(); };
   }, [authed]);
 
   const loadQualScores = async () => {
@@ -641,6 +681,200 @@ export default function AdminScreeningPage() {
     </div>
   );
 
+  // ── 최종 20위 키 (전체 탭 공용) ──────────────────────────────
+  const _globalFinal20Keys = (() => {
+    if (!results.length && !applications.length) return new Set<string>();
+    const hasExp = (s?: string) => { const v=(s??'').trim(); return v.length>0&&!/^(없음?|없습니다?|없다|없어요|아니[요오]?|아닙니다|해당\s*없음|X|x|-)$/i.test(v); };
+    const _appScore = (a: Application) => {
+      const trach=a.tracheotomy??''; const t=trach?(/시행/.test(trach)&&!/안|않|미시행|하지/.test(trach)?10:8):0;
+      const bulbar=a.bulbarPalsyProgress??''; const b=!bulbar?0:(/마비|진행/.test(bulbar)&&!/아님|아니|없음|않|미/.test(bulbar)?10:8);
+      const cg=a.caregiverCooperation??''; const c=/가능|협조/.test(cg)?10:/불가|어렵|못/.test(cg)?5:0;
+      const d=hasExp(a.electronicDeviceExperience)?10:0, e=hasExp(a.eyeMouseExperience)?5:0;
+      let dur=0; if(a.onsetDate){const od=a.onsetDate.replace(/\D/g,'');if(od.length>=4){const yr=parseInt(od.slice(0,4)),mo=parseInt(od.slice(4,6)||'1')||1;if((Date.now()-new Date(yr,mo-1,1).getTime())/(1000*60*60*24*365.25)>=3)dur=5;}}
+      return t+b+c+d+e+dur;
+    };
+    const _findApp = (r: Result) => {
+      const p=normalizePhone(r.caregiverContact??'');
+      if(p){const a=applications.find(a=>normalizePhone(a.contactPhone??'')===p);if(a)return a;}
+      const name=normalizeStr(r.patientName??''),region=normalizeStr(r.region??''),sub=normalizeStr(r.subRegion??'');
+      return applications.find(a=>{if(normalizeStr(a.patientName??'')!==name)return false;const addr=normalizeStr(a.address??'');return (region&&regionInAddr(addr,region))||(sub&&addr.includes(sub));});
+    };
+    const _catOrder = (s?: Status) => (s==='실기기검증적합'||s==='적합예상')?1:s?0:-1;
+    const seen=new Set<string>(); const rows:{ key:string; cat:number; appTotal:number; finalTotal:number }[]=[];
+    const best=new Map<string,Result>();
+    results.forEach(r=>{const key=normalizePhone(r.caregiverContact??'')||normalizeStr(r.patientName??'');if(!key)return;const prev=best.get(key);const cv=(s?:Status)=>s==='실기기검증적합'?2:s==='적합예상'?1:0;if(!prev||cv(r.status)>cv(prev.status))best.set(key,r);});
+    best.forEach((r,key)=>{
+      seen.add(key); const app=_findApp(r);
+      if(app){const ak=normalizePhone(app.contactPhone??'')||normalizeStr(app.patientName??'');if(ak)seen.add(ak);}
+      const appTotal=app?_appScore(app):0;
+      const qk=key.replace(/\//g,'_'); const qa=computeEvalAvg(qualEvals.get(qk)??{});
+      const qualTotal=qa?Math.round(qa.total*10)/10:0;
+      rows.push({key,cat:_catOrder(r.status),appTotal,finalTotal:appTotal+qualTotal});
+    });
+    applications.forEach(a=>{
+      const key=normalizePhone(a.contactPhone??'')||normalizeStr(a.patientName??'');
+      if(!key||seen.has(key))return; seen.add(key);
+      const appTotal=_appScore(a); if(!appTotal) return;
+      const qk=key.replace(/\//g,'_'); const qa=computeEvalAvg(qualEvals.get(qk)??{});
+      const qualTotal=qa?Math.round(qa.total*10)/10:0;
+      rows.push({key,cat:0,appTotal,finalTotal:appTotal+qualTotal});
+    });
+    rows.sort((a,b)=>{const cd=b.cat-a.cat;return cd!==0?cd:b.appTotal-a.appTotal;});
+    const pool=[...rows.slice(0,40)].sort((a,b)=>{const cd=b.cat-a.cat;return cd!==0?cd:b.finalTotal-a.finalTotal;});
+    return new Set(pool.filter(e=>!excludedKeys.has(e.key)).slice(0,20).map(e=>e.key));
+  })();
+
+  // ── 최종 탭과 동일한 finalRanked (엑셀 export용 공용) ─────────
+  const _finalRanked = (() => {
+    if (!results.length && !applications.length) return [];
+    const hasExp2 = (s?: string) => { const v=(s??'').trim(); return v.length>0&&!/^(없음?|없습니다?|없다|없어요|아니[요오]?|아닙니다|해당\s*없음|X|x|-)$/i.test(v); };
+    const appScoreF2 = (a: Application) => {
+      const bs: Record<string,number> = {};
+      const trach=a.tracheotomy??''; bs.tracheotomy=trach?(/시행/.test(trach)&&!/안|않|미시행|하지/.test(trach)?10:8):0;
+      const bulbar=a.bulbarPalsyProgress??''; bs.bulbar=!bulbar?0:(/마비|진행/.test(bulbar)&&!/아님|아니|없음|않|미/.test(bulbar)?10:8);
+      const cg=a.caregiverCooperation??''; bs.caregiver=/가능|협조/.test(cg)?10:/불가|어렵|못/.test(cg)?5:0;
+      bs.device=hasExp2(a.electronicDeviceExperience)?10:0; bs.eyeMouse=hasExp2(a.eyeMouseExperience)?5:0; bs.duration=0;
+      if(a.onsetDate){const d=a.onsetDate.replace(/\D/g,'');if(d.length>=4){const yr=parseInt(d.slice(0,4)),mo=parseInt(d.slice(4,6)||'1')||1;if((Date.now()-new Date(yr,mo-1,1).getTime())/(1000*60*60*24*365.25)>=3)bs.duration=5;}}
+      return {bs, total:Object.values(bs).reduce((s,v)=>s+v,0)};
+    };
+    const findAppF2 = (r: Result) => {
+      const p=normalizePhone(r.caregiverContact??'');
+      if(p){const a=applications.find(a=>normalizePhone(a.contactPhone??'')===p);if(a)return a;}
+      const name=normalizeStr(r.patientName??''),region=normalizeStr(r.region??''),sub=normalizeStr(r.subRegion??'');
+      return applications.find(a=>{if(normalizeStr(a.patientName??'')!==name)return false;const addr=normalizeStr(a.address??'');return (region&&regionInAddr(addr,region))||(sub&&addr.includes(sub));});
+    };
+    const catOF = (e:{screening?:Result}) => (e.screening?.status==='실기기검증적합'||e.screening?.status==='적합예상')?1:e.screening?0:-1;
+    const seen=new Set<string>();
+    const ranked:{key:string;name:string;caregiver:string;phone:string;region:string;screening?:Result;hasApp:boolean;bs?:Record<string,number>;appTotal:number;qualTotal:number;finalTotal:number}[]=[];
+    const best=new Map<string,Result>();
+    results.forEach(r=>{const key=normalizePhone(r.caregiverContact??'')||normalizeStr(r.patientName??'');if(!key)return;const prev=best.get(key);const cv=(s?:Status)=>s==='실기기검증적합'?2:s==='적합예상'?1:0;if(!prev||cv(r.status)>cv(prev.status))best.set(key,r);});
+    best.forEach((r,key)=>{
+      seen.add(key); const app=findAppF2(r);
+      if(app){const ak=normalizePhone(app.contactPhone??'')||normalizeStr(app.patientName??'');if(ak)seen.add(ak);}
+      const aScore=app?appScoreF2(app):null;
+      const qk=key.replace(/\//g,'_'); const qa=computeEvalAvg(qualEvals.get(qk)??{}); const qualTotal=qa?Math.round(qa.total*10)/10:0;
+      ranked.push({key,name:r.patientName,caregiver:r.caregiverName??'',phone:r.caregiverContact??'',region:(r.region?r.region+' ':'')+r.subRegion,screening:r,hasApp:!!app,bs:aScore?.bs,appTotal:aScore?.total??0,qualTotal,finalTotal:(aScore?.total??0)+qualTotal});
+    });
+    applications.forEach(a=>{
+      const key=normalizePhone(a.contactPhone??'')||normalizeStr(a.patientName??'');
+      if(!key||seen.has(key))return; seen.add(key);
+      const aScore=appScoreF2(a); const qk=key.replace(/\//g,'_'); const qa=computeEvalAvg(qualEvals.get(qk)??{}); const qualTotal=qa?Math.round(qa.total*10)/10:0;
+      ranked.push({key,name:a.patientName,caregiver:'',phone:a.contactPhone??'',region:a.address?.slice(0,8)??'',screening:undefined,hasApp:true,bs:aScore.bs,appTotal:aScore.total,qualTotal,finalTotal:aScore.total+qualTotal});
+    });
+    ranked.sort((a,b)=>{const cd=catOF(b)-catOF(a);return cd!==0?cd:b.appTotal-a.appTotal;});
+    const top40=[...ranked.slice(0,40)].sort((a,b)=>{const cd=catOF(b)-catOF(a);return cd!==0?cd:b.finalTotal-a.finalTotal;});
+    return [...top40,...ranked.slice(40)];
+  })();
+
+  // ── 전체 엑셀 추출 (단일 시트) ───────────────────────────────
+  const exportFullExcel = async () => {
+    const ExcelJS = (await import('exceljs')).default;
+    const wb = new ExcelJS.Workbook();
+    const today = new Date();
+    const dStr = `${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}`;
+    const ws = wb.addWorksheet('선정 보고서');
+
+    const hasExp = (s?:string)=>{const v=(s??'').trim();return v.length>0&&!/^(없음?|없습니다?|없다|없어요|아니[요오]?|아닙니다|해당\s*없음|X|x|-)$/i.test(v);};
+    const _appScore = (a:Application)=>{
+      const trach=a.tracheotomy??''; const t=trach?(/시행/.test(trach)&&!/안|않|미시행|하지/.test(trach)?10:8):0;
+      const bulbar=a.bulbarPalsyProgress??''; const b=!bulbar?0:(/마비|진행/.test(bulbar)&&!/아님|아니|없음|않|미/.test(bulbar)?10:8);
+      const cg=a.caregiverCooperation??''; const c=/가능|협조/.test(cg)?10:/불가|어렵|못/.test(cg)?5:0;
+      const d=hasExp(a.electronicDeviceExperience)?10:0, e=hasExp(a.eyeMouseExperience)?5:0;
+      let dur=0; if(a.onsetDate){const od=a.onsetDate.replace(/\D/g,'');if(od.length>=4){const yr=parseInt(od.slice(0,4)),mo=parseInt(od.slice(4,6)||'1')||1;if((Date.now()-new Date(yr,mo-1,1).getTime())/(1000*60*60*24*365.25)>=3)dur=5;}}
+      return t+b+c+d+e+dur;
+    };
+    const _findApp=(r:Result)=>{
+      const p=normalizePhone(r.caregiverContact??'');
+      if(p){const a=applications.find(a=>normalizePhone(a.contactPhone??'')===p);if(a)return a;}
+      const name=normalizeStr(r.patientName??''),region=normalizeStr(r.region??''),sub=normalizeStr(r.subRegion??'');
+      return applications.find(a=>{if(normalizeStr(a.patientName??'')!==name)return false;const addr=normalizeStr(a.address??'');return (region&&regionInAddr(addr,region))||(sub&&addr.includes(sub));});
+    };
+    const _catOrder=(s?:Status)=>(s==='실기기검증적합'||s==='적합예상')?1:s?0:-1;
+    const _getCallNote=(name:string,phone:string)=>{
+      const np=normalizePhone(phone);
+      const nn=normalizeStr(name);
+      for(const [sid,bk] of Object.entries(scheduleBookings)){
+        const bkPhone=normalizePhone(bk.contactPhone??'');
+        const bkName=normalizeStr(bk.patientName??'');
+        if((np&&bkPhone&&bkPhone===np)||bkName===nn) return callNotes[sid]??null;
+      }
+      return null;
+    };
+
+    // 심사위원 코드 (qualEvals 전체에서 수집)
+    const EV_NAME_FIX2: Record<string,string> = {'빅성자':'박성자'};
+    const fixEv=(n:string)=>EV_NAME_FIX2[n]||n;
+    const allEvNamesSet=new Set<string>();
+    qualEvals.forEach(ev=>Object.values(ev).forEach((e:EvalEntry)=>{if(e.name)allEvNamesSet.add(fixEv(e.name));}));
+    const evSortedEx=[...allEvNamesSet].sort();
+    const evCodeEx:Record<string,string>={};
+    evSortedEx.forEach((n,i)=>{evCodeEx[n]=String.fromCharCode(65+i);});
+
+    // _finalRanked: 컴포넌트 레벨에서 최종 탭과 동일 로직으로 이미 계산됨 → 직접 사용
+    const sortedRows=_finalRanked.map(e=>{
+      const evMap=qualEvals.get(e.key.replace(/\//g,'_'))??{};
+      const evScores:Record<string,number>={};
+      Object.values(evMap).forEach((ev:EvalEntry)=>{if(ev.name)evScores[fixEv(ev.name)]=Math.round((ev.c1+ev.c2+ev.c3)*10)/10;});
+      return {...e, evScores};
+    });
+
+    // 헤더 구성 (심사위원 개별 컬럼 포함)
+    const evHeaders=evSortedEx.map(n=>evCodeEx[n]);
+    const headers=['순위','환우명','보호자명','연락처','지역','스크리닝','신청서(/50)',...evHeaders,'최종합계(/110)','인터뷰 결과','사용 의사','최종선정','비고','제외'];
+    ws.columns=[{width:6},{width:12},{width:10},{width:14},{width:12},{width:10},{width:10},...evSortedEx.map(()=>({width:9})),{width:12},{width:12},{width:16},{width:8},{width:12},{width:6}];
+    ws.views=[{state:'frozen',ySplit:1,activeCell:'A2'}];
+    const hRow=ws.addRow(headers);
+    hRow.height=22;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    hRow.eachCell({includeEmpty:true},(cell:any,ci:number)=>{
+      cell.font={bold:true,color:{argb:'FFFFFFFF'},size:10};
+      const isEv=ci>=8&&ci<8+evSortedEx.length;
+      cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:isEv?'FF5B21B6':'FF1C1C1E'}};
+      cell.alignment={horizontal:'center',vertical:'middle',wrapText:true};
+    });
+
+    // 데이터 행
+    sortedRows.forEach((e,i)=>{
+      const sl=e.screening?.status==='실기기검증적합'?'PP':e.screening?.status==='적합예상'?'P':e.screening?.status??'-';
+      const note=_getCallNote(e.name,e.phone);
+      const rawResult=note?.overallResult;
+      const interviewResult=rawResult==='애매함'?'일단보류':rawResult||(note?'완료(미선택)':'');
+      const isSelected=interviewResult==='적합';
+      const isExcluded=excludedKeys.has(e.key);
+      const note2=(!e.hasApp?'신청서 없음':'')+(!e.screening?' 스크리닝 없음':'');
+      const evVals=evSortedEx.map(n=>e.evScores[n]??'');
+
+      let bgArgb:string|undefined;
+      if(isSelected) bgArgb='FFD1FAE5';
+      else if(interviewResult==='일단보류') bgArgb='FFFFF9C3';
+      else if(interviewResult==='부적합') bgArgb='FFFFE0DE';
+
+      const rank=i<40?String(i+1):'-';
+      const rowData=[rank,e.name,e.caregiver,e.phone,e.region,sl,e.appTotal||'',...evVals,e.finalTotal||'',interviewResult,note?.patientWants??'',isSelected?'✅':'',note2.trim(),isExcluded?'제외':''];
+      const row=ws.addRow(rowData);
+      row.height=19;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      row.eachCell({includeEmpty:true},(cell:any,ci:number)=>{
+        cell.font={size:10};
+        cell.alignment={horizontal:'center',vertical:'middle'};
+        if(bgArgb) cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:bgArgb}};
+        else if(i%2===1) cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF9FAFB'}};
+      });
+      row.getCell(2).alignment={horizontal:'left',vertical:'middle'};
+      row.getCell(3).alignment={horizontal:'left',vertical:'middle'};
+      if(isSelected) (row.getCell(headers.indexOf('최종선정')+1) as any).font={bold:true,color:{argb:'FF1A8C3A'},size:11};
+      if(note2.trim()) (row.getCell(headers.indexOf('비고')+1) as any).font={bold:true,color:{argb:'FFCC7000'},size:10};
+      // top40 구분선
+      if(i===39) row.border={bottom:{style:'medium',color:{argb:'FF1C1C1E'}}};
+    });
+
+    const buf=await wb.xlsx.writeBuffer();
+    const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=`모스픽_선정보고서_${dStr}.xlsx`;a.click();
+    URL.revokeObjectURL(url);
+  };
+
   // ── 메인 ────────────────────────────────────────────────────
   return (
     <div style={{ height:'100vh', background:'#F7F7F9', fontFamily:F, display:'flex', flexDirection:'column', overflow:'hidden' }}>
@@ -722,6 +956,10 @@ export default function AdminScreeningPage() {
                 </button>
               </>
             )}
+            <button onClick={exportFullExcel}
+              style={{ padding:'7px 14px',borderRadius:10,border:'none',background:'#1A8C3A',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:F,flexShrink:0 }}>
+              📊 전체 엑셀
+            </button>
             {activeView === 'screening' && (
               <>
                 <input placeholder="이름·연락처 검색" value={search} onChange={e=>setSearch(e.target.value)}
@@ -843,7 +1081,12 @@ export default function AdminScreeningPage() {
                       {fmt(r)}
                       {testCount > 1 && <span style={{ marginLeft:5,fontSize:10,fontWeight:600,padding:'1px 5px',borderRadius:20,background:'#F2F2F7',color:'#8E8E93' }}>{testCount}회</span>}
                     </td>
-                    <td style={{ padding:'12px',fontWeight:600,color:'#000',whiteSpace:'nowrap' }} onClick={handleClick}>{r.patientName}</td>
+                    <td style={{ padding:'12px',fontWeight:600,color:'#000',whiteSpace:'nowrap' }} onClick={handleClick}>
+                      {_globalFinal20Keys.has(normalizePhone(r.caregiverContact??'')||normalizeStr(r.patientName??'')) && (
+                        <span style={{ marginRight:5,fontSize:10,padding:'2px 7px',borderRadius:20,background:'#FFD700',color:'#7A5800',fontWeight:700,verticalAlign:'middle' }}>★ 최종</span>
+                      )}
+                      {r.patientName}
+                    </td>
                     <td style={{ padding:'12px',color:'#8E8E93',whiteSpace:'nowrap',fontSize:12 }} onClick={handleClick}>{
                       fmtBirth(appBirthMap.get(normalizePhone(r.caregiverContact??'')) || appBirthMap.get('n:'+normalizeStr(r.patientName??'')) || '')
                     }</td>
@@ -1292,6 +1535,26 @@ export default function AdminScreeningPage() {
           return b.total-a.total;
         });
 
+        // 컴포넌트 레벨 _globalFinal20Keys 재사용
+        const final20Keys = _globalFinal20Keys;
+        // scoredPool: 종합 top40 → 정성평가 합산 재정렬 (제외 표시용)
+        const scoredPool = [...ranked.slice(0,40)]
+          .map(e => {
+            const qk = e.key.replace(/\//g,'_');
+            const qa = computeEvalAvg(qualEvals.get(qk)??{});
+            const qualTotal = qa ? Math.round(qa.total*10)/10 : 0;
+            return { key: e.key, cat: catOrder(e), finalTotal: (e.aScore?.total??0)+qualTotal };
+          })
+          .sort((a,b) => { const cd=b.cat-a.cat; return cd!==0?cd:b.finalTotal-a.finalTotal; });
+        // 제외된 사람 중 top40 안에 있던 사람
+        const excludedInPool = new Set(scoredPool.filter(e=>excludedKeys.has(e.key)).map(e=>e.key));
+
+        const toggleExclude = async (key: string) => {
+          const next = new Set(excludedKeys);
+          next.has(key) ? next.delete(key) : next.add(key);
+          await setDoc(doc(db,'final_config','overrides'),{excluded:[...next]},{merge:true});
+        };
+
         const COLS = ['기관절개술','연수마비','보호자협조','전자기기','안구마우스','투병3년+'];
         const BS_KEYS = ['tracheotomy','bulbar','caregiver','device','eyeMouse','duration'] as const;
 
@@ -1366,6 +1629,9 @@ export default function AdminScreeningPage() {
                   {visibleRanked.map((e,i)=>{
                     const isOpen = expandedRankKey === e.key;
                     const isTop20 = i < 20;
+                    const isFinal20 = final20Keys.has(e.key);
+                    const isExcluded = excludedKeys.has(e.key);
+                    const isExcludedInPool = excludedInPool.has(e.key);
                     const s = e.screening?.status??'미검토';
                     return (
                       <tr key={e.key}
@@ -1381,10 +1647,24 @@ export default function AdminScreeningPage() {
                         <td style={{ padding:'12px',textAlign:'center' }}>
                           <span style={{ fontSize:13,fontWeight:isTop20?600:400,color:isTop20?'#1C1C1E':'#8E8E93' }}>{i+1}</span>
                         </td>
-                        <td style={{ padding:'12px',fontWeight:600,color:'#000',whiteSpace:'nowrap' }}>
+                        <td style={{ padding:'12px',fontWeight:600,color: isExcluded?'#C7C7CC':'#000',whiteSpace:'nowrap',textDecoration:isExcluded?'line-through':'none' }}>
+                          {isFinal20 && <span style={{ marginRight:5,fontSize:10,padding:'2px 7px',borderRadius:20,background:'#FFD700',color:'#7A5800',fontWeight:700,verticalAlign:'middle' }}>★ 최종</span>}
+                          {isExcludedInPool && <span style={{ marginRight:5,fontSize:10,padding:'2px 7px',borderRadius:20,background:'#FFE0DE',color:'#CC2200',fontWeight:700,verticalAlign:'middle' }}>✕ 제외</span>}
+                          {!isExcluded && !isFinal20 && final20Keys.size>0 && scoredPool.findIndex(x=>x.key===e.key)===19+[...excludedInPool].length && (
+                            <span style={{ marginRight:5,fontSize:10,padding:'2px 7px',borderRadius:20,background:'#EAF5F0',color:'#2E7D5E',fontWeight:700,verticalAlign:'middle' }}>↑ 대체</span>
+                          )}
                           {e.name}
                           {e.screening&&<span style={{ marginLeft:5,fontSize:10,padding:'1px 5px',borderRadius:20,background:'#E3F2FF',color:'#0071E3',fontWeight:600 }}>테스트</span>}
                           {e.application&&<span style={{ marginLeft:4,fontSize:10,padding:'1px 5px',borderRadius:20,background:'#D4F5DF',color:'#1A8C3A',fontWeight:600 }}>신청서</span>}
+                          {(isFinal20||isExcludedInPool) && (
+                            <button onClick={ev=>{ev.stopPropagation();toggleExclude(e.key);}}
+                              style={{ marginLeft:8,fontSize:10,fontWeight:600,padding:'1px 7px',borderRadius:10,border:'1px solid',cursor:'pointer',fontFamily:F,verticalAlign:'middle',
+                                background:isExcluded?'#D4F5DF':isExcludedInPool?'#D4F5DF':'#FFF0F0',
+                                color:isExcluded?'#1A8C3A':isExcludedInPool?'#1A8C3A':'#CC2200',
+                                borderColor:isExcluded?'#1A8C3A':isExcludedInPool?'#1A8C3A':'#FFBFBA' }}>
+                              {isExcluded ? '↩ 복원' : '✕ 제외'}
+                            </button>
+                          )}
                         </td>
                         <td style={{ padding:'12px',color:'#8E8E93',whiteSpace:'nowrap',fontSize:12 }}>{fmtBirth(e.application?.patientBirthdate??'')}</td>
                         <td style={{ padding:'12px',color:'#8E8E93',fontSize:12,whiteSpace:'nowrap' }}>{e.phone}</td>
@@ -1962,15 +2242,45 @@ export default function AdminScreeningPage() {
                 </thead>
                 <tbody>
                   {finalRanked.length===0&&<tr><td colSpan={13} style={{ padding:60,textAlign:'center',color:'#C7C7CC' }}>데이터를 불러오면 순위가 표시됩니다</td></tr>}
-                  {finalRanked.map((e,i)=>{
+                  {(() => {
+                    // 심층인터뷰 매칭: scheduleBookings 연락처/이름 → callNotes
+                    const getCallNote = (entry: typeof finalRanked[0]) => {
+                      const phone = normalizePhone(entry.phone);
+                      for (const [slotId, bk] of Object.entries(scheduleBookings)) {
+                        if ((phone && normalizePhone(bk.contactPhone)===phone) || bk.patientName===entry.name) {
+                          return callNotes[slotId] ?? null;
+                        }
+                      }
+                      return null;
+                    };
+                    return finalRanked.map((e,i)=>{
                     const isTop20=i<20;
                     const cat=e.screening?statusCatF(e.screening.status):null;
                     const catStyle=cat==='PP'?{bg:'#D4F5DF',color:'#1A8C3A'}:cat==='P'?{bg:'#E3F2FF',color:'#0071E3'}:cat?{bg:'#F2F2F7',color:'#8E8E93'}:null;
                     const hasQual=e.qualTotal>0;
+                    const note=getCallNote(e);
+                    const hasInterview=!!note;
+                    const result=note?.overallResult==='애매함'?'일단보류':note?.overallResult;
+                    const rowBg = result==='적합' ? '#D4F5DF' : result==='일단보류' ? '#FFF9D4' : result==='부적합' ? '#FFE0DE' : isTop20 ? 'rgba(0,0,0,0.015)' : 'transparent';
                     return (
-                      <tr key={e.key} style={{ borderTop:i>0?'1px solid #F7F7F9':'none', background:isTop20?'rgba(0,0,0,0.015)':'transparent' }}>
+                      <tr key={e.key} style={{ borderTop:i>0?'1px solid #F7F7F9':'none', background:rowBg }}>
                         <td style={{ padding:'12px 14px',textAlign:'center',fontWeight:isTop20?700:400,color:isTop20?'#1C1C1E':'#8E8E93',fontSize:isTop20?14:13 }}>{i+1}</td>
-                        <td style={{ padding:'12px 14px',fontWeight:600,color:'#000',whiteSpace:'nowrap' }}>{e.name}</td>
+                        <td style={{ padding:'12px 14px',fontWeight:600,color:'#000',whiteSpace:'nowrap' }}>
+                          {isTop20 && !hasInterview && (
+                            <span style={{ marginRight:5,fontSize:10,padding:'2px 7px',borderRadius:20,background:'#FFF0D4',color:'#CC7000',fontWeight:700,verticalAlign:'middle' }}>인터뷰 미완료</span>
+                          )}
+                          {result && (
+                            <span style={{ marginRight:5,fontSize:10,padding:'2px 7px',borderRadius:20,fontWeight:700,verticalAlign:'middle',
+                              background:result==='적합'?'#D4F5DF':result==='일단보류'?'#FFF9D4':'#FFE0DE',
+                              color:result==='적합'?'#1A8C3A':result==='일단보류'?'#B07800':'#CC2200' }}>
+                              {result==='적합'?'✅ 적합':result==='일단보류'?'⏸ 일단보류':'❌ 부적합'}
+                            </span>
+                          )}
+                          {hasInterview && !result && (
+                            <span style={{ marginRight:5,fontSize:10,padding:'2px 7px',borderRadius:20,background:'#F2F2F7',color:'#8E8E93',fontWeight:600,verticalAlign:'middle' }}>인터뷰 완료</span>
+                          )}
+                          {e.name}
+                        </td>
                         <td style={{ padding:'12px 14px',color:'#8E8E93',fontSize:12,whiteSpace:'nowrap' }}>{e.phone}</td>
                         <td style={{ padding:'8px 14px' }}>
                           {catStyle
@@ -1998,7 +2308,8 @@ export default function AdminScreeningPage() {
                         </td>
                       </tr>
                     );
-                  })}
+                  });
+                  })()}
                 </tbody>
               </table>
             </div>
@@ -2010,15 +2321,15 @@ export default function AdminScreeningPage() {
         const SLOTS: Record<string, string[]> = {
           '2026-06-29': ['09:00','09:15','09:30','09:45','10:00','10:15','10:30','10:45','11:00','11:15'],
           '2026-06-30': ['09:45','10:00','10:15','10:30','10:45','11:00','11:15','13:30','13:45','14:00','14:15','14:30','14:45','15:00','15:15','15:30','15:45'],
+          '2026-07-01': ['10:00','10:15'],
+          '2026-07-02': ['11:00','13:15','13:30','14:00'],
         };
         const BLOCKED_ADMIN = new Set(['20260629-1530','20260629-1630']);
-        const DATE_LABELS: Record<string, string> = {
-          '2026-06-29': '6/29 (월)', '2026-06-30': '6/30 (화)',
-        };
+        const DATE_LABELS: Record<string, string> = { '2026-06-29': '6/29 (월)', '2026-06-30': '6/30 (화)', '2026-07-01': '7/1 (수)', '2026-07-02': '7/2 (목)' };
         const slotKey = (date: string, time: string) => `${date.replace(/-/g,'')}-${time.replace(':','')}`;
-        const booked = Object.entries(scheduleBookings).sort((a,b)=>a[0].localeCompare(b[0]));
-        const totalBooked = booked.length;
+        const totalBooked = Object.values(scheduleBookings).length;
         const totalSlots = Object.values(SLOTS).reduce((s,v)=>s+v.length,0);
+        const completedCount = Object.values(callNotes).filter(n=>n.completed).length;
 
         const cancelSlot = async (id: string) => {
           if (!confirm('이 예약을 취소하시겠습니까?')) return;
@@ -2026,12 +2337,27 @@ export default function AdminScreeningPage() {
           await deleteDoc(firestoreDoc(db, 'schedule_slots', id));
         };
 
+        const openScript = (slotId: string) => {
+          callTimerRef.current && clearInterval(callTimerRef.current);
+          setCallDraft(callNotes[slotId] || {});
+          setCallStep(0);
+          setCallTimer(900);
+          setCallTimerRunning(false);
+          setCallScriptSlot(slotId);
+        };
+
+        // 예약된 슬롯 목록 (시간순)
+        const bookedSlots = Object.entries(SLOTS).flatMap(([date, times]) =>
+          times.map(time => ({ id: slotKey(date, time), date, time, dateLabel: DATE_LABELS[date] }))
+        ).filter(s => scheduleBookings[s.id]);
+
         return (
           <div style={{ flex:1,display:'flex',flexDirection:'column',overflow:'hidden' }}>
             <div style={{ padding:'12px 24px',borderBottom:'1px solid #F2F2F7',background:'#fff',display:'flex',alignItems:'center',justifyContent:'space-between' }}>
               <div style={{ display:'flex',alignItems:'center',gap:12 }}>
                 <span style={{ fontSize:13,fontWeight:600,color:'#1C1C1E' }}>면담 일정 신청 현황</span>
-                <span style={{ fontSize:12,color:'#8E8E93' }}>{totalBooked}/{totalSlots} 슬롯 예약됨</span>
+                <span style={{ fontSize:12,color:'#8E8E93' }}>{totalBooked}/{totalSlots} 예약</span>
+                <span style={{ fontSize:12,color:'#1A8C3A',fontWeight:600 }}>통화완료 {completedCount}/{totalBooked}</span>
               </div>
               <a href="/schedule" target="_blank"
                 style={{ fontSize:12,fontWeight:600,padding:'6px 12px',borderRadius:8,background:'#1C1C1E',color:'#fff',textDecoration:'none' }}>
@@ -2039,42 +2365,444 @@ export default function AdminScreeningPage() {
               </a>
             </div>
             <div style={{ flex:1,overflow:'auto',background:'#F7F7F9',padding:20 }}>
-              <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,maxWidth:900 }}>
+              {/* 슬롯 그리드 */}
+              <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,maxWidth:900,marginBottom:24 }}>
                 {Object.entries(SLOTS).map(([date, times])=>(
                   <div key={date} style={{ background:'#fff',borderRadius:12,overflow:'hidden',boxShadow:'0 1px 4px rgba(0,0,0,0.06)' }}>
                     <div style={{ padding:'12px 16px',borderBottom:'1px solid #F2F2F7',background:'#FAFAFA' }}>
                       <span style={{ fontSize:14,fontWeight:700,color:'#1C1C1E' }}>{DATE_LABELS[date]}</span>
-                      <span style={{ fontSize:11,color:'#8E8E93',marginLeft:8 }}>
-                        {times.filter(t=>scheduleBookings[slotKey(date,t)]).length}/{times.length}
-                      </span>
+                      <span style={{ fontSize:11,color:'#8E8E93',marginLeft:8 }}>{times.filter(t=>scheduleBookings[slotKey(date,t)]).length}/{times.length}</span>
                     </div>
                     {times.map(time=>{
                       const id=slotKey(date,time);
                       const b=scheduleBookings[id];
+                      const note=callNotes[id];
                       return (
-                        <div key={time} style={{ padding:'10px 16px',borderBottom:'1px solid #F7F7F9',display:'flex',alignItems:'center',justifyContent:'space-between' }}>
-                          <div style={{ display:'flex',alignItems:'center',gap:10 }}>
-                            <span style={{ fontSize:14,fontWeight:600,color:'#1C1C1E',width:44 }}>{time}</span>
-                            {BLOCKED_ADMIN.has(slotKey(date,time))&&!b
-                              ? <span style={{ fontSize:11,color:'#CC7000',background:'#FFF0D4',padding:'1px 7px',borderRadius:20,fontWeight:600 }}>예약 차단</span>
-                              : b
-                              ? <>
+                        <div key={time} style={{ padding:'9px 16px',borderBottom:'1px solid #F7F7F9',display:'flex',alignItems:'center',justifyContent:'space-between' }}>
+                          <div style={{ display:'flex',alignItems:'center',gap:8,flex:1,minWidth:0 }}>
+                            <span style={{ fontSize:13,fontWeight:600,color:'#1C1C1E',width:40,flexShrink:0 }}>{time}</span>
+                            {BLOCKED_ADMIN.has(id)&&!b
+                              ? <span style={{ fontSize:11,color:'#CC7000',background:'#FFF0D4',padding:'1px 7px',borderRadius:20,fontWeight:600 }}>차단</span>
+                              : b ? <>
+                                  {note?.completed && <span style={{ fontSize:12 }}>✅</span>}
                                   <span style={{ fontSize:13,color:'#000',fontWeight:500 }}>{b.patientName}</span>
-                                  {b.caregiverName&&<span style={{ fontSize:12,color:'#8E8E93' }}>({b.caregiverName})</span>}
-                                  <span style={{ fontSize:12,color:'#8E8E93' }}>{b.contactPhone}</span>
-                                  {b.meetingType&&<span style={{ fontSize:10,fontWeight:600,padding:'1px 6px',borderRadius:20,background:b.meetingType==='kakao'?'#FFF0D4':'#E3F2FF',color:b.meetingType==='kakao'?'#CC7000':'#0071E3' }}>
-                                    {b.meetingType==='kakao'?'카카오 영상':'ZOOM'}
+                                  {b.caregiverName&&<span style={{ fontSize:11,color:'#8E8E93' }}>({b.caregiverName})</span>}
+                                  {b.meetingType&&<span style={{ fontSize:10,fontWeight:600,padding:'1px 5px',borderRadius:20,background:b.meetingType==='kakao'?'#FFF0D4':'#E3F2FF',color:b.meetingType==='kakao'?'#CC7000':'#0071E3' }}>
+                                    {b.meetingType==='kakao'?'카카오':'ZOOM'}
                                   </span>}
                                 </>
-                              : <span style={{ fontSize:12,color:'#C7C7CC' }}>미신청</span>}
+                              : <span style={{ fontSize:11,color:'#C7C7CC' }}>미신청</span>}
                           </div>
-                          {b && <button onClick={()=>cancelSlot(id)}
-                            style={{ fontSize:11,color:'#FF3B30',background:'none',border:'none',cursor:'pointer',fontFamily:F,padding:'2px 6px' }}>취소</button>}
+                          <div style={{ display:'flex',gap:6,flexShrink:0 }}>
+                            {b && <button onClick={()=>openScript(id)}
+                              style={{ fontSize:11,fontWeight:600,padding:'3px 9px',borderRadius:7,border:'none',cursor:'pointer',fontFamily:F,
+                                background: note?.completed ? '#D4F5DF' : '#E3F2FF',
+                                color: note?.completed ? '#1A8C3A' : '#0071E3' }}>
+                              {note?.completed ? '✅ 완료' : '📞 심층인터뷰'}
+                            </button>}
+                            {b && <button onClick={()=>cancelSlot(id)}
+                              style={{ fontSize:11,color:'#FF3B30',background:'none',border:'none',cursor:'pointer',fontFamily:F }}>취소</button>}
+                          </div>
                         </div>
                       );
                     })}
                   </div>
                 ))}
+              </div>
+
+              {/* 통화 기록 요약 */}
+              {bookedSlots.length > 0 && (
+                <div style={{ background:'#fff',borderRadius:12,overflow:'hidden',boxShadow:'0 1px 4px rgba(0,0,0,0.06)',maxWidth:900 }}>
+                  <div style={{ padding:'12px 16px',borderBottom:'1px solid #F2F2F7',background:'#FAFAFA',fontSize:13,fontWeight:700,color:'#1C1C1E' }}>
+                    통화 기록 요약 <span style={{ fontSize:11,fontWeight:400,color:'#8E8E93' }}>— 행 클릭 시 상세 내용 확인</span>
+                  </div>
+                  <div style={{ overflowX:'auto' }}>
+                    <table style={{ width:'100%',borderCollapse:'collapse',fontSize:12 }}>
+                      <thead>
+                        <tr style={{ background:'#F7F7F9' }}>
+                          {['시간','환우','전체 평가','사용 의사 ⭐','눈 깜빡임','설치 담당','온보딩 시간','상태',''].map(h=>(
+                            <th key={h} style={{ padding:'8px 10px',textAlign:'left',fontWeight:600,color:'#8E8E93',borderBottom:'1px solid #F2F2F7',whiteSpace:'nowrap' }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {bookedSlots.map(({id, dateLabel, time})=>{
+                          const b=scheduleBookings[id];
+                          const n=callNotes[id];
+                          const isExpanded=expandedNote===id;
+                          const wantsBg = n?.patientWants?.includes('원함') ? '#D4F5DF' : n?.patientWants?.includes('원하지') ? '#FFE0DE' : '#FFF9D4';
+                          const wantsColor = n?.patientWants?.includes('원함') ? '#1A8C3A' : n?.patientWants?.includes('원하지') ? '#CC2200' : '#B07800';
+                          return (<>
+                            <tr key={id} onClick={()=>setExpandedNote(isExpanded?null:id)}
+                              style={{ borderBottom: isExpanded?'none':'1px solid #F7F7F9',cursor:'pointer',background:isExpanded?'#FAFFF9':'#fff' }}>
+                              <td style={{ padding:'9px 10px',whiteSpace:'nowrap',color:'#8E8E93',fontSize:11 }}>{dateLabel} {time}</td>
+                              <td style={{ padding:'9px 10px',fontWeight:700,color:'#1C1C1E' }}>{b.patientName}<br/><span style={{ fontSize:11,fontWeight:400,color:'#8E8E93' }}>{b.caregiverName||''}</span></td>
+                              <td style={{ padding:'9px 10px' }}>
+                                {n?.overallResult ? <span style={{ padding:'3px 10px',borderRadius:10,fontSize:12,fontWeight:700,
+                                  background: n.overallResult==='적합'?'#D4F5DF':(n.overallResult==='일단보류'||n.overallResult==='애매함')?'#FFF9D4':'#FFE0DE',
+                                  color: n.overallResult==='적합'?'#1A8C3A':(n.overallResult==='일단보류'||n.overallResult==='애매함')?'#B07800':'#CC2200'
+                                }}>{n.overallResult==='애매함'?'일단보류':n.overallResult}</span> : <span style={{ color:'#C7C7CC' }}>-</span>}
+                              </td>
+                              <td style={{ padding:'9px 10px' }}>
+                                {n?.patientWants ? <span style={{ padding:'2px 8px',borderRadius:10,fontSize:11,fontWeight:700,background:wantsBg,color:wantsColor }}>{n.patientWants}</span> : <span style={{ color:'#C7C7CC' }}>-</span>}
+                              </td>
+                              <td style={{ padding:'9px 10px' }}>
+                                {n?.blink ? <span style={{ padding:'2px 7px',borderRadius:10,fontSize:11,fontWeight:600,
+                                  background: n.blink.includes('구분') ? '#D4F5DF' : n.blink.includes('어려') ? '#FFE0DE' : '#FFF9D4',
+                                  color: n.blink.includes('구분') ? '#1A8C3A' : n.blink.includes('어려') ? '#CC2200' : '#B07800'
+                                }}>{n.blink}</span> : <span style={{ color:'#C7C7CC' }}>-</span>}
+                              </td>
+                              <td style={{ padding:'9px 10px',fontSize:11,color:'#444' }}>{n?.installPerson||'-'}</td>
+                              <td style={{ padding:'9px 10px',fontSize:11,color:'#444' }}>{n?.scheduleTime||'-'}</td>
+                              <td style={{ padding:'9px 10px' }}>
+                                <span style={{ padding:'2px 8px',borderRadius:10,fontSize:11,fontWeight:600,
+                                  background: n?.completed ? '#D4F5DF' : n?.patientWants ? '#FFF9D4' : '#F2F2F7',
+                                  color: n?.completed ? '#1A8C3A' : n?.patientWants ? '#B07800' : '#8E8E93' }}>
+                                  {n?.completed ? '✅ 완료' : n?.patientWants ? '📝 진행중' : '미시작'}
+                                </span>
+                              </td>
+                              <td style={{ padding:'9px 10px' }}>
+                                <span style={{ fontSize:11,color:'#8E8E93' }}>{isExpanded?'▲':'▼'}</span>
+                              </td>
+                            </tr>
+                            {isExpanded && (
+                              <tr key={id+'-detail'} style={{ borderBottom:'1px solid #F2F2F7',background:'#FAFFF9' }}>
+                                <td colSpan={8} style={{ padding:'0 10px 14px 10px' }}>
+                                  <div style={{ display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,paddingTop:10 }}>
+                                    {[
+                                      ['환우', b.patientName],
+                                      ['보호자', b.caregiverName||'-'],
+                                      ['연락처', b.contactPhone],
+                                      ['사용 의사', n?.patientWants||'-'],
+                                      ['의사 메모', n?.patientWantsNote||'-'],
+                                      ['보호자 동의', n?.consent||'-'],
+                                      ['눈 깜빡임', n?.blink||'-'],
+                                      ['깜빡임 메모', n?.blinkNote||'-'],
+                                      ['위치', n?.location||'-'],
+                                      ['자세', n?.posture||'-'],
+                                      ['와이파이', n?.wifi||'-'],
+                                      ['기술 역량', n?.tech||'-'],
+                                      ['기기', n?.deviceNote||'-'],
+                                      ['니즈', n?.goal||'-'],
+                                      ['니즈 메모', n?.goalNote||'-'],
+                                      ['설치 담당', n?.installPerson||'-'],
+                                      ['설치 메모', n?.installNote||'-'],
+                                      ['온보딩 시간', n?.scheduleTime||'-'],
+                                      ['일정 메모', n?.scheduleNote||'-'],
+                                      ['연락 수단', n?.contactNote||'-'],
+                                      ['특이사항', n?.specialNote||'-'],
+                                    ].map(([label,val])=>(
+                                      <div key={label} style={{ background:'#fff',border:'1px solid #E4E2DC',borderRadius:8,padding:'8px 10px' }}>
+                                        <div style={{ fontSize:10,color:'#8E8E93',fontWeight:600,marginBottom:2 }}>{label}</div>
+                                        <div style={{ fontSize:12,color:'#1A1916',lineHeight:1.5 }}>{val}</div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  <div style={{ marginTop:10,display:'flex',gap:8 }}>
+                                    <button onClick={e=>{e.stopPropagation();openScript(id);}}
+                                      style={{ fontSize:12,fontWeight:600,padding:'6px 14px',borderRadius:8,border:'none',cursor:'pointer',fontFamily:F,background:'#2D5F8A',color:'#fff' }}>
+                                      📞 심층인터뷰 열기
+                                    </button>
+                                    {n?.completedAt && <span style={{ fontSize:11,color:'#8E8E93',alignSelf:'center' }}>완료: {new Date(n.completedAt).toLocaleString('ko-KR')}</span>}
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </>);
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* 심층인터뷰 모달 */}
+      {callScriptSlot && (() => {
+        const slotId = callScriptSlot;
+        const booking = scheduleBookings[slotId];
+        const STEPS = [
+          { badge:'PREP', title:'통화 전 준비' },
+          { badge:'OPEN', title:'인사 & 소개' },
+          { badge:'CORE', title:'사용 의사 확인' },
+          { badge:'INFO', title:'환경 파악' },
+          { badge:'NEED', title:'니즈 파악' },
+          { badge:'CLOSE', title:'설치 & 마무리' },
+        ];
+
+        const upd = (patch: Partial<CallNote>) => setCallDraft(d => ({...d, ...patch}));
+
+        // chip: 인라인 span (컴포넌트 정의 금지 — 매 렌더마다 재정의되면 리마운트 발생)
+        const chip = (label: string, field: keyof CallNote, val: string) => (
+          <span key={val} onClick={()=>upd({[field]: callDraft[field]===val?'':val})}
+            style={{ display:'inline-block',padding:'5px 12px',borderRadius:20,fontSize:12,cursor:'pointer',border:'1.5px solid',
+              borderColor: callDraft[field]===val ? '#2D5F8A' : '#E4E2DC',
+              background: callDraft[field]===val ? '#EBF2F8' : '#fff',
+              color: callDraft[field]===val ? '#2D5F8A' : '#6B6860',
+              fontWeight: callDraft[field]===val ? 600 : 400 }}>
+            {label}
+          </span>
+        );
+        // textarea: defaultValue+onBlur 방식 — controlled value를 쓰면 매 렌더마다 리마운트되어 한 글자만 입력됨
+        const taStyle: React.CSSProperties = { width:'100%',marginTop:6,padding:'8px 10px',border:'1.5px solid #E4E2DC',borderRadius:8,fontFamily:F,fontSize:13,resize:'vertical',minHeight:52,outline:'none',background:'#F7F6F3',lineHeight:1.6 };
+        const ta = (field: keyof CallNote, placeholder: string) => (
+          <textarea key={slotId+field} defaultValue={(callDraft[field] as string)||''}
+            onBlur={e=>upd({[field]:e.target.value})} placeholder={placeholder} style={taStyle} />
+        );
+
+        const handleSave = async (complete?: boolean) => {
+          const note: CallNote = {...callDraft, ...(complete ? {completed:true, completedAt: new Date().toISOString()} : {})};
+          await setDoc(doc(db, 'call_notes', slotId), note, {merge:true});
+          setCallNotes(prev => ({...prev, [slotId]: note}));
+          if (complete) { callTimerRef.current && clearInterval(callTimerRef.current); setCallScriptSlot(null); }
+        };
+
+        const toggleTimer = () => {
+          if (callTimerRunning) {
+            callTimerRef.current && clearInterval(callTimerRef.current);
+            setCallTimerRunning(false);
+          } else {
+            setCallTimerRunning(true);
+            callTimerRef.current = setInterval(() => {
+              setCallTimer(t => { if(t<=1){clearInterval(callTimerRef.current!);setCallTimerRunning(false);return 0;} return t-1; });
+            }, 1000);
+          }
+        };
+
+        const mm = String(Math.floor(callTimer/60)).padStart(2,'0');
+        const ss = String(callTimer%60).padStart(2,'0');
+
+        const scriptBox = (text: React.ReactNode) => (
+          <div style={{ background:'#EBF2F8',borderLeft:'3px solid #2D5F8A',borderRadius:'0 8px 8px 0',padding:'12px 14px',marginBottom:12,fontSize:14,lineHeight:1.8 }}>
+            <div style={{ fontSize:10,fontWeight:700,color:'#2D5F8A',marginBottom:4,letterSpacing:'0.5px' }}>📞 가온</div>
+            {text}
+          </div>
+        );
+        const noteBox = (text: string) => (
+          <div style={{ background:'#FDF0EA',borderLeft:'3px solid #C0522A',borderRadius:'0 8px 8px 0',padding:'10px 14px',fontSize:12,color:'#C0522A',marginBottom:10 }}>⚠️ {text}</div>
+        );
+        const tipBox = (text: string) => (
+          <div style={{ background:'#EAF5F0',borderLeft:'3px solid #2E7D5E',borderRadius:'0 8px 8px 0',padding:'10px 14px',fontSize:12,color:'#2E7D5E',marginBottom:10 }}>💡 {text}</div>
+        );
+
+        return (
+          <div style={{ position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,0.55)',display:'flex',alignItems:'center',justifyContent:'center' }}>
+            <div style={{ background:'#F7F6F3',width:'min(740px,96vw)',height:'90vh',borderRadius:16,overflow:'hidden',display:'flex',flexDirection:'column',boxShadow:'0 20px 60px rgba(0,0,0,0.3)' }}>
+
+              {/* 헤더 */}
+              <div style={{ background:'#2D5F8A',color:'#fff',padding:'16px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0 }}>
+                <div>
+                  <div style={{ fontSize:16,fontWeight:700 }}>모스픽 온보딩 심층인터뷰</div>
+                  <div style={{ fontSize:12,opacity:0.75,marginTop:2 }}>
+                    {booking?.patientName} / {booking?.caregiverName||'보호자'} · {booking?.contactPhone}
+                    {booking?.meetingType && <span style={{ marginLeft:8,background:'rgba(255,255,255,0.2)',padding:'1px 7px',borderRadius:20,fontSize:11 }}>
+                      {booking.meetingType==='kakao'?'카카오 영상':'ZOOM'}
+                    </span>}
+                  </div>
+                </div>
+                <div style={{ display:'flex',alignItems:'center',gap:10 }}>
+                  <div onClick={toggleTimer} style={{ background:'rgba(255,255,255,0.15)',border:'1.5px solid rgba(255,255,255,0.3)',borderRadius:10,padding:'8px 14px',textAlign:'center',cursor:'pointer',minWidth:80 }}>
+                    <div style={{ fontSize:20,fontWeight:700,fontVariantNumeric:'tabular-nums',letterSpacing:1 }}>{mm}:{ss}</div>
+                    <div style={{ fontSize:10,opacity:0.7,marginTop:1 }}>{callTimerRunning?'⏸ 정지':'▶ 시작'}</div>
+                  </div>
+                  <button onClick={()=>{callTimerRef.current&&clearInterval(callTimerRef.current);setCallScriptSlot(null);}}
+                    style={{ background:'rgba(255,255,255,0.15)',border:'none',color:'#fff',fontSize:18,cursor:'pointer',borderRadius:8,width:36,height:36,display:'flex',alignItems:'center',justifyContent:'center' }}>✕</button>
+                </div>
+              </div>
+
+              {/* 단계 탭 */}
+              <div style={{ display:'flex',background:'#fff',borderBottom:'1px solid #E4E2DC',flexShrink:0,overflowX:'auto' }}>
+                {STEPS.map((s,i)=>(
+                  <button key={i} onClick={()=>setCallStep(i)}
+                    style={{ flex:1,padding:'10px 4px',border:'none',borderBottom: callStep===i?'3px solid #2D5F8A':i<callStep?'3px solid #2E7D5E':'3px solid transparent',
+                      background:'none',cursor:'pointer',fontFamily:F,fontSize:11,fontWeight:600,whiteSpace:'nowrap',
+                      color: callStep===i?'#2D5F8A':i<callStep?'#2E7D5E':'#9E9C96' }}>
+                    {s.badge}
+                  </button>
+                ))}
+              </div>
+
+              {/* 단계 제목 */}
+              <div style={{ padding:'10px 20px 0',flexShrink:0 }}>
+                <span style={{ fontSize:11,fontWeight:700,color:'#fff',background:'#2D5F8A',padding:'2px 10px',borderRadius:20,marginRight:8 }}>{STEPS[callStep].badge}</span>
+                <span style={{ fontSize:15,fontWeight:700,color:'#1A1916' }}>{STEPS[callStep].title}</span>
+              </div>
+
+              {/* 콘텐츠 */}
+              <div style={{ flex:1,overflow:'auto',padding:'12px 20px 20px' }}>
+                {callStep===0 && <>
+                  {tipBox('통화 전 신청서에서 환자분 이름과 상태를 한 번 더 확인해두세요.')}
+                  <div style={{ fontSize:13,color:'#1A1916',lineHeight:2 }}>
+                    {'☐ 신청서 미리 열어두기 (환자 이름, 진단명, 현재 상태)'.split('\n').map((l,i)=><div key={i}>{l}</div>)}
+                    <div>☐ 메모할 노트/메모앱 준비</div>
+                    <div>☐ 카메라 각도·조명 확인</div>
+                    <div>☐ 눈 깜빡임 안내 멘트 연습 — "살짝 감았다가 바로 떠보세요" / "살짝 감았다가 조금 있다가 떠보세요"</div>
+                  </div>
+                </>}
+
+                {callStep===1 && <>
+                  {scriptBox(<>
+                    안녕하세요, 저는 모스픽 대표 한가온이라고 합니다.<br/>
+                    오늘 바쁘신 와중에 시간 내주셔서 정말 감사드려요.<br/><br/>
+                    저희 모스픽은 눈 깜빡임만으로 의사를 표현할 수 있는 앱을 만드는 팀이고요, 이번에 <strong>현대 아산나눔재단</strong>의 지원을 받아서 환우분들께 기기를 무상으로 대여해드리는 프로그램을 직접 진행하게 됐어요. 승일희망재단을 통해 연결이 됐고, {booking?.patientName} 어르신 신청서도 검토하게 됐습니다.<br/><br/>
+                    오늘 통화는 15분 정도 예정이고요, 편하게 말씀해주시면 될 것 같아요.
+                  </>)}
+                  {tipBox('보호자분이 먼저 감사하다고 하시면 "저희가 더 감사하죠" 식으로 자연스럽게 받아주세요.')}
+                </>}
+
+                {callStep===2 && <>
+                  {noteBox('가장 중요한 파트입니다. 환자분의 직접 의사를 눈 깜빡임으로 확인하세요.')}
+
+                  <div style={{ fontSize:13,fontWeight:700,color:'#1A1916',marginBottom:8 }}>① 환자분 카메라 연결 요청</div>
+                  {scriptBox(<>
+                    혹시 지금 환자분이 옆에 계세요? 잠깐 카메라로 환자분을 비춰주실 수 있을까요? 직접 눈으로 뵙고 싶어서요.
+                  </>)}
+
+                  <div style={{ fontSize:13,fontWeight:700,color:'#1A1916',margin:'14px 0 8px' }}>② 눈 깜빡임 신호 연습</div>
+                  {scriptBox(<>
+                    어르신, 안녕하세요. 저는 모스픽 한가온이라고 해요.<br/><br/>
+                    제가 간단하게 눈 동작 한 가지만 부탁드릴게요.<br/>
+                    먼저, <strong>눈을 살짝 감았다가 바로 떠보세요.</strong> 네, 그렇게요.<br/>
+                    이번엔 <strong>살짝 감았다가, 조금 있다가 떠보세요.</strong>
+                  </>)}
+                  <div style={{ display:'flex',flexWrap:'wrap',gap:6,marginBottom:10 }}>
+                    {['✅ 짧게/길게 구분됨','⚠️ 약하지만 가능','⚠️ 속도가 느림','❌ 확인 어려움'].map(v=>chip(v,'blink',v))}
+                  </div>
+                  {ta('blinkNote','눈 깜빡임 관찰 메모 (예: 단신호는 가능, 장신호 구분이 약함 등)')}
+
+                  <div style={{ fontSize:13,fontWeight:700,color:'#1A1916',margin:'16px 0 8px' }}>③ 사용 의사 직접 확인 ⭐ 핵심</div>
+                  {scriptBox(<>
+                    어르신, 저희 모스픽 앱을 써보고 싶으세요?<br/><br/>
+                    <strong>써보고 싶으시면 눈을 짧게 한 번만 깜빡여 주세요.</strong><br/>
+                    <strong>원하지 않으시면 눈을 여러 번 깜빡여 주세요.</strong>
+                  </>)}
+                  <div style={{ display:'flex',flexWrap:'wrap',gap:6,marginBottom:10 }}>
+                    {['✅ 원함 (짧게 1번)','❌ 원하지 않음 (여러번)','⚠️ 환자 확인 불가','📋 보호자 대신 확인'].map(v=>chip(v,'patientWants',v))}
+                  </div>
+                  {ta('patientWantsNote','상황 메모 (예: 짧게 1번 깜빡임 확인, 반응이 느렸으나 의사 표현 확인 등)')}
+
+                  {callDraft.patientWants?.includes('보호자') && <>
+                    <div style={{ fontSize:13,fontWeight:700,color:'#1A1916',margin:'14px 0 8px' }}>보호자 대신 확인 시</div>
+                    {scriptBox('혹시 환자분께서 이 기기를 써보고 싶다는 의사를 표현하신 적이 있으신가요?')}
+                    <div style={{ display:'flex',flexWrap:'wrap',gap:6 }}>
+                      {['✅ 본인 의향 있다고 함','⚠️ 보호자 판단으로 신청','❌ 의사 미확인'].map(v=>chip(v,'consent',v))}
+                    </div>
+                  </>}
+
+                  {(callDraft.patientWants?.includes('원하지 않음')) && (
+                    <div style={{ background:'#FFE0DE',border:'1px solid #FFBFBA',borderRadius:10,padding:'12px 14px',marginTop:12,fontSize:13,color:'#CC2200',lineHeight:1.7 }}>
+                      ⛔ 사용 의사 없음으로 확인됨. 통화를 마무리해주세요.<br/>
+                      <span style={{ fontSize:12 }}>"네, 말씀해주셔서 감사합니다. 혹시 나중에 생각이 바뀌시면 언제든 연락 주세요."</span>
+                    </div>
+                  )}
+                </>}
+
+                {callStep===3 && <>
+                  <div style={{ fontSize:12,fontWeight:700,color:'#6B6860',marginBottom:6 }}>주로 계시는 공간</div>
+                  <div style={{ display:'flex',flexWrap:'wrap',gap:6,marginBottom:12 }}>
+                    {['침실 (침대)','거실','요양시설/병원','이동 혼합'].map(v=>chip(v,'location',v))}
+                  </div>
+                  <div style={{ fontSize:12,fontWeight:700,color:'#6B6860',marginBottom:6 }}>자세</div>
+                  <div style={{ display:'flex',flexWrap:'wrap',gap:6,marginBottom:12 }}>
+                    {['주로 앉음','앉기도·눕기도','주로 누움','완전 와상'].map(v=>chip(v,'posture',v))}
+                  </div>
+                  <div style={{ fontSize:12,fontWeight:700,color:'#6B6860',marginBottom:6 }}>와이파이</div>
+                  <div style={{ display:'flex',flexWrap:'wrap',gap:6,marginBottom:12 }}>
+                    {['있음','없음','불안정'].map(v=>chip(v,'wifi',v))}
+                  </div>
+                  <div style={{ fontSize:12,fontWeight:700,color:'#6B6860',marginBottom:6 }}>기술 역량 (보조자)</div>
+                  <div style={{ display:'flex',flexWrap:'wrap',gap:6,marginBottom:12 }}>
+                    {['잘 하는 편','기본 수준','어려운 편'].map(v=>chip(v,'tech',v))}
+                  </div>
+                  <div style={{ fontSize:12,fontWeight:700,color:'#6B6860',marginBottom:4 }}>사용 중인 기기</div>
+                  {ta('deviceNote','예: 갤럭시 탭, 아이패드 등')}
+                </>}
+
+                {callStep===4 && <>
+                  {scriptBox('지금 환자분이 가장 답답하게 느끼시는 게 뭔지 아세요? 의사표현, 심심함, 다른 부분?')}
+                  <div style={{ fontSize:12,fontWeight:700,color:'#6B6860',marginBottom:6 }}>제일 먼저 써보고 싶은 기능</div>
+                  <div style={{ display:'flex',flexWrap:'wrap',gap:6,marginBottom:8 }}>
+                    {['의사표현·대화','TV·IoT 제어','음악·콘텐츠','아직 모르겠음'].map(v=>chip(v,'goal',v))}
+                  </div>
+                  {ta('goalNote','핵심 니즈 메모')}
+                </>}
+
+                {callStep===5 && <>
+                  <div style={{ fontSize:13,fontWeight:700,color:'#1A1916',marginBottom:8 }}>① 설치 안내</div>
+                  {scriptBox(<>
+                    저희가 기기를 직접 방문해서 설치해드리는 게 아니라, <strong>설치에 필요한 기기와 부품을 먼저 택배로 보내드려요.</strong><br/><br/>
+                    설치 자체는 어렵지 않아요. 거치대 조립이랑 콘센트 연결 정도거든요. 저희가 사진이랑 영상으로 안내드리고, 설치하시면서 궁금한 게 있으시면 영상통화로 같이 보면서 도와드릴 수 있어요.<br/><br/>
+                    혹시 <strong>설치를 직접 도와주실 수 있는 분</strong>이 집에 계세요? 자녀분이나 주변에 손재주 있으신 분이요.
+                  </>)}
+                  <div style={{ fontSize:12,fontWeight:700,color:'#6B6860',marginBottom:6 }}>설치 담당 가능 여부</div>
+                  <div style={{ display:'flex',flexWrap:'wrap',gap:6,marginBottom:8 }}>
+                    {['✅ 직접 가능','👨‍👩‍👧 가족이 도와줄 수 있음','⚠️ 어려울 것 같음','❓ 모르겠음'].map(v=>chip(v,'installPerson',v))}
+                  </div>
+                  {ta('installNote','설치 담당자 메모 (예: 아들이 주말에 와서 도와줄 수 있음)')}
+
+                  <div style={{ fontSize:13,fontWeight:700,color:'#1A1916',margin:'16px 0 8px' }}>② 온보딩 통화 일정</div>
+                  {scriptBox(<>
+                    설치 완료하시면 저희랑 영상통화로 처음 사용 방법을 같이 설정해드릴 거예요. 30분 정도 걸리고요.<br/>
+                    편하신 시간대가 언제쯤이세요?
+                  </>)}
+                  <div style={{ display:'flex',flexWrap:'wrap',gap:6,marginBottom:8 }}>
+                    {['오전 (9–12시)','오후 (12–17시)','저녁 (17시 이후)','주말'].map(v=>chip(v,'scheduleTime',v))}
+                  </div>
+                  {ta('scheduleNote','구체적 날짜/시간 메모')}
+
+                  <div style={{ fontSize:12,fontWeight:700,color:'#6B6860',margin:'10px 0 4px' }}>연락 수단</div>
+                  {ta('contactNote','예: 010-xxxx-xxxx 카카오톡 선호')}
+
+                  <div style={{ fontSize:13,fontWeight:700,color:'#1A1916',margin:'16px 0 8px' }}>③ 전체 평가 결과</div>
+                  <div style={{ display:'flex',gap:10,marginBottom:10 }}>
+                    {[
+                      {val:'적합', bg:'#D4F5DF', color:'#1A8C3A', border:'#1A8C3A'},
+                      {val:'일단보류', bg:'#FFF9D4', color:'#B07800', border:'#B07800'},
+                      {val:'부적합', bg:'#FFE0DE', color:'#CC2200', border:'#CC2200'},
+                    ].map(({val,bg,color,border})=>(
+                      <span key={val} onClick={()=>upd({overallResult: callDraft.overallResult===val?'':val})}
+                        style={{ flex:1,textAlign:'center',padding:'10px',borderRadius:10,fontSize:14,fontWeight:700,cursor:'pointer',border:'2px solid',
+                          borderColor: callDraft.overallResult===val ? border : '#E4E2DC',
+                          background: callDraft.overallResult===val ? bg : '#fff',
+                          color: callDraft.overallResult===val ? color : '#9E9C96' }}>
+                        {val}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div style={{ fontSize:13,fontWeight:700,color:'#1A1916',margin:'14px 0 8px' }}>④ 마무리</div>
+                  {scriptBox(<>
+                    오늘 정말 도움이 많이 됐어요. 감사합니다.<br/>
+                    제가 일정 확정되면 문자/카카오로 먼저 안내드릴게요. 그 사이에 궁금하신 게 있으면 편하게 연락 주세요. 건강하게 잘 지내시고요!
+                  </>)}
+                  <div style={{ fontSize:12,fontWeight:700,color:'#6B6860',margin:'10px 0 4px' }}>특이사항</div>
+                  {ta('specialNote','신체 상태, 환경, 주의점, 요청사항 등 자유 메모')}
+                </>}
+              </div>
+
+              {/* 하단 버튼 */}
+              <div style={{ borderTop:'1px solid #E4E2DC',padding:'12px 20px',display:'flex',gap:8,background:'#fff',flexShrink:0 }}>
+                <button onClick={()=>setCallStep(s=>Math.max(0,s-1))} disabled={callStep===0}
+                  style={{ flex:1,padding:'11px',border:'1.5px solid #E4E2DC',borderRadius:10,background:'#F7F6F3',color:'#6B6860',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:F,opacity:callStep===0?0.4:1 }}>
+                  ← 이전
+                </button>
+                <button onClick={()=>handleSave()}
+                  style={{ padding:'11px 16px',border:'1.5px solid #E4E2DC',borderRadius:10,background:'#F7F6F3',color:'#6B6860',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:F }}>
+                  저장
+                </button>
+                {callStep < STEPS.length-1
+                  ? <button onClick={()=>setCallStep(s=>s+1)}
+                      style={{ flex:2,padding:'11px',border:'none',borderRadius:10,background:'#2D5F8A',color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:F }}>
+                      다음 →
+                    </button>
+                  : <button onClick={()=>handleSave(true)}
+                      style={{ flex:2,padding:'11px',border:'none',borderRadius:10,background:'#2E7D5E',color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:F }}>
+                      ✅ 통화 완료
+                    </button>
+                }
               </div>
             </div>
           </div>

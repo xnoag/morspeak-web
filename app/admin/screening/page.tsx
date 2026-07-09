@@ -2235,13 +2235,13 @@ export default function AdminScreeningPage() {
               <table style={{ width:'100%',minWidth:'max-content',borderCollapse:'collapse',fontSize:13 }}>
                 <thead>
                   <tr style={{ borderBottom:'1.5px solid #F2F2F7',background:'#FAFAFA' }}>
-                    {['순위','환우명','연락처','스크리닝',...F_COLS,'신청서합계','정성평가','최종합계'].map(h=>(
+                    {['순위','환우명','보호자','연락처','스크리닝',...F_COLS,'신청서합계','정성평가','최종합계'].map(h=>(
                       <th key={h} style={{ padding:'10px 14px',textAlign:'left',color:'#8E8E93',fontWeight:500,whiteSpace:'nowrap',fontSize:11,letterSpacing:'0.03em' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {finalRanked.length===0&&<tr><td colSpan={13} style={{ padding:60,textAlign:'center',color:'#C7C7CC' }}>데이터를 불러오면 순위가 표시됩니다</td></tr>}
+                  {finalRanked.length===0&&<tr><td colSpan={14} style={{ padding:60,textAlign:'center',color:'#C7C7CC' }}>데이터를 불러오면 순위가 표시됩니다</td></tr>}
                   {(() => {
                     // 심층인터뷰 매칭: scheduleBookings 연락처/이름 → callNotes
                     const getCallNote = (entry: typeof finalRanked[0]) => {
@@ -2281,6 +2281,7 @@ export default function AdminScreeningPage() {
                           )}
                           {e.name}
                         </td>
+                        <td style={{ padding:'12px 14px',color:'#3C3C43',fontSize:12,whiteSpace:'nowrap' }}>{e.caregiver||'-'}</td>
                         <td style={{ padding:'12px 14px',color:'#8E8E93',fontSize:12,whiteSpace:'nowrap' }}>{e.phone}</td>
                         <td style={{ padding:'8px 14px' }}>
                           {catStyle

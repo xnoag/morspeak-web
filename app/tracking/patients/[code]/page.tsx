@@ -51,7 +51,6 @@ const FEATURE_FLAGS: { key: string; label: string; morse: string; defaultOn: boo
   { key: 'sendMessage', label: '메시지 보내기', morse: '● (1, 기능모드)',     defaultOn: true  },
   { key: 'call',        label: '호출',          morse: '━━ (22)',            defaultOn: true  },
   { key: 'lock',        label: '잠금',          morse: '━ (2, 기능모드)',     defaultOn: true  },
-  { key: 'shortcut',    label: '단축어 모드',   morse: '━●●●● (21111)',      defaultOn: true  },
   { key: 'repeatSpeak', label: '반복 말하기',   morse: '●●━ (112, 기능모드)', defaultOn: true  },
   { key: 'youtube',     label: '유튜브',        morse: '●●● (111, 기능모드)', defaultOn: false },
   { key: 'outlet1',     label: '콘센트 1',      morse: '●━ (12, 기능모드)',   defaultOn: true  },
@@ -60,9 +59,14 @@ const FEATURE_FLAGS: { key: string; label: string; morse: string; defaultOn: boo
   { key: 'reset',       label: '초기화',          morse: '●●━●● (11211)',        defaultOn: true  },
   { key: 'delete',      label: '삭제',            morse: '● (1, 키보드모드)',      defaultOn: true  },
   { key: 'aiSuggest',   label: 'AI 추천',         morse: '●━ (12, 키보드/단축어)', defaultOn: true  },
-  { key: 'keyboardMode',label: '키보드 모드 전환', morse: '●●●●━ (11112)',         defaultOn: true  },
-  { key: 'functionMode',label: '기능 모드 전환',  morse: '(기능 버튼)',             defaultOn: true  },
-  { key: 'commandMode',    label: '커맨드(쌍자음)',    morse: '━ (2, 키보드/단축어모드)', defaultOn: true  },
+  { key: 'commandMode', label: '커맨드(쌍자음)',   morse: '━ (2, 키보드/단축어모드)', defaultOn: true  },
+]
+
+// 개별 기능보다 넓은 의미 — 모드 자체 진입 가능 여부 (튜토리얼 진행 상황에 맞춰 접근 제한)
+const MODE_FLAGS: { key: string; label: string; morse: string; defaultOn: boolean }[] = [
+  { key: 'keyboardMode', label: '키보드 모드 진입', morse: '●●●●━ (11112)', defaultOn: true },
+  { key: 'shortcut',     label: '단축어 모드 진입', morse: '━●●●● (21111)', defaultOn: true },
+  { key: 'functionMode', label: '기능 모드 진입',   morse: '(기능 버튼)',    defaultOn: true },
 ]
 
 export default function PatientDetail({ params }: { params: Promise<{ code: string }> }) {
@@ -613,124 +617,146 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
         {/* ── 세션 기록 ── */}
         {tab==='세션기록' && <SessionSection sessions={sessions} />}
 
-        {/* ── 튜토리얼 ── */}
-        {tab==='설정' && (
-          <div style={{marginBottom:40}}>
-            <ColTitle>튜토리얼 원격 시작</ColTitle>
-            <p style={{fontSize:13,color:'#6e6e73',lineHeight:1.7,marginBottom:20}}>
-              단계를 선택하고 시작하면 환자 앱에서 해당 단계가 실행됩니다. 0은 대기 화면(지금 뭘 하고 있든 강제 복귀), 1~3은 눈 깜빡임 캘리브레이션, 4~9는 실제 사용법 튜토리얼입니다.
-              완료 여부는 환자 앱에서 실시간으로 전송되어 아래에 표시됩니다. 이전 단계 완료를 확인한 뒤 직접 다음 단계를 열어주세요.
-            </p>
-            {(() => {
-              const steps = [
-                {n:0, label:'대기 화면',        desc:'검정 화면으로 강제 복귀 (교육 전 대기)'},
-                {n:1, label:'짧게 깜빡이기',     desc:'캘리브레이션 · 짧게 ×5'},
-                {n:2, label:'길게 깜빡이기',     desc:'캘리브레이션 · 길게 ×5'},
-                {n:3, label:'혼합 깜빡이기',     desc:'캘리브레이션 · 짧게/길게 혼합 ×5'},
-                {n:4, label:'ㄱ 입력하기',      desc:'짧게·짧게·길게 깜빡임'},
-                {n:5, label:'ㅏ 입력하기',      desc:'길게·짧게 깜빡임'},
-                {n:6, label:'말하기',           desc:'짧게·짧게 (11)'},
-                {n:7, label:'단축어 모드 전환', desc:'길게·짧게·짧게·짧게·짧게 (21111)'},
-                {n:8, label:'표현 선택하기',    desc:'길게·짧게 (21)'},
-                {n:9, label:'호출하기',         desc:'길게·길게 (22)'},
-              ]
-              return (
-                <div>
-                  <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:20}}>
-                    {steps.map(s => {
-                      const checked = tutorialSteps.includes(s.n)
-                      const done = completedSteps.includes(s.n)
-                      return (
-                        <label key={s.n} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',border:`1.5px solid ${checked?'#007AFF':'#d2d2d7'}`,borderRadius:10,cursor:'pointer',background:checked?'#f0f7ff':'#fff'}}>
-                          <input type="checkbox" checked={checked} onChange={() =>
-                            setTutorialSteps(prev => checked ? prev.filter(x=>x!==s.n) : [...prev,s.n].sort((a,b)=>a-b))
-                          } style={{accentColor:'#007AFF',width:16,height:16}}/>
-                          <div style={{flex:1}}>
-                            <div style={{fontSize:13,fontWeight:600,color:checked?'#007AFF':'#1d1d1f'}}>{s.n}. {s.label}</div>
-                            <div style={{fontSize:11,color:'#8e8e93',fontFamily:M}}>{s.desc}</div>
-                          </div>
-                          {done && (
-                            <span style={{fontSize:11,fontWeight:700,color:'#34c759',fontFamily:M,flexShrink:0}}>✓ 완료</span>
-                          )}
-                        </label>
-                      )
-                    })}
-                  </div>
-                  <div style={{display:'flex',gap:8}}>
-                    <button onClick={async () => {
-                      if (!tutorialSteps.length) return
-                      setTutorialSending(true)
-                      await setDoc(doc(getDb(),'tutorialConfig',code), {
-                        steps: tutorialSteps,
-                        requestedAt: new Date(),
-                      })
-                      setTutorialSending(false)
-                    }} disabled={tutorialSending||!tutorialSteps.length} style={smallBtn}>
-                      {tutorialSending ? '전송 중...' : `단계 열기 (${tutorialSteps.length}개 선택)`}
-                    </button>
-                    <button onClick={()=>setTutorialSteps([])}
-                      style={{...smallBtn,background:'#f5f5f7',color:'#3c3c43',border:'none'}}>선택 해제</button>
-                  </div>
-                </div>
-              )
-            })()}
-          </div>
-        )}
 
         {/* ── 기능 관리 ── */}
-        {tab==='기능관리' && (
+        {tab==='기능관리' && (() => {
+          const toggleRow = (f: {key:string;label:string;morse:string;defaultOn:boolean}, i: number, list: typeof FEATURE_FLAGS) => {
+            const enabled = f.key in featureFlags ? featureFlags[f.key] : f.defaultOn
+            const isLast = i === list.length - 1
+            return (
+              <div key={f.key} style={{
+                display:'flex',alignItems:'center',justifyContent:'space-between',
+                padding:'14px 20px',
+                borderBottom: isLast ? 'none' : '1px solid #f0f0f5',
+                background: enabled ? '#fff' : '#fafafa',
+              }}>
+                <div>
+                  <div style={{fontSize:14,fontWeight:500,color: enabled ? '#1d1d1f' : '#aeaeb2'}}>{f.label}</div>
+                  <div style={{fontSize:11,fontFamily:M,color:'#aeaeb2',marginTop:2}}>{f.morse}</div>
+                </div>
+                <button
+                  disabled={flagSaving === f.key}
+                  onClick={async () => {
+                    const next = !enabled
+                    setFlagSaving(f.key)
+                    try {
+                      await setDoc(doc(getDb(),'featureFlags',code), { [f.key]: next }, { merge: true })
+                      setFeatureFlags(prev => ({...prev, [f.key]: next}))
+                    } finally {
+                      setFlagSaving(null)
+                    }
+                  }}
+                  style={{
+                    position:'relative',width:44,height:26,borderRadius:13,border:'none',cursor:'pointer',
+                    background: enabled ? '#34c759' : '#d1d1d6',
+                    transition:'background .2s',padding:0,flexShrink:0,
+                    opacity: flagSaving === f.key ? 0.5 : 1,
+                  }}
+                >
+                  <span style={{
+                    position:'absolute',top:3,left: enabled ? 21 : 3,
+                    width:20,height:20,borderRadius:'50%',background:'#fff',
+                    boxShadow:'0 1px 3px rgba(0,0,0,.25)',transition:'left .2s',display:'block',
+                  }}/>
+                </button>
+              </div>
+            )
+          }
+          const tutorialStepsList = [
+            {n:1, label:'짧게 깜빡이기',     desc:'캘리브레이션 · 짧게 ×5'},
+            {n:2, label:'길게 깜빡이기',     desc:'캘리브레이션 · 길게 ×5'},
+            {n:3, label:'혼합 깜빡이기',     desc:'캘리브레이션 · 짧게/길게 혼합 ×5'},
+            {n:4, label:'ㄱ 입력하기',      desc:'짧게·짧게·길게 깜빡임'},
+            {n:5, label:'ㅏ 입력하기',      desc:'길게·짧게 깜빡임'},
+            {n:6, label:'말하기',           desc:'짧게·짧게 (11)'},
+            {n:7, label:'단축어 모드 전환', desc:'길게·짧게·짧게·짧게·짧게 (21111)'},
+            {n:8, label:'표현 선택하기',    desc:'길게·짧게 (21)'},
+            {n:9, label:'호출하기',         desc:'길게·길게 (22)'},
+          ]
+          return (
           <div style={{maxWidth:560}}>
             <ColTitle>기능 관리</ColTitle>
-            <p style={{fontSize:13,color:'#6e6e73',lineHeight:1.7,marginBottom:28}}>
-              각 기능의 모스부호 입력이 실행되지 않도록 차단합니다. 꺼진 기능은 모스부호가 입력되어도 앱에서 아무 반응이 없습니다.
-            </p>
-            <div style={{border:'1px solid #d2d2d7',borderRadius:12,overflow:'hidden'}}>
-              {FEATURE_FLAGS.map((f, i) => {
-                const enabled = f.key in featureFlags ? featureFlags[f.key] : f.defaultOn
-                const isLast = i === FEATURE_FLAGS.length - 1
-                return (
-                  <div key={f.key} style={{
-                    display:'flex',alignItems:'center',justifyContent:'space-between',
-                    padding:'14px 20px',
-                    borderBottom: isLast ? 'none' : '1px solid #f0f0f5',
-                    background: enabled ? '#fff' : '#fafafa',
-                  }}>
-                    <div>
-                      <div style={{fontSize:14,fontWeight:500,color: enabled ? '#1d1d1f' : '#aeaeb2'}}>{f.label}</div>
-                      <div style={{fontSize:11,fontFamily:M,color:'#aeaeb2',marginTop:2}}>{f.morse}</div>
-                    </div>
-                    <button
-                      disabled={flagSaving === f.key}
-                      onClick={async () => {
-                        const next = !enabled
-                        setFlagSaving(f.key)
-                        try {
-                          await setDoc(doc(getDb(),'featureFlags',code), { [f.key]: next }, { merge: true })
-                          setFeatureFlags(prev => ({...prev, [f.key]: next}))
-                        } finally {
-                          setFlagSaving(null)
-                        }
-                      }}
-                      style={{
-                        position:'relative',width:44,height:26,borderRadius:13,border:'none',cursor:'pointer',
-                        background: enabled ? '#34c759' : '#d1d1d6',
-                        transition:'background .2s',padding:0,flexShrink:0,
-                        opacity: flagSaving === f.key ? 0.5 : 1,
-                      }}
-                    >
-                      <span style={{
-                        position:'absolute',top:3,left: enabled ? 21 : 3,
-                        width:20,height:20,borderRadius:'50%',background:'#fff',
-                        boxShadow:'0 1px 3px rgba(0,0,0,.25)',transition:'left .2s',display:'block',
-                      }}/>
-                    </button>
-                  </div>
-                )
-              })}
+
+            {/* 지금 화면 제어 */}
+            <div style={{marginBottom:32}}>
+              <div style={{fontSize:13,fontWeight:600,color:'#1d1d1f',marginBottom:8}}>지금 화면 제어</div>
+              <p style={{fontSize:12,color:'#8e8e93',lineHeight:1.6,marginBottom:12}}>
+                지금 뭘 하고 있든 상관없이 환자 앱을 즉시 대기 화면(검정 화면)으로 돌려보냅니다.
+              </p>
+              <button onClick={async () => {
+                await setDoc(doc(getDb(),'tutorialConfig',code), { steps: [0], requestedAt: new Date() })
+              }} style={{...smallBtn,background:'#1d1d1f'}}>대기 화면으로 전환</button>
             </div>
-            <p style={{fontSize:11,color:'#aeaeb2',marginTop:12}}>변경 즉시 앱에 반영됩니다 (실시간 동기화)</p>
+
+            {/* 모드 접근 제어 — 개별 기능보다 넓은 의미 */}
+            <div style={{marginBottom:32}}>
+              <div style={{fontSize:13,fontWeight:600,color:'#1d1d1f',marginBottom:8}}>모드 접근 제어</div>
+              <p style={{fontSize:12,color:'#8e8e93',lineHeight:1.6,marginBottom:12}}>
+                튜토리얼 진행 상황에 맞춰 아직 배우지 않은 모드로 넘어가지 못하도록 막습니다. 꺼진 모드는 전환을 시도해도 진입하지 않습니다.
+              </p>
+              <div style={{border:'1px solid #d2d2d7',borderRadius:12,overflow:'hidden'}}>
+                {MODE_FLAGS.map((f, i) => toggleRow(f, i, MODE_FLAGS))}
+              </div>
+            </div>
+
+            {/* 튜토리얼 · 캘리브레이션 단계 열기 */}
+            <div style={{marginBottom:32}}>
+              <div style={{fontSize:13,fontWeight:600,color:'#1d1d1f',marginBottom:8}}>튜토리얼 · 캘리브레이션 단계 열기</div>
+              <p style={{fontSize:12,color:'#8e8e93',lineHeight:1.6,marginBottom:12}}>
+                단계를 선택하고 열면 환자 앱에서 해당 단계가 실행됩니다. 1~3은 눈 깜빡임 캘리브레이션, 4~9는 실제 사용법 튜토리얼입니다.
+                완료 여부는 실시간으로 아래에 표시되니, 이전 단계 완료를 확인한 뒤 직접 다음 단계를 열어주세요.
+              </p>
+              <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:12}}>
+                {tutorialStepsList.map(s => {
+                  const checked = tutorialSteps.includes(s.n)
+                  const done = completedSteps.includes(s.n)
+                  return (
+                    <label key={s.n} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',border:`1.5px solid ${checked?'#007AFF':'#d2d2d7'}`,borderRadius:10,cursor:'pointer',background:checked?'#f0f7ff':'#fff'}}>
+                      <input type="checkbox" checked={checked} onChange={() =>
+                        setTutorialSteps(prev => checked ? prev.filter(x=>x!==s.n) : [...prev,s.n].sort((a,b)=>a-b))
+                      } style={{accentColor:'#007AFF',width:16,height:16}}/>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:13,fontWeight:600,color:checked?'#007AFF':'#1d1d1f'}}>{s.n}. {s.label}</div>
+                        <div style={{fontSize:11,color:'#8e8e93',fontFamily:M}}>{s.desc}</div>
+                      </div>
+                      {done && (
+                        <span style={{fontSize:11,fontWeight:700,color:'#34c759',fontFamily:M,flexShrink:0}}>✓ 완료</span>
+                      )}
+                    </label>
+                  )
+                })}
+              </div>
+              <div style={{display:'flex',gap:8}}>
+                <button onClick={async () => {
+                  if (!tutorialSteps.length) return
+                  setTutorialSending(true)
+                  await setDoc(doc(getDb(),'tutorialConfig',code), {
+                    steps: tutorialSteps,
+                    requestedAt: new Date(),
+                  })
+                  setTutorialSending(false)
+                }} disabled={tutorialSending||!tutorialSteps.length} style={smallBtn}>
+                  {tutorialSending ? '전송 중...' : `단계 열기 (${tutorialSteps.length}개 선택)`}
+                </button>
+                <button onClick={()=>setTutorialSteps([])}
+                  style={{...smallBtn,background:'#f5f5f7',color:'#3c3c43',border:'none'}}>선택 해제</button>
+              </div>
+            </div>
+
+            {/* 개별 기능 관리 */}
+            <div>
+              <div style={{fontSize:13,fontWeight:600,color:'#1d1d1f',marginBottom:8}}>개별 기능 관리</div>
+              <p style={{fontSize:12,color:'#8e8e93',lineHeight:1.6,marginBottom:12}}>
+                각 기능의 모스부호 입력이 실행되지 않도록 차단합니다. 꺼진 기능은 모스부호가 입력되어도 앱에서 아무 반응이 없습니다.
+              </p>
+              <div style={{border:'1px solid #d2d2d7',borderRadius:12,overflow:'hidden'}}>
+                {FEATURE_FLAGS.map((f, i) => toggleRow(f, i, FEATURE_FLAGS))}
+              </div>
+              <p style={{fontSize:11,color:'#aeaeb2',marginTop:12}}>변경 즉시 앱에 반영됩니다 (실시간 동기화)</p>
+            </div>
           </div>
-        )}
+          )
+        })()}
 
         {/* ── 설정 ── */}
         {tab==='설정' && (

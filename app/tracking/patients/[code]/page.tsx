@@ -1,7 +1,7 @@
 'use client'
 import { use, useEffect, useState } from 'react'
 import { initializeApp, getApps } from 'firebase/app'
-import { getFirestore, doc, getDoc, collection, query, orderBy, getDocs, where, deleteDoc, setDoc, limit } from 'firebase/firestore'
+import { getFirestore, doc, getDoc, collection, query, orderBy, getDocs, where, deleteDoc, setDoc, limit, updateDoc, onSnapshot } from 'firebase/firestore'
 
 const F = "-apple-system,'SF Pro Display','SF Pro Text',sans-serif"
 const M = "'SF Mono','Fira Mono',monospace"
@@ -35,11 +35,39 @@ const FN_BTNS = [
   ['잠그기','2(기능)','btn_fn_lock'],['→ 키보드','11112','btn_fn_toKeyboard'],['→ 단축어','21111','btn_fn_toShortcut'],
   ['콘센트01','12(기능)','iotOutlet1Count'],['콘센트02','211','iotOutlet2Count'],['콘센트03','121','iotOutlet3Count'],
 ]
-const TABS = ['오늘 현황', '사용 분석', '발화 기록', '버튼 통계', '일별 데이터', '설정']
+const NAV_ITEMS = [
+  { id: '개요',     icon: '📊', label: '개요' },
+  { id: '발화기록', icon: '💬', label: '발화 기록' },
+  { id: '일별데이터',icon: '📅', label: '일별 데이터' },
+  { id: '세션기록', icon: '⏱', label: '세션 기록' },
+  { id: '버튼분석', icon: '🎯', label: '버튼 분석' },
+  { id: '기능관리', icon: '🔧', label: '기능 관리' },
+  { id: '설정',     icon: '⚙️', label: '설정' },
+]
+const TABS = NAV_ITEMS.map(n => n.id)
+
+const FEATURE_FLAGS: { key: string; label: string; morse: string; defaultOn: boolean }[] = [
+  { key: 'speak',       label: '말하기',       morse: '●● (11)',            defaultOn: true  },
+  { key: 'sendMessage', label: '메시지 보내기', morse: '● (1, 기능모드)',     defaultOn: true  },
+  { key: 'call',        label: '호출',          morse: '━━ (22)',            defaultOn: true  },
+  { key: 'lock',        label: '잠금',          morse: '━ (2, 기능모드)',     defaultOn: true  },
+  { key: 'shortcut',    label: '단축어 모드',   morse: '━●●●● (21111)',      defaultOn: true  },
+  { key: 'repeatSpeak', label: '반복 말하기',   morse: '●●━ (112, 기능모드)', defaultOn: true  },
+  { key: 'youtube',     label: '유튜브',        morse: '●●● (111, 기능모드)', defaultOn: false },
+  { key: 'outlet1',     label: '콘센트 1',      morse: '●━ (12, 기능모드)',   defaultOn: true  },
+  { key: 'outlet2',     label: '콘센트 2',      morse: '━●● (211, 기능모드)', defaultOn: true  },
+  { key: 'outlet3',     label: '콘센트 3',       morse: '●━● (121, 기능모드)',   defaultOn: true  },
+  { key: 'reset',       label: '초기화',          morse: '●●━●● (11211)',        defaultOn: true  },
+  { key: 'delete',      label: '삭제',            morse: '● (1, 키보드모드)',      defaultOn: true  },
+  { key: 'aiSuggest',   label: 'AI 추천',         morse: '●━ (12, 키보드/단축어)', defaultOn: true  },
+  { key: 'keyboardMode',label: '키보드 모드 전환', morse: '●●●●━ (11112)',         defaultOn: true  },
+  { key: 'functionMode',label: '기능 모드 전환',  morse: '(기능 버튼)',             defaultOn: true  },
+  { key: 'commandMode',    label: '커맨드(쌍자음)',    morse: '━ (2, 키보드/단축어모드)', defaultOn: true  },
+]
 
 export default function PatientDetail({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params)
-  const [tab, setTab] = useState('오늘 현황')
+  const [tab, setTab] = useState('개요')
   const [stats, setStats]   = useState<Record<string,any>>({})
   const [blink, setBlink]   = useState<Record<string,any>>({})
   const [daily, setDaily]   = useState<any[]>([])
@@ -52,6 +80,17 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
   const [editSC, setEditSC] = useState<string[]|null>(null)
   const [editYT, setEditYT] = useState<string[]|null>(null)
   const [saving, setSaving] = useState(false)
+  const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>({})
+  const [flagSaving, setFlagSaving] = useState<string | null>(null)
+  const [sessions, setSessions] = useState<any[]>([])
+  const [editBoundary, setEditBoundary] = useState<number | null>(null)
+  const [editTimer, setEditTimer] = useState<number | null>(null)
+  const [calibSaving, setCalibSaving] = useState(false)
+  const [tutorialSteps, setTutorialSteps] = useState<number[]>([])
+  const [tutorialSending, setTutorialSending] = useState(false)
+  const [completedSteps, setCompletedSteps] = useState<number[]>([])
+  const [eduStatus, setEduStatus] = useState<string>('idle')  // idle | pending | active
+  const [adminContact, setAdminContact] = useState('xnoag@icloud.com')
 
   useEffect(() => {
     async function load() {
@@ -64,6 +103,10 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
         getDoc(doc(db,'usageStats',code,'daily',todayKey())),
         getDocs(query(collection(db,'usageStats',code,'speaks'),orderBy('timestamp','desc'),limit(500))),
       ])
+      const ssSnap = await getDocs(query(collection(db,'usageStats',code,'sessions'),orderBy('start','desc'),limit(200)))
+      setSessions(ssSnap.docs.map(d=>({id:d.id,...d.data()})))
+      const ffSnap = await getDoc(doc(db,'featureFlags',code))
+      if (ffSnap.exists()) setFeatureFlags(ffSnap.data() as Record<string, boolean>)
       let m: Record<string,any> = sS.exists() ? sS.data() : {}
       if (!pS.empty) m={...pS.docs[0].data(),...m}
       else if (pD.exists()) m={...pD.data(),...m}
@@ -85,66 +128,223 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
   const shortMean = blink.onboardingShortDurations?.length ? blink.onboardingShortDurations.reduce((a:number,b:number)=>a+b,0)/blink.onboardingShortDurations.length : null
   const longMean  = blink.onboardingLongDurations?.length  ? blink.onboardingLongDurations.reduce((a:number,b:number)=>a+b,0)/blink.onboardingLongDurations.length  : null
 
+  // 교육 세션 실시간 리스너
+  useEffect(() => {
+    const unsub = onSnapshot(doc(getDb(),'educationSessions',code), snap => {
+      const status = snap.data()?.status ?? 'idle'
+      setEduStatus(status === 'ended' ? 'idle' : status)
+    })
+    return () => unsub()
+  }, [code])
+
+  // 튜토리얼(캘리브레이션 포함) 진행 상황 실시간 리스너
+  useEffect(() => {
+    const unsub = onSnapshot(doc(getDb(),'tutorialConfig',code), snap => {
+      setCompletedSteps((snap.data()?.completedSteps as number[]) ?? [])
+    })
+    return () => unsub()
+  }, [code])
+
   // 일별 최대값 (바 차트 기준)
   const maxSpeak = Math.max(1,...daily.map(d=>n(d.speakCount)))
 
-  if (loading) return <div style={{height:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'#fff',fontFamily:F,color:'#6e6e73',fontSize:14}}>불러오는 중...</div>
+  if (loading) return <div style={{height:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'#f2f2f7',fontFamily:F,color:'#8e8e93',fontSize:13}}>불러오는 중...</div>
 
   return (
-    <div style={{minHeight:'100vh',background:'#fff',fontFamily:F,color:'#1d1d1f'}}>
+    <div style={{height:'100vh',display:'flex',flexDirection:'column',background:'#f2f2f7',fontFamily:F,color:'#1d1d1f'}}>
 
-      {/* 상단 탭 바 — Apple Report 스타일 */}
-      <div style={{borderBottom:'1px solid #d2d2d7',position:'sticky',top:0,zIndex:50,background:'rgba(255,255,255,0.92)',backdropFilter:'blur(20px)'}}>
-        <div style={{maxWidth:1100,margin:'0 auto',padding:'0 48px',display:'flex',alignItems:'center',gap:0}}>
-          <a href="/tracking/dashboard" style={{color:'#06c',textDecoration:'none',fontSize:12,padding:'14px 16px 14px 0',borderRight:'1px solid #d2d2d7',marginRight:4,display:'flex',alignItems:'center',gap:4,flexShrink:0}}>
-            <svg width="5" height="9" viewBox="0 0 5 9" fill="none"><path d="M4.5 1L1 4.5L4.5 8" stroke="#06c" strokeWidth="1.4" strokeLinecap="round"/></svg>
-            목록
-          </a>
-          {TABS.map(t => (
-            <button key={t} onClick={()=>setTab(t)} style={{padding:'14px 16px',border:'none',borderBottom:tab===t?'2px solid #1d1d1f':'2px solid transparent',background:'transparent',fontSize:12,fontWeight:tab===t?600:400,color:tab===t?'#1d1d1f':'#6e6e73',cursor:'pointer',fontFamily:F,whiteSpace:'nowrap',marginBottom:-1}}>
-              {t}
-            </button>
-          ))}
-          <div style={{flex:1}}/>
-          <button onClick={async()=>{
-            if(!confirm(`"${stats.userName||code}" 전체 데이터를 삭제합니다.`)) return
-            setDeleting(true); const db=getDb()
-            const [d1,d2,d3]=await Promise.all([getDocs(collection(db,'usageStats',code,'daily')),getDocs(collection(db,'chats',code,'messages')),getDocs(collection(db,'usageStats',code,'speaks'))])
-            await Promise.all([...d1.docs,...d2.docs,...d3.docs].map(d=>deleteDoc(d.ref)))
-            await Promise.all([deleteDoc(doc(db,'usageStats',code)),deleteDoc(doc(db,'blinkProfiles',code)),deleteDoc(doc(db,'patients',code)),deleteDoc(doc(db,'chats',code)),deleteDoc(doc(db,'shortcuts',code)),deleteDoc(doc(db,'youtubeSuggestions',code))])
-            const byCode=await getDocs(query(collection(db,'patients'),where('chatCode','==',code)))
-            await Promise.all(byCode.docs.map(d=>deleteDoc(d.ref)))
-            location.href='/tracking/dashboard'
-          }} disabled={deleting} style={{fontSize:11,color:'#ff3b30',border:'none',background:'transparent',cursor:'pointer',fontFamily:F,padding:'0 0 0 16px'}}>
-            {deleting?'삭제 중...':'삭제'}
+      {/* 상단 헤더 */}
+      <div style={{background:'#1d1d1f',flexShrink:0,padding:'0 24px',display:'flex',alignItems:'center',gap:16,height:56}}>
+        <a href="/tracking/dashboard" style={{color:'rgba(255,255,255,0.6)',textDecoration:'none',fontSize:12,display:'flex',alignItems:'center',gap:6,flexShrink:0}}>
+          <svg width="6" height="10" viewBox="0 0 6 10" fill="none"><path d="M5 1L1 5L5 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+          목록
+        </a>
+        <div style={{width:1,height:16,background:'rgba(255,255,255,0.15)'}}/>
+        <div>
+          <div style={{fontSize:15,fontWeight:700,color:'#fff',letterSpacing:'-.3px'}}>{stats.userName||code}</div>
+          <div style={{fontSize:11,color:'rgba(255,255,255,0.45)',fontFamily:M}}>{[stats.diagnosis,stats.hospital].filter(Boolean).join(' · ')}{stats.diagnosis||stats.hospital?' · ':''}{code}</div>
+        </div>
+        <div style={{flex:1}}/>
+        {/* 교육 세션 */}
+        {eduStatus==='idle' && <>
+          <input value={adminContact} onChange={e=>setAdminContact(e.target.value)} placeholder="FaceTime 연락처"
+            style={{padding:'4px 10px',borderRadius:8,border:'1px solid rgba(255,255,255,0.15)',background:'rgba(255,255,255,0.1)',fontSize:11,fontFamily:M,outline:'none',width:150,color:'#fff'}}/>
+          <button onClick={async()=>{ await setDoc(doc(getDb(),'educationSessions',code),{status:'pending',adminContact,requestedAt:new Date()}); setEduStatus('pending') }}
+            style={{height:32,padding:'0 14px',borderRadius:8,border:'none',background:'#007AFF',color:'#fff',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:F,flexShrink:0}}>
+            교육시간 시작
           </button>
+        </>}
+        {eduStatus==='pending' && <>
+          <span style={{fontSize:11,color:'#ff9500'}}>수락 대기 중...</span>
+          <button onClick={async()=>{ await setDoc(doc(getDb(),'educationSessions',code),{status:'ended'},{merge:true}); setEduStatus('idle') }}
+            style={{height:32,padding:'0 12px',borderRadius:8,border:'1px solid rgba(255,255,255,0.2)',background:'transparent',color:'rgba(255,255,255,0.7)',fontSize:11,cursor:'pointer',fontFamily:F}}>취소</button>
+        </>}
+        {eduStatus==='active' && (
+          <button onClick={async()=>{ await setDoc(doc(getDb(),'educationSessions',code),{status:'ended'},{merge:true}); setEduStatus('idle') }}
+            style={{height:32,padding:'0 14px',borderRadius:8,border:'none',background:'#ff3b30',color:'#fff',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:F}}>
+            세션 종료
+          </button>
+        )}
+        <button onClick={async()=>{
+          if(!confirm(`"${stats.userName||code}" 전체 데이터를 삭제합니다.`)) return
+          setDeleting(true); const db=getDb()
+          const [d1,d2,d3]=await Promise.all([getDocs(collection(db,'usageStats',code,'daily')),getDocs(collection(db,'chats',code,'messages')),getDocs(collection(db,'usageStats',code,'speaks'))])
+          await Promise.all([...d1.docs,...d2.docs,...d3.docs].map(d=>deleteDoc(d.ref)))
+          await Promise.all([deleteDoc(doc(db,'usageStats',code)),deleteDoc(doc(db,'blinkProfiles',code)),deleteDoc(doc(db,'patients',code)),deleteDoc(doc(db,'chats',code)),deleteDoc(doc(db,'shortcuts',code)),deleteDoc(doc(db,'youtubeSuggestions',code))])
+          const byCode=await getDocs(query(collection(db,'patients'),where('chatCode','==',code)))
+          await Promise.all(byCode.docs.map(d=>deleteDoc(d.ref)))
+          location.href='/tracking/dashboard'
+        }} disabled={deleting} style={{fontSize:11,color:'#ff453a',border:'none',background:'transparent',cursor:'pointer',fontFamily:F}}>
+          {deleting?'삭제 중...':'삭제'}
+        </button>
+      </div>
+
+      {/* 교육 세션 패널 */}
+      {eduStatus==='active' && (
+        <div style={{background:'#1c3a5e',padding:'10px 24px',flexShrink:0}}>
+          <LessonPanel code={code} getDb={getDb}/>
+          <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginTop:6}}>
+            <span style={{fontSize:11,fontWeight:700,color:'#5ac8fa'}}>⚡ 실행</span>
+            <button onClick={async()=>{ await setDoc(doc(getDb(),'featureFlags',code),{blinkDetection:true},{merge:true}) }}
+              style={{padding:'4px 10px',borderRadius:6,border:'1px solid #34c759',background:'transparent',color:'#34c759',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:F}}>👁 켜기</button>
+            <button onClick={async()=>{ await setDoc(doc(getDb(),'featureFlags',code),{blinkDetection:false},{merge:true}) }}
+              style={{padding:'4px 10px',borderRadius:6,border:'1px solid #ff453a',background:'transparent',color:'#ff453a',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:F}}>👁 끄기</button>
+            {[{label:'말하기',type:'speak'},{label:'초기화',type:'reset'},{label:'삭제',type:'delete'},{label:'호출',type:'call'},{label:'키보드',type:'toKeyboard'},{label:'단축어',type:'toShortcut'},{label:'기능',type:'toFunction'},{label:'잠금',type:'lock'}].map(b=>(
+              <button key={b.type} onClick={async()=>{ await setDoc(doc(getDb(),'educationSessions',code),{command:{type:b.type,id:Math.random().toString(36),ts:new Date()}},{merge:true}) }}
+                style={{padding:'4px 10px',borderRadius:6,border:'1px solid rgba(255,255,255,0.3)',background:'transparent',color:'rgba(255,255,255,0.8)',fontSize:11,cursor:'pointer',fontFamily:F}}>{b.label}</button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 메인: 사이드바 + 콘텐츠 */}
+      <div style={{display:'flex',flex:1,overflow:'hidden'}}>
+
+      {/* 좌측 사이드바 */}
+      <div style={{width:200,background:'#fff',borderRight:'1px solid #e5e5ea',flexShrink:0,display:'flex',flexDirection:'column',paddingTop:8}}>
+        {NAV_ITEMS.map(item=>(
+          <button key={item.id} onClick={()=>setTab(item.id)} style={{
+            display:'flex',alignItems:'center',gap:10,padding:'10px 16px',border:'none',
+            background:tab===item.id?'#f2f2f7':'transparent',
+            borderRadius:10,margin:'2px 8px',cursor:'pointer',fontFamily:F,
+            color:tab===item.id?'#007AFF':'#3a3a3c',
+            fontWeight:tab===item.id?600:400,fontSize:13,textAlign:'left',
+          }}>
+            <span style={{fontSize:16,width:20,textAlign:'center'}}>{item.icon}</span>
+            {item.label}
+          </button>
+        ))}
+        {/* 환우 정보 요약 */}
+        <div style={{marginTop:'auto',padding:'16px',borderTop:'1px solid #f2f2f7'}}>
+          <div style={{fontSize:10,fontWeight:600,color:'#8e8e93',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:8}}>환우 정보</div>
+          {[['보호자',stats.guardianName],['병원',stats.hospital],['지역',stats.region]].filter(([,v])=>v).map(([k,v])=>(
+            <div key={k as string} style={{display:'flex',justifyContent:'space-between',fontSize:11,marginBottom:4}}>
+              <span style={{color:'#8e8e93'}}>{k}</span>
+              <span style={{color:'#1d1d1f',fontWeight:500}}>{v as string}</span>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* 보고서 제목 */}
-      <div style={{maxWidth:1100,margin:'0 auto',padding:'40px 48px 0'}}>
-        <div style={{fontSize:11,fontWeight:500,color:'#6e6e73',letterSpacing:'.06em',textTransform:'uppercase',marginBottom:8}}>
-          Morspeak 사용 현황 보고서 · {todayKey()}
-        </div>
-        <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',paddingBottom:32,borderBottom:'1px solid #d2d2d7'}}>
+      {/* 콘텐츠 영역 */}
+      <div style={{flex:1,overflow:'auto',padding:'28px 32px'}}>
+
+        {/* ── 개요 ── */}
+        {tab==='개요' && (
           <div>
-            <h1 style={{fontSize:40,fontWeight:700,letterSpacing:'-.5px',margin:'0 0 6px',lineHeight:1.1}}>{stats.userName||code}</h1>
-            <p style={{fontSize:14,color:'#6e6e73',margin:0,lineHeight:1.6}}>
-              {[stats.diagnosis,stats.hospital,stats.region].filter(Boolean).join(' · ')}
-              <span style={{fontFamily:M,fontSize:12,color:'#aeaeb2',marginLeft:12}}>{code}</span>
-            </p>
+            {/* 오늘 핵심 지표 카드 */}
+            <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14,marginBottom:28}}>
+              {[
+                {label:'오늘 말하기', v:n(today.speakCount), total:n(stats.speakCount), color:'#007AFF'},
+                {label:'오늘 호출', v:n(today.callCount), total:n(stats.callCount), color:'#ff9500'},
+                {label:'오늘 사용 시간', v:fmtT(today.sessionSeconds), total:fmtT(stats.totalSessionSeconds), color:'#5856d6'},
+                {label:'오늘 IoT 제어', v:n(today.iotCount), total:n(stats.iotCount), color:'#34c759'},
+              ].map(c=>(
+                <div key={c.label} style={{background:'#fff',borderRadius:14,padding:'16px 18px',border:'1px solid #e5e5ea',boxShadow:'0 1px 3px rgba(0,0,0,0.05)'}}>
+                  <div style={{fontSize:11,color:'#8e8e93',fontWeight:600,marginBottom:6}}>{c.label}</div>
+                  <div style={{fontSize:26,fontWeight:700,color:c.color,letterSpacing:'-.5px'}}>{c.v}</div>
+                  <div style={{fontSize:10,color:'#aeaeb2',marginTop:3}}>누적 {c.total}</div>
+                </div>
+              ))}
+            </div>
+            {/* 2열 레이아웃 */}
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,marginBottom:20}}>
+              {/* 모드별 시간 */}
+              <div style={{background:'#fff',borderRadius:14,padding:'20px',border:'1px solid #e5e5ea'}}>
+                <ColTitle>모드별 사용 시간 (오늘)</ColTitle>
+                {(() => {
+                  const modes: [string,number,string][] = [
+                    ['키보드',n(today.modeSeconds_keyboard),'#007AFF'],
+                    ['단축어',n(today.modeSeconds_shortcut),'#34c759'],
+                    ['기능',n(today.modeSeconds_function),'#ff9500'],
+                    ['YouTube',n(today.modeSeconds_youtubeSurf),'#8e8e93'],
+                  ]
+                  const total = modes.reduce((s,[,v])=>s+v,0)
+                  if(!total) return <p style={{color:'#aeaeb2',fontSize:13}}>오늘 데이터 없음</p>
+                  return modes.map(([l,v,c])=>(
+                    <div key={l} style={{marginBottom:12}}>
+                      <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                        <span style={{fontSize:12,color:'#3a3a3c'}}>{l}</span>
+                        <span style={{fontFamily:M,fontSize:12,color:c,fontWeight:600}}>{fmtT(v)}</span>
+                      </div>
+                      <Bar val={v} max={total} color={c}/>
+                    </div>
+                  ))
+                })()}
+              </div>
+              {/* 누적 요약 */}
+              <div style={{background:'#fff',borderRadius:14,padding:'20px',border:'1px solid #e5e5ea'}}>
+                <ColTitle>누적 현황</ColTitle>
+                {[
+                  ['총 말하기', n(stats.speakCount), '회'],
+                  ['총 호출', n(stats.callCount), '회'],
+                  ['총 사용 시간', null, fmtT(stats.totalSessionSeconds)],
+                  ['총 잠금', n(stats.lockCount), '회'],
+                  ['YouTube 선택', n(stats.youtubeSelectCount), '회'],
+                ].map(([l,v,u])=>(
+                  <div key={l as string} style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid #f5f5f7'}}>
+                    <span style={{fontSize:13,color:'#3c3c43'}}>{l}</span>
+                    <span style={{fontFamily:M,fontSize:13,fontWeight:600,color:'#1d1d1f'}}>
+                      {v!==null?`${n(v as number).toLocaleString()} ${u}`:(u as string)}
+                    </span>
+                  </div>
+                ))}
+                <div style={{marginTop:14,padding:'12px',background:'#f9f9fb',borderRadius:10}}>
+                  <div style={{fontSize:10,fontWeight:600,color:'#8e8e93',textTransform:'uppercase',letterSpacing:'.07em',marginBottom:6}}>캘리브레이션</div>
+                  <div style={{display:'flex',gap:16}}>
+                    <div><div style={{fontSize:10,color:'#aeaeb2'}}>경계값</div><div style={{fontFamily:M,fontSize:14,fontWeight:700,color:'#007AFF'}}>{fmtS(blink.dotDashBoundary)}</div></div>
+                    <div><div style={{fontSize:10,color:'#aeaeb2'}}>짧은 평균</div><div style={{fontFamily:M,fontSize:14,fontWeight:700,color:'#007AFF'}}>{fmtS(shortMean??undefined)}</div></div>
+                    <div><div style={{fontSize:10,color:'#aeaeb2'}}>긴 평균</div><div style={{fontFamily:M,fontSize:14,fontWeight:700,color:'#007AFF'}}>{fmtS(longMean??undefined)}</div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* 입력 방법 */}
+            <div style={{background:'#fff',borderRadius:14,padding:'20px',border:'1px solid #e5e5ea'}}>
+              <ColTitle>입력 방법 분석 (최근 {speaks.length}회 발화)</ColTitle>
+              {totalIn>0 ? (
+                <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:14}}>
+                  {[
+                    {label:'키보드 직접 입력', val:totalKbd, color:'#007AFF', desc:'자모를 직접 타이핑'},
+                    {label:'AI 추천 선택', val:totalAI, color:'#5856d6', desc:'AI가 제안한 단어'},
+                    {label:'단축어 표현', val:totalSC, color:'#34c759', desc:'등록된 표현 바로 사용'},
+                  ].map(item=>(
+                    <div key={item.label}>
+                      <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
+                        <span style={{fontSize:12,color:'#3a3a3c',fontWeight:500}}>{item.label}</span>
+                        <span style={{fontFamily:M,fontSize:12,color:item.color,fontWeight:600}}>{item.val}회</span>
+                      </div>
+                      <Bar val={item.val} max={totalIn} color={item.color}/>
+                      <div style={{fontSize:10,color:'#aeaeb2',marginTop:3}}>{item.desc} · {totalIn>0?Math.round(item.val/totalIn*100):0}%</div>
+                    </div>
+                  ))}
+                </div>
+              ) : <p style={{color:'#aeaeb2',fontSize:13}}>발화 기록 없음</p>}
+            </div>
           </div>
-          <div style={{textAlign:'right',fontSize:13,color:'#6e6e73',lineHeight:1.8}}>
-            <div>보호자: <b style={{color:'#1d1d1f'}}>{stats.guardianName||'—'}</b>{stats.guardianRelation?` (${stats.guardianRelation})`:''}</div>
-            <div style={{fontSize:11,color:'#aeaeb2',fontFamily:M}}>ID: {stats.loginId||'—'}</div>
-          </div>
-        </div>
-      </div>
+        )}
 
-      {/* 본문 */}
-      <div style={{maxWidth:1100,margin:'0 auto',padding:'40px 48px 80px'}}>
-
-        {/* ── 오늘 현황 ── */}
+        {/* ── 오늘 현황 (구 이름 호환) ── */}
         {tab==='오늘 현황' && (
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'0 48px'}}>
 
@@ -328,10 +528,10 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
         )}
 
         {/* ── 발화 기록 ── */}
-        {tab==='발화 기록' && <SpeakLogSection speaks={speaks} />}
+        {tab==='발화기록' && <SpeakLogSection speaks={speaks} />}
 
         {/* ── 버튼 통계 ── */}
-        {tab==='버튼 통계' && (
+        {tab==='버튼분석' && (
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'0 48px'}}>
             <div>
               <ColTitle>기능 버튼</ColTitle>
@@ -408,10 +608,228 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
         )}
 
         {/* ── 일별 데이터 ── */}
-        {tab==='일별 데이터' && <DailySection daily={daily} />}
+        {tab==='일별데이터' && <DailySection daily={daily} />}
+
+        {/* ── 세션 기록 ── */}
+        {tab==='세션기록' && <SessionSection sessions={sessions} />}
+
+        {/* ── 튜토리얼 ── */}
+        {tab==='설정' && (
+          <div style={{marginBottom:40}}>
+            <ColTitle>튜토리얼 원격 시작</ColTitle>
+            <p style={{fontSize:13,color:'#6e6e73',lineHeight:1.7,marginBottom:20}}>
+              단계를 선택하고 시작하면 환자 앱에서 해당 단계가 실행됩니다. 1~3은 눈 깜빡임 캘리브레이션, 4~9는 실제 사용법 튜토리얼입니다.
+              완료 여부는 환자 앱에서 실시간으로 전송되어 아래에 표시됩니다. 이전 단계 완료를 확인한 뒤 직접 다음 단계를 열어주세요.
+            </p>
+            {(() => {
+              const steps = [
+                {n:1, label:'짧게 깜빡이기',     desc:'캘리브레이션 · 짧게 ×5'},
+                {n:2, label:'길게 깜빡이기',     desc:'캘리브레이션 · 길게 ×5'},
+                {n:3, label:'혼합 깜빡이기',     desc:'캘리브레이션 · 짧게/길게 혼합 ×5'},
+                {n:4, label:'ㄱ 입력하기',      desc:'짧게·짧게·길게 깜빡임'},
+                {n:5, label:'ㅏ 입력하기',      desc:'길게·짧게 깜빡임'},
+                {n:6, label:'말하기',           desc:'짧게·짧게 (11)'},
+                {n:7, label:'단축어 모드 전환', desc:'길게·짧게·짧게·짧게·짧게 (21111)'},
+                {n:8, label:'표현 선택하기',    desc:'길게·짧게 (21)'},
+                {n:9, label:'호출하기',         desc:'길게·길게 (22)'},
+              ]
+              return (
+                <div>
+                  <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:20}}>
+                    {steps.map(s => {
+                      const checked = tutorialSteps.includes(s.n)
+                      const done = completedSteps.includes(s.n)
+                      return (
+                        <label key={s.n} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',border:`1.5px solid ${checked?'#007AFF':'#d2d2d7'}`,borderRadius:10,cursor:'pointer',background:checked?'#f0f7ff':'#fff'}}>
+                          <input type="checkbox" checked={checked} onChange={() =>
+                            setTutorialSteps(prev => checked ? prev.filter(x=>x!==s.n) : [...prev,s.n].sort((a,b)=>a-b))
+                          } style={{accentColor:'#007AFF',width:16,height:16}}/>
+                          <div style={{flex:1}}>
+                            <div style={{fontSize:13,fontWeight:600,color:checked?'#007AFF':'#1d1d1f'}}>{s.n}. {s.label}</div>
+                            <div style={{fontSize:11,color:'#8e8e93',fontFamily:M}}>{s.desc}</div>
+                          </div>
+                          {done && (
+                            <span style={{fontSize:11,fontWeight:700,color:'#34c759',fontFamily:M,flexShrink:0}}>✓ 완료</span>
+                          )}
+                        </label>
+                      )
+                    })}
+                  </div>
+                  <div style={{display:'flex',gap:8}}>
+                    <button onClick={async () => {
+                      if (!tutorialSteps.length) return
+                      setTutorialSending(true)
+                      await setDoc(doc(getDb(),'tutorialConfig',code), {
+                        steps: tutorialSteps,
+                        requestedAt: new Date(),
+                      })
+                      setTutorialSending(false)
+                    }} disabled={tutorialSending||!tutorialSteps.length} style={smallBtn}>
+                      {tutorialSending ? '전송 중...' : `단계 열기 (${tutorialSteps.length}개 선택)`}
+                    </button>
+                    <button onClick={()=>setTutorialSteps([])}
+                      style={{...smallBtn,background:'#f5f5f7',color:'#3c3c43',border:'none'}}>선택 해제</button>
+                  </div>
+                </div>
+              )
+            })()}
+          </div>
+        )}
+
+        {/* ── 기능 관리 ── */}
+        {tab==='기능관리' && (
+          <div style={{maxWidth:560}}>
+            <ColTitle>기능 관리</ColTitle>
+            <p style={{fontSize:13,color:'#6e6e73',lineHeight:1.7,marginBottom:28}}>
+              각 기능의 모스부호 입력이 실행되지 않도록 차단합니다. 꺼진 기능은 모스부호가 입력되어도 앱에서 아무 반응이 없습니다.
+            </p>
+            <div style={{border:'1px solid #d2d2d7',borderRadius:12,overflow:'hidden'}}>
+              {FEATURE_FLAGS.map((f, i) => {
+                const enabled = f.key in featureFlags ? featureFlags[f.key] : f.defaultOn
+                const isLast = i === FEATURE_FLAGS.length - 1
+                return (
+                  <div key={f.key} style={{
+                    display:'flex',alignItems:'center',justifyContent:'space-between',
+                    padding:'14px 20px',
+                    borderBottom: isLast ? 'none' : '1px solid #f0f0f5',
+                    background: enabled ? '#fff' : '#fafafa',
+                  }}>
+                    <div>
+                      <div style={{fontSize:14,fontWeight:500,color: enabled ? '#1d1d1f' : '#aeaeb2'}}>{f.label}</div>
+                      <div style={{fontSize:11,fontFamily:M,color:'#aeaeb2',marginTop:2}}>{f.morse}</div>
+                    </div>
+                    <button
+                      disabled={flagSaving === f.key}
+                      onClick={async () => {
+                        const next = !enabled
+                        setFlagSaving(f.key)
+                        try {
+                          await setDoc(doc(getDb(),'featureFlags',code), { [f.key]: next }, { merge: true })
+                          setFeatureFlags(prev => ({...prev, [f.key]: next}))
+                        } finally {
+                          setFlagSaving(null)
+                        }
+                      }}
+                      style={{
+                        position:'relative',width:44,height:26,borderRadius:13,border:'none',cursor:'pointer',
+                        background: enabled ? '#34c759' : '#d1d1d6',
+                        transition:'background .2s',padding:0,flexShrink:0,
+                        opacity: flagSaving === f.key ? 0.5 : 1,
+                      }}
+                    >
+                      <span style={{
+                        position:'absolute',top:3,left: enabled ? 21 : 3,
+                        width:20,height:20,borderRadius:'50%',background:'#fff',
+                        boxShadow:'0 1px 3px rgba(0,0,0,.25)',transition:'left .2s',display:'block',
+                      }}/>
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+            <p style={{fontSize:11,color:'#aeaeb2',marginTop:12}}>변경 즉시 앱에 반영됩니다 (실시간 동기화)</p>
+          </div>
+        )}
 
         {/* ── 설정 ── */}
         {tab==='설정' && (
+          <div>
+          {/* 캘리브레이션 조정 */}
+          <div style={{marginBottom:48}}>
+            <ColTitle>캘리브레이션 조정</ColTitle>
+            <p style={{fontSize:13,color:'#6e6e73',lineHeight:1.7,marginBottom:24}}>
+              눈깜빡임 감지 파라미터를 수동으로 조정합니다. 변경 즉시 앱에 반영됩니다.
+            </p>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 48px'}}>
+              {/* 점/선 경계값 */}
+              <div>
+                <div style={{fontSize:12,fontWeight:600,color:'#6e6e73',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:12}}>점·선 경계값 (초)</div>
+                {(() => {
+                  const shorts: number[] = blink.onboardingShortDurations ?? []
+                  const longs:  number[] = blink.onboardingLongDurations  ?? []
+                  const boundary = editBoundary ?? blink.dotDashBoundary ?? 0.6
+                  const allVals  = [...shorts, ...longs]
+                  const maxVal   = Math.max(...allVals, boundary * 1.5, 1.2)
+                  const toX = (v: number) => Math.round(v / maxVal * 100)
+                  return (
+                    <div>
+                      {/* 분포 시각화 */}
+                      {allVals.length > 0 && (
+                        <div style={{position:'relative',height:40,marginBottom:8,background:'#f5f5f7',borderRadius:8,overflow:'hidden'}}>
+                          {shorts.map((v,i) => (
+                            <div key={`s${i}`} style={{position:'absolute',left:`${toX(v)}%`,top:4,width:3,height:14,background:'#007AFF',borderRadius:2,opacity:.6}}/>
+                          ))}
+                          {longs.map((v,i) => (
+                            <div key={`l${i}`} style={{position:'absolute',left:`${toX(v)}%`,top:22,width:3,height:14,background:'#ff9500',borderRadius:2,opacity:.6}}/>
+                          ))}
+                          <div style={{position:'absolute',left:`${toX(boundary)}%`,top:0,width:2,height:40,background:'#ff3b30'}}/>
+                        </div>
+                      )}
+                      {allVals.length > 0 && (
+                        <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'#aeaeb2',marginBottom:12}}>
+                          <span style={{color:'#007AFF'}}>● 짧게 ({shorts.length}회)</span>
+                          <span style={{color:'#ff9500'}}>● 길게 ({longs.length}회)</span>
+                          <span style={{color:'#ff3b30'}}>│ 경계</span>
+                        </div>
+                      )}
+                      <div style={{display:'flex',alignItems:'center',gap:12}}>
+                        <input type="range" min={0.20} max={1.20} step={0.01}
+                          value={boundary}
+                          onChange={e => setEditBoundary(parseFloat(e.target.value))}
+                          style={{flex:1,accentColor:'#ff3b30'}}
+                        />
+                        <span style={{fontFamily:M,fontSize:14,fontWeight:700,color:'#ff3b30',minWidth:48}}>{boundary.toFixed(2)}s</span>
+                      </div>
+                      <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'#aeaeb2',marginTop:4,marginBottom:16}}>
+                        <span>빠름 0.20s</span><span>느림 1.20s</span>
+                      </div>
+                    </div>
+                  )
+                })()}
+              </div>
+              {/* 입력 대기 시간 */}
+              <div>
+                <div style={{fontSize:12,fontWeight:600,color:'#6e6e73',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:12}}>입력 대기 시간 (초)</div>
+                <p style={{fontSize:12,color:'#6e6e73',lineHeight:1.6,marginBottom:12}}>깜빡임 후 이 시간 안에 다음 깜빡임이 없으면 현재까지 입력한 모스코드를 확정합니다.</p>
+                {(() => {
+                  const timer = editTimer ?? (blink.blinkTimerInterval ?? 2.5)
+                  return (
+                    <div>
+                      <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:4}}>
+                        <input type="range" min={1.5} max={4.0} step={0.1}
+                          value={timer}
+                          onChange={e => setEditTimer(parseFloat(e.target.value))}
+                          style={{flex:1,accentColor:'#007AFF'}}
+                        />
+                        <span style={{fontFamily:M,fontSize:14,fontWeight:700,color:'#007AFF',minWidth:48}}>{timer.toFixed(1)}s</span>
+                      </div>
+                      <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'#aeaeb2',marginBottom:16}}>
+                        <span>빠름 1.5s</span><span>느림 4.0s</span>
+                      </div>
+                    </div>
+                  )
+                })()}
+              </div>
+            </div>
+            {(editBoundary !== null || editTimer !== null) && (
+              <div style={{display:'flex',gap:8,marginTop:8}}>
+                <button onClick={async () => {
+                  setCalibSaving(true)
+                  const update: Record<string,number> = {}
+                  if (editBoundary !== null) update.dotDashBoundary = editBoundary
+                  if (editTimer !== null) update.blinkTimerInterval = editTimer
+                  await setDoc(doc(getDb(),'blinkProfiles',code), update, {merge: true})
+                  if (editBoundary !== null) setBlink((b:any) => ({...b, dotDashBoundary: editBoundary}))
+                  if (editTimer !== null) setBlink((b:any) => ({...b, blinkTimerInterval: editTimer}))
+                  setEditBoundary(null); setEditTimer(null); setCalibSaving(false)
+                }} disabled={calibSaving} style={smallBtn}>
+                  {calibSaving ? '저장 중...' : '저장'}
+                </button>
+                <button onClick={() => { setEditBoundary(null); setEditTimer(null) }}
+                  style={{...smallBtn, background:'#f5f5f7', color:'#3c3c43', border:'none'}}>취소</button>
+              </div>
+            )}
+          </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 48px'}}>
             {/* 자주 쓰는 표현 */}
             <div>
@@ -473,8 +891,10 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
               {editYT!==null && editYT.length<24 && <button onClick={()=>setEditYT([...editYT,''])} style={{marginTop:8,padding:'6px 0',border:'none',background:'transparent',color:'#06c',fontSize:13,cursor:'pointer',fontFamily:F}}>+ 추가</button>}
             </div>
           </div>
+          </div>
         )}
 
+      </div>
       </div>
     </div>
   )
@@ -705,22 +1125,29 @@ function SpeakLogSection({ speaks }: { speaks: any[] }) {
             const aiW: string[] = s.aiWords||[], scW: string[] = s.shortcutWords||[]
             const tokens = buildTokens(s.text||'', aiW, scW)
             return (
-              <div key={i} style={{display:'flex',gap:12,alignItems:'flex-start',padding:'10px 0',borderBottom:'1px solid #f5f5f7'}}>
-                <span style={{fontFamily:M,fontSize:11,color:'#aeaeb2',whiteSpace:'nowrap',paddingTop:2,minWidth:56}}>{timeStr}</span>
+              <div key={i} style={{display:'flex',gap:12,alignItems:'flex-start',padding:'12px 0',borderBottom:'1px solid #f5f5f7'}}>
+                <span style={{fontFamily:M,fontSize:11,color:'#aeaeb2',whiteSpace:'nowrap',paddingTop:3,minWidth:56}}>{timeStr}</span>
                 <div style={{flex:1}}>
-                  <div style={{display:'flex',flexWrap:'wrap',gap:3,marginBottom:3}}>
-                    {tokens.map((t,j) => (
-                      <span key={j} style={{fontSize:13,fontWeight:500,padding:'1px 6px',borderRadius:4,
-                        background:t.source==='ai'?'#f0efff':t.source==='shortcut'?'#edfaee':'#eef4ff',
-                        color:t.source==='ai'?'#5856d6':t.source==='shortcut'?'#34c759':'#06c'}}>
-                        {t.text}
-                      </span>
-                    ))}
+                  {/* 전체 문장 */}
+                  <div style={{fontSize:15,fontWeight:500,color:'#1d1d1f',marginBottom:6,lineHeight:1.5}}>
+                    {s.text||'—'}
                   </div>
+                  {/* 입력 방법 색상 분류 */}
+                  {tokens.length > 0 && (
+                    <div style={{display:'flex',flexWrap:'wrap',gap:3,marginBottom:4}}>
+                      {tokens.map((t,j) => (
+                        <span key={j} style={{fontSize:11,padding:'1px 6px',borderRadius:4,
+                          background:t.source==='ai'?'#f0efff':t.source==='shortcut'?'#edfaee':'#eef4ff',
+                          color:t.source==='ai'?'#5856d6':t.source==='shortcut'?'#34c759':'#007AFF'}}>
+                          {t.text}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <div style={{display:'flex',gap:8}}>
-                    {s.keyboardCount>0 && <span style={{fontSize:10,color:'#aeaeb2'}}>키보드 {s.keyboardCount}</span>}
-                    {s.aiCount>0 && <span style={{fontSize:10,color:'#5856d6'}}>AI {aiW.join(', ')}</span>}
-                    {s.shortcutCount>0 && <span style={{fontSize:10,color:'#34c759'}}>단축어 {scW.join(', ')}</span>}
+                    {s.keyboardCount>0 && <span style={{fontSize:10,color:'#aeaeb2'}}>⌨️ 키보드 {s.keyboardCount}자</span>}
+                    {s.aiCount>0 && <span style={{fontSize:10,color:'#5856d6'}}>✨ AI {aiW.join(', ')}</span>}
+                    {s.shortcutCount>0 && <span style={{fontSize:10,color:'#34c759'}}>⭐ 단축어 {scW.join(', ')}</span>}
                   </div>
                 </div>
               </div>
@@ -768,4 +1195,329 @@ function buildTokens(text: string, aiW: string[], scW: string[]): {text:string;s
     if(!matched){let end=rem.length;for(const k of known){const idx=rem.indexOf(k.text);if(idx>0&&idx<end)end=idx};const w=rem.slice(0,end).trim();if(w)out.push({text:w,source:'keyboard'});rem=rem.slice(end)}
   }
   return out.filter(t=>t.text.trim())
+}
+
+// ── 교육 레슨 패널 ────────────────────────────────────────────────
+const F2 = "system-ui,-apple-system,'SF Pro Text',sans-serif"
+const M2 = "'SF Mono','Fira Mono',monospace"
+
+type LessonBtn = { label:string; key:string; morse:string; instr:string; mode:string }
+
+const KEYBOARD_JAUM: LessonBtn[] = [
+  {label:'ㄱ', key:'jamo_ㄱ', morse:'112',  instr:'ㄱ을 입력해보세요', mode:'keyboard'},
+  {label:'ㄴ', key:'jamo_ㄴ', morse:'1121', instr:'ㄴ을 입력해보세요', mode:'keyboard'},
+  {label:'ㄷ', key:'jamo_ㄷ', morse:'121',  instr:'ㄷ을 입력해보세요', mode:'keyboard'},
+  {label:'ㄹ', key:'jamo_ㄹ', morse:'1112', instr:'ㄹ을 입력해보세요', mode:'keyboard'},
+  {label:'ㅁ', key:'jamo_ㅁ', morse:'1122', instr:'ㅁ을 입력해보세요', mode:'keyboard'},
+  {label:'ㅂ', key:'jamo_ㅂ', morse:'1212', instr:'ㅂ을 입력해보세요', mode:'keyboard'},
+  {label:'ㅅ', key:'jamo_ㅅ', morse:'1111', instr:'ㅅ을 입력해보세요', mode:'keyboard'},
+  {label:'ㅇ', key:'jamo_ㅇ', morse:'111',  instr:'ㅇ을 입력해보세요', mode:'keyboard'},
+  {label:'ㅈ', key:'jamo_ㅈ', morse:'1211', instr:'ㅈ을 입력해보세요', mode:'keyboard'},
+  {label:'ㅊ', key:'jamo_ㅊ', morse:'1221', instr:'ㅊ을 입력해보세요', mode:'keyboard'},
+  {label:'ㅋ', key:'jamo_ㅋ', morse:'2112', instr:'ㅋ을 입력해보세요', mode:'keyboard'},
+  {label:'ㅌ', key:'jamo_ㅌ', morse:'2121', instr:'ㅌ을 입력해보세요', mode:'keyboard'},
+  {label:'ㅍ', key:'jamo_ㅍ', morse:'2211', instr:'ㅍ을 입력해보세요', mode:'keyboard'},
+  {label:'ㅎ', key:'jamo_ㅎ', morse:'2111', instr:'ㅎ을 입력해보세요', mode:'keyboard'},
+]
+const KEYBOARD_MOUM: LessonBtn[] = [
+  {label:'ㅏ', key:'jamo_ㅏ', morse:'21',  instr:'ㅏ를 입력해보세요', mode:'keyboard'},
+  {label:'ㅓ', key:'jamo_ㅓ', morse:'221', instr:'ㅓ를 입력해보세요', mode:'keyboard'},
+  {label:'ㅗ', key:'jamo_ㅗ', morse:'222', instr:'ㅗ를 입력해보세요', mode:'keyboard'},
+  {label:'ㅜ', key:'jamo_ㅜ', morse:'122', instr:'ㅜ를 입력해보세요', mode:'keyboard'},
+  {label:'ㅡ', key:'jamo_ㅡ', morse:'212', instr:'ㅡ를 입력해보세요', mode:'keyboard'},
+  {label:'ㅣ', key:'jamo_ㅣ', morse:'211', instr:'ㅣ를 입력해보세요', mode:'keyboard'},
+]
+const KEYBOARD_BTNS: LessonBtn[] = [
+  {label:'말하기',   key:'speak',      morse:'11',    instr:'말하기를 해보세요',          mode:'keyboard'},
+  {label:'호출',     key:'call',       morse:'22',    instr:'호출을 해보세요',            mode:'keyboard'},
+  {label:'잠금',     key:'lock',       morse:'2',     instr:'잠금을 해보세요',            mode:'function'},
+  {label:'잠금해제', key:'lock',       morse:'2',     instr:'잠금 해제를 해보세요',       mode:'function'},
+  {label:'삭제',     key:'delete',     morse:'1',     instr:'삭제를 해보세요',            mode:'keyboard'},
+  {label:'초기화',   key:'reset',      morse:'11211', instr:'초기화를 해보세요',          mode:'keyboard'},
+  {label:'기능전환', key:'toFunction', morse:'11112', instr:'기능 모드로 전환해보세요',   mode:'keyboard'},
+  {label:'단축어전환',key:'toShortcut',morse:'21111', instr:'단축어 모드로 전환해보세요', mode:'keyboard'},
+  {label:'키보드전환',key:'toKeyboard',morse:'11121', instr:'키보드 모드로 전환해보세요', mode:'shortcut'},
+]
+const FUNCTION_BTNS: LessonBtn[] = [
+  {label:'보내기',     key:'send',       morse:'1',   instr:'보내기를 해보세요',     mode:'function'},
+  {label:'잠그기',     key:'lock',       morse:'2',   instr:'잠그기를 해보세요',     mode:'function'},
+  {label:'잠금해제',   key:'lock',       morse:'2',   instr:'잠금 해제를 해보세요',  mode:'function'},
+  {label:'반복말하기', key:'repeatSpeak',morse:'112', instr:'반복 말하기를 해보세요', mode:'function'},
+  {label:'유튜브',     key:'youtubeOn',  morse:'111', instr:'유튜브를 실행해보세요',  mode:'function'},
+  {label:'콘센트1',    key:'outlet1',    morse:'12',  instr:'콘센트1을 제어해보세요', mode:'function'},
+  {label:'콘센트2',    key:'outlet2',    morse:'211', instr:'콘센트2를 제어해보세요', mode:'function'},
+  {label:'콘센트3',    key:'outlet3',    morse:'121', instr:'콘센트3을 제어해보세요', mode:'function'},
+]
+
+function LessonPanel({ code, getDb }: { code: string; getDb: ()=>any }) {
+  const [modeTab, setModeTab] = useState<'keyboard'|'function'|'free'>('keyboard')
+
+  async function setStep(btn: LessonBtn) {
+    await setDoc(doc(getDb(),'educationSessions',code), {
+      lessonStep: { targetKey: btn.key, morse: btn.morse, instruction: btn.instr, mode: btn.mode }
+    }, { merge: true })
+  }
+  async function clearStep() {
+    await setDoc(doc(getDb(),'educationSessions',code), { lessonStep: null }, { merge: true })
+  }
+
+  function BtnChip({ b }: { b: LessonBtn }) {
+    return (
+      <button onClick={() => setStep(b)} style={{
+        padding:'5px 10px',borderRadius:16,border:'1.5px solid #007AFF',
+        background:'#fff',color:'#007AFF',fontSize:11,fontWeight:600,
+        cursor:'pointer',fontFamily:F2,display:'flex',alignItems:'center',gap:4
+      }}>
+        <span style={{fontSize:13}}>{b.label}</span>
+        <span style={{fontFamily:M2,fontSize:9,opacity:.55}}>{b.morse}</span>
+      </button>
+    )
+  }
+
+  return (
+    <div style={{marginBottom:8}}>
+      <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:8}}>
+        <span style={{fontSize:11,fontWeight:700,color:'#007AFF'}}>🎯 연습</span>
+        {(['keyboard','function','free'] as const).map(t => (
+          <button key={t} onClick={()=>setModeTab(t)} style={{
+            padding:'3px 10px',borderRadius:20,border:'none',fontSize:10,fontWeight:600,cursor:'pointer',fontFamily:F2,
+            background: modeTab===t ? '#007AFF' : '#f0f0f5',
+            color: modeTab===t ? '#fff' : '#6e6e73',
+          }}>
+            {t==='keyboard'?'키보드':t==='function'?'기능':'자유입력'}
+          </button>
+        ))}
+        <button onClick={clearStep} style={{padding:'3px 10px',borderRadius:20,border:'1px solid #d2d2d7',background:'#fff',color:'#8e8e93',fontSize:10,cursor:'pointer',fontFamily:F2,marginLeft:'auto'}}>
+          자유 입력
+        </button>
+      </div>
+
+      {modeTab === 'keyboard' && (
+        <div style={{display:'flex',flexDirection:'column',gap:6}}>
+          <div style={{display:'flex',gap:4,flexWrap:'wrap',alignItems:'center'}}>
+            <span style={{fontSize:9,fontWeight:700,color:'#8e8e93',minWidth:20}}>자음</span>
+            {KEYBOARD_JAUM.map(b=><BtnChip key={b.key+b.label} b={b}/>)}
+          </div>
+          <div style={{display:'flex',gap:4,flexWrap:'wrap',alignItems:'center'}}>
+            <span style={{fontSize:9,fontWeight:700,color:'#8e8e93',minWidth:20}}>모음</span>
+            {KEYBOARD_MOUM.map(b=><BtnChip key={b.key+b.label} b={b}/>)}
+          </div>
+          <div style={{display:'flex',gap:4,flexWrap:'wrap',alignItems:'center'}}>
+            <span style={{fontSize:9,fontWeight:700,color:'#8e8e93',minWidth:20}}>버튼</span>
+            {KEYBOARD_BTNS.map(b=><BtnChip key={b.key+b.label} b={b}/>)}
+          </div>
+        </div>
+      )}
+      {modeTab === 'function' && (
+        <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+          {FUNCTION_BTNS.map(b=><BtnChip key={b.key+b.label} b={b}/>)}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── 세션 기록 (시각화) ─────────────────────────────────────────────
+function SessionSection({ sessions }: { sessions: any[] }) {
+  const Ff = "system-ui,-apple-system,'SF Pro Text',sans-serif"
+  const Mm = "'SF Mono','Fira Mono',monospace"
+  const [tooltip, setTooltip] = useState<{x:number;y:number;lines:string[]}|null>(null)
+
+  function fmtDur(sec: number) {
+    const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = sec%60
+    if (h > 0) return `${h}시간 ${m}분`
+    if (m > 0) return `${m}분 ${s}초`
+    return `${s}초`
+  }
+  function fmtTime(ts:{seconds:number}) {
+    return new Date(ts.seconds*1000).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})
+  }
+  function dayLabel(date:string) {
+    const d = new Date(date)
+    const days = ['일','월','화','수','목','금','토']
+    return { md: `${d.getMonth()+1}/${d.getDate()}`, dow: days[d.getDay()] }
+  }
+
+  const byDate: Record<string, any[]> = {}
+  sessions.forEach(s => {
+    const date = s.date || (s.start?.seconds ? new Date(s.start.seconds*1000).toISOString().slice(0,10) : '—')
+    if (!byDate[date]) byDate[date] = []
+    byDate[date].push(s)
+  })
+  const dates = Object.keys(byDate).sort((a,b)=>b.localeCompare(a)).slice(0,14)
+
+  if (!sessions.length) return (
+    <div style={{padding:'48px 0',textAlign:'center',color:'#aeaeb2',fontFamily:Ff,fontSize:13}}>
+      세션 기록 없음 — 앱 업데이트 후부터 쌓입니다
+    </div>
+  )
+
+  const allTotals = dates.map(d=>byDate[d].reduce((s,r)=>s+(r.duration??0),0))
+  const maxTotal  = Math.max(...allTotals, 1)
+  const totalAll  = allTotals.reduce((a,b)=>a+b,0)
+  const avgDaily  = Math.round(totalAll / dates.length)
+
+  // 가장 많이 사용한 시간대
+  const hourBuckets = Array(24).fill(0)
+  sessions.forEach(s => {
+    if (s.start?.seconds) hourBuckets[new Date(s.start.seconds*1000).getHours()]++
+  })
+  const peakHour = hourBuckets.indexOf(Math.max(...hourBuckets))
+
+  return (
+    <div style={{fontFamily:Ff}} onMouseLeave={()=>setTooltip(null)}>
+
+      {/* 요약 카드 */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:36}}>
+        {[
+          {label:'기록 일수', value:`${dates.length}일`, sub:'최근 기준'},
+          {label:'총 사용 시간', value:fmtDur(totalAll), sub:'누적'},
+          {label:'일 평균', value:fmtDur(avgDaily), sub:'사용 시간'},
+          {label:'주요 사용 시간대', value:`${peakHour}–${peakHour+1}시`, sub:'가장 자주 켬'},
+        ].map(c=>(
+          <div key={c.label} style={{padding:'16px 20px',background:'#f9f9fb',borderRadius:14,border:'1px solid #ebebef'}}>
+            <div style={{fontSize:11,color:'#8e8e93',marginBottom:6}}>{c.label}</div>
+            <div style={{fontSize:22,fontWeight:700,color:'#1d1d1f',letterSpacing:'-.5px'}}>{c.value}</div>
+            <div style={{fontSize:10,color:'#aeaeb2',marginTop:2}}>{c.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* 타임라인 헤더 */}
+      <div style={{display:'flex',alignItems:'center',marginBottom:4,gap:0}}>
+        <div style={{width:56,flexShrink:0}}/>
+        <div style={{width:48,flexShrink:0,marginRight:12}}/>
+        <div style={{flex:1,position:'relative',height:16}}>
+          {[0,3,6,9,12,15,18,21,24].map(h=>(
+            <div key={h} style={{position:'absolute',left:`${h/24*100}%`,fontSize:9,color:'#c7c7cc',fontFamily:Mm,transform:'translateX(-50%)'}}>
+              {h===0?'0':h===12?'12':h===24?'':h}
+            </div>
+          ))}
+        </div>
+        <div style={{width:60,flexShrink:0}}/>
+      </div>
+
+      {/* 날짜별 행 */}
+      {dates.map((date,di) => {
+        const daySessions = byDate[date]
+        const totalSec = allTotals[di]
+        const totalPct = totalSec/maxTotal
+        const {md,dow} = dayLabel(date)
+        const isWeekend = dow==='토'||dow==='일'
+        return (
+          <div key={date} style={{
+            display:'flex',alignItems:'center',gap:0,
+            padding:'6px 0',
+            borderBottom:'1px solid #f5f5f7',
+          }}>
+            {/* 날짜 */}
+            <div style={{width:56,flexShrink:0,textAlign:'right',paddingRight:10}}>
+              <div style={{fontSize:13,fontWeight:600,color:isWeekend?'#ff3b30':'#1d1d1f'}}>{md}</div>
+              <div style={{fontSize:10,color:'#aeaeb2'}}>{dow}</div>
+            </div>
+
+            {/* 총 사용량 미니 바 */}
+            <div style={{width:48,flexShrink:0,marginRight:12,display:'flex',alignItems:'center',gap:4}}>
+              <div style={{flex:1,height:28,background:'#f0f0f5',borderRadius:4,overflow:'hidden',display:'flex',alignItems:'flex-end'}}>
+                <div style={{
+                  width:'100%',
+                  height:`${Math.max(4,totalPct*100)}%`,
+                  background: totalPct>0.6?'#007AFF':totalPct>0.25?'#34c759':'#5ac8fa',
+                  borderRadius:'4px 4px 0 0',
+                  transition:'height .3s'
+                }}/>
+              </div>
+            </div>
+
+            {/* 24h 타임라인 */}
+            <div style={{flex:1,position:'relative',height:36,background:'#f5f5f7',borderRadius:8,overflow:'hidden'}}>
+              {/* 시간 구분선 */}
+              {[6,12,18].map(h=>(
+                <div key={h} style={{position:'absolute',left:`${h/24*100}%`,top:0,bottom:0,width:1,background:'rgba(0,0,0,0.06)',zIndex:0}}/>
+              ))}
+
+              {/* 세션 블록 */}
+              {daySessions.map((s,i) => {
+                if (!s.start?.seconds) return null
+                const startD = new Date(s.start.seconds*1000)
+                const endD   = s.end?.seconds ? new Date(s.end.seconds*1000) : new Date(startD.getTime()+(s.duration||60)*1000)
+                const dayStart = new Date(startD); dayStart.setHours(0,0,0,0)
+                const startMin = (startD.getTime()-dayStart.getTime())/60000
+                const endMin   = (endD.getTime()-dayStart.getTime())/60000
+                const left  = `${Math.max(0,startMin/1440*100)}%`
+                const width = `${Math.min(100,Math.max(0.5,(endMin-startMin)/1440*100))}%`
+                const dur   = s.duration??0
+                const color = dur<120
+                  ? 'linear-gradient(135deg,#5ac8fa,#32ade6)'
+                  : dur<600
+                    ? 'linear-gradient(135deg,#0a84ff,#007AFF)'
+                    : 'linear-gradient(135deg,#0051d5,#003baa)'
+                return (
+                  <div key={i}
+                    style={{position:'absolute',left,width,top:4,bottom:4,background:color,borderRadius:4,cursor:'pointer',zIndex:2,
+                      boxShadow:'0 1px 3px rgba(0,0,0,0.15)'}}
+                    onMouseEnter={e=>{
+                      const rect=(e.currentTarget as HTMLElement).getBoundingClientRect()
+                      setTooltip({x:rect.left+rect.width/2,y:rect.top,
+                        lines:[`${fmtTime(s.start)} → ${s.end?fmtTime(s.end):'진행중'}`,fmtDur(dur)]
+                      })
+                    }}
+                  />
+                )
+              })}
+            </div>
+
+            {/* 오른쪽 정보 */}
+            <div style={{width:60,flexShrink:0,paddingLeft:10,textAlign:'right'}}>
+              <div style={{fontSize:11,fontWeight:600,color:'#1d1d1f'}}>{fmtDur(totalSec)}</div>
+              <div style={{fontSize:10,color:'#aeaeb2'}}>{daySessions.length}회</div>
+            </div>
+          </div>
+        )
+      })}
+
+      {/* 시간 눈금 (하단) */}
+      <div style={{display:'flex',marginTop:4,gap:0}}>
+        <div style={{width:56+48+12,flexShrink:0}}/>
+        <div style={{flex:1,position:'relative',height:12}}>
+          {['자정','6시','정오','18시','자정'].map((l,i)=>(
+            <div key={l+i} style={{position:'absolute',left:`${i*25}%`,transform:'translateX(-50%)',fontSize:9,color:'#c7c7cc',fontFamily:Mm}}>{l}</div>
+          ))}
+        </div>
+        <div style={{width:60,flexShrink:0}}/>
+      </div>
+
+      {/* 범례 */}
+      <div style={{display:'flex',gap:20,marginTop:20,alignItems:'center'}}>
+        <span style={{fontSize:11,color:'#8e8e93',fontWeight:500}}>세션 길이</span>
+        {[
+          {color:'linear-gradient(135deg,#5ac8fa,#32ade6)',label:'2분 미만'},
+          {color:'linear-gradient(135deg,#0a84ff,#007AFF)',label:'2–10분'},
+          {color:'linear-gradient(135deg,#0051d5,#003baa)',label:'10분 이상'},
+        ].map(({color,label})=>(
+          <div key={label} style={{display:'flex',alignItems:'center',gap:6}}>
+            <div style={{width:16,height:10,background:color,borderRadius:3}}/>
+            <span style={{fontSize:11,color:'#6e6e73'}}>{label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* 툴팁 */}
+      {tooltip && (
+        <div style={{
+          position:'fixed',left:tooltip.x,top:tooltip.y-8,transform:'translate(-50%,-100%)',
+          background:'rgba(28,28,30,0.92)',backdropFilter:'blur(12px)',
+          color:'#fff',fontFamily:Mm,
+          padding:'8px 14px',borderRadius:10,pointerEvents:'none',zIndex:9999,
+          boxShadow:'0 4px 20px rgba(0,0,0,0.3)'
+        }}>
+          {tooltip.lines.map((l,i)=>(
+            <div key={i} style={{fontSize:i===0?12:11,fontWeight:i===0?500:400,opacity:i===0?1:0.7,whiteSpace:'nowrap'}}>
+              {l}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }

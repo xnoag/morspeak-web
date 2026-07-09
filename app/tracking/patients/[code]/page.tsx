@@ -65,8 +65,8 @@ const FEATURE_FLAGS: { key: string; label: string; morse: string; defaultOn: boo
 // 개별 기능보다 넓은 의미 — 모드 자체 진입 가능 여부 (튜토리얼 진행 상황에 맞춰 접근 제한)
 const MODE_FLAGS: { key: string; label: string; morse: string; defaultOn: boolean }[] = [
   { key: 'keyboardMode', label: '키보드 모드 진입', morse: '●●●●━ (11112)', defaultOn: true },
-  { key: 'shortcut',     label: '단축어 모드 진입', morse: '━●●●● (21111)', defaultOn: true },
-  { key: 'functionMode', label: '기능 모드 진입',   morse: '(기능 버튼)',    defaultOn: true },
+  { key: 'shortcut',     label: '단축어 모드 진입', morse: '━●●●● (21111)', defaultOn: false },
+  { key: 'functionMode', label: '기능 모드 진입',   morse: '(기능 버튼)',    defaultOn: false },
 ]
 
 export default function PatientDetail({ params }: { params: Promise<{ code: string }> }) {
@@ -683,9 +683,14 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
               <p style={{fontSize:12,color:'#8e8e93',lineHeight:1.6,marginBottom:12}}>
                 지금 뭘 하고 있든 상관없이 환자 앱을 즉시 대기 화면(검정 화면)으로 돌려보냅니다.
               </p>
-              <button onClick={async () => {
-                await setDoc(doc(getDb(),'tutorialConfig',code), { steps: [0], requestedAt: new Date() })
-              }} style={{...smallBtn,background:'#1d1d1f'}}>대기 화면으로 전환</button>
+              <div style={{display:'flex',gap:8}}>
+                <button onClick={async () => {
+                  await setDoc(doc(getDb(),'tutorialConfig',code), { steps: [0], requestedAt: new Date() })
+                }} style={{...smallBtn,background:'#1d1d1f'}}>대기 화면으로 전환</button>
+                <button onClick={async () => {
+                  await setDoc(doc(getDb(),'tutorialConfig',code), { steps: [10], requestedAt: new Date() })
+                }} style={{...smallBtn,background:'#0071e3'}}>대기 해제 (키보드 모드로)</button>
+              </div>
             </div>
 
             {/* 모드 접근 제어 — 개별 기능보다 넓은 의미 */}

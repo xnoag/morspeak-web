@@ -618,11 +618,12 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
           <div style={{marginBottom:40}}>
             <ColTitle>튜토리얼 원격 시작</ColTitle>
             <p style={{fontSize:13,color:'#6e6e73',lineHeight:1.7,marginBottom:20}}>
-              단계를 선택하고 시작하면 환자 앱에서 해당 단계가 실행됩니다. 1~3은 눈 깜빡임 캘리브레이션, 4~9는 실제 사용법 튜토리얼입니다.
+              단계를 선택하고 시작하면 환자 앱에서 해당 단계가 실행됩니다. 0은 대기 화면(지금 뭘 하고 있든 강제 복귀), 1~3은 눈 깜빡임 캘리브레이션, 4~9는 실제 사용법 튜토리얼입니다.
               완료 여부는 환자 앱에서 실시간으로 전송되어 아래에 표시됩니다. 이전 단계 완료를 확인한 뒤 직접 다음 단계를 열어주세요.
             </p>
             {(() => {
               const steps = [
+                {n:0, label:'대기 화면',        desc:'검정 화면으로 강제 복귀 (교육 전 대기)'},
                 {n:1, label:'짧게 깜빡이기',     desc:'캘리브레이션 · 짧게 ×5'},
                 {n:2, label:'길게 깜빡이기',     desc:'캘리브레이션 · 길게 ×5'},
                 {n:3, label:'혼합 깜빡이기',     desc:'캘리브레이션 · 짧게/길게 혼합 ×5'},

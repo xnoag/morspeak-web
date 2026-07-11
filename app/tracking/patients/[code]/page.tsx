@@ -93,6 +93,7 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
   const [tutorialSteps, setTutorialSteps] = useState<number[]>([])
   const [tutorialSending, setTutorialSending] = useState(false)
   const [completedSteps, setCompletedSteps] = useState<number[]>([])
+  const [runningStep, setRunningStep] = useState<number | null>(null)
   const [eduStatus, setEduStatus] = useState<string>('idle')  // idle | pending | active
   const [adminContact, setAdminContact] = useState('xnoag@icloud.com')
 
@@ -685,10 +686,10 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
               </p>
               <div style={{display:'flex',gap:8}}>
                 <button onClick={async () => {
-                  await setDoc(doc(getDb(),'tutorialConfig',code), { steps: [0], requestedAt: new Date() })
+                  await setDoc(doc(getDb(),'tutorialConfig',code), { steps: [0], requestedAt: new Date() }, {merge:true})
                 }} style={{...smallBtn,background:'#1d1d1f'}}>대기 화면으로 전환</button>
                 <button onClick={async () => {
-                  await setDoc(doc(getDb(),'tutorialConfig',code), { steps: [10], requestedAt: new Date() })
+                  await setDoc(doc(getDb(),'tutorialConfig',code), { steps: [10], requestedAt: new Date() }, {merge:true})
                 }} style={{...smallBtn,background:'#0071e3'}}>대기 해제 (키보드 모드로)</button>
               </div>
             </div>
@@ -715,6 +716,7 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                 {tutorialStepsList.map(s => {
                   const checked = tutorialSteps.includes(s.n)
                   const done = completedSteps.includes(s.n)
+                  const running = runningStep === s.n
                   return (
                     <label key={s.n} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',border:`1.5px solid ${checked?'#007AFF':'#d2d2d7'}`,borderRadius:10,cursor:'pointer',background:checked?'#f0f7ff':'#fff'}}>
                       <input type="checkbox" checked={checked} onChange={() =>
@@ -727,6 +729,20 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                       {done && (
                         <span style={{fontSize:11,fontWeight:700,color:'#34c759',fontFamily:M,flexShrink:0}}>✓ 완료</span>
                       )}
+                      <button
+                        type="button"
+                        onClick={async (e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          setRunningStep(s.n)
+                          await setDoc(doc(getDb(),'tutorialConfig',code), { steps: [s.n], requestedAt: new Date() }, {merge:true})
+                          setRunningStep(null)
+                        }}
+                        disabled={running}
+                        style={{...smallBtn,padding:'6px 12px',fontSize:11,flexShrink:0,background:'#0071e3'}}
+                      >
+                        {running ? '실행 중...' : '지금 실행'}
+                      </button>
                     </label>
                   )
                 })}
@@ -738,7 +754,7 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                   await setDoc(doc(getDb(),'tutorialConfig',code), {
                     steps: tutorialSteps,
                     requestedAt: new Date(),
-                  })
+                  }, {merge:true})
                   setTutorialSending(false)
                 }} disabled={tutorialSending||!tutorialSteps.length} style={smallBtn}>
                   {tutorialSending ? '전송 중...' : `단계 열기 (${tutorialSteps.length}개 선택)`}

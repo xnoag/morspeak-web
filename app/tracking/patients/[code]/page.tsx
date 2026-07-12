@@ -93,6 +93,7 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
   const [tutorialSteps, setTutorialSteps] = useState<number[]>([])
   const [tutorialSending, setTutorialSending] = useState(false)
   const [completedSteps, setCompletedSteps] = useState<number[]>([])
+  const [liveProgress, setLiveProgress] = useState<{step: number, count: number, total: number} | null>(null)
   const [runningStep, setRunningStep] = useState<number | null>(null)
   const [runningAction, setRunningAction] = useState<{step:number, type:string} | null>(null)
   const [eduStatus, setEduStatus] = useState<string>('idle')  // idle | pending | active
@@ -147,6 +148,7 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
   useEffect(() => {
     const unsub = onSnapshot(doc(getDb(),'tutorialConfig',code), snap => {
       setCompletedSteps((snap.data()?.completedSteps as number[]) ?? [])
+      setLiveProgress((snap.data()?.liveProgress as {step:number,count:number,total:number}) ?? null)
     })
     return () => unsub()
   }, [code])
@@ -734,6 +736,9 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                       </div>
                       {done && (
                         <span style={{fontSize:11,fontWeight:700,color:'#34c759',fontFamily:M,flexShrink:0}}>✓ 완료</span>
+                      )}
+                      {!done && liveProgress?.step === s.n && liveProgress.count > 0 && (
+                        <span style={{fontSize:12,fontWeight:700,color:'#ff9500',fontFamily:M,flexShrink:0}}>{liveProgress.count}/{liveProgress.total}</span>
                       )}
                       {isCalibrationStep && (
                         <>

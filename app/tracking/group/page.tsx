@@ -44,6 +44,7 @@ type RowState = {
   code: string
   userName?: string
   completedSteps: number[]
+  liveProgress?: { step: number, count: number, total: number }
 }
 
 export default function GroupTracking() {
@@ -72,7 +73,15 @@ export default function GroupTracking() {
     if (!codes.length) return
     const unsubs = codes.map(code => {
       const unsubConfig = onSnapshot(doc(getDb(), 'tutorialConfig', code), snap => {
-        setRows(prev => ({ ...prev, [code]: { ...(prev[code] ?? { code, completedSteps: [] }), code, completedSteps: (snap.data()?.completedSteps as number[]) ?? [] } }))
+        setRows(prev => ({
+          ...prev,
+          [code]: {
+            ...(prev[code] ?? { code, completedSteps: [] }),
+            code,
+            completedSteps: (snap.data()?.completedSteps as number[]) ?? [],
+            liveProgress: snap.data()?.liveProgress as RowState['liveProgress'],
+          }
+        }))
       })
       const unsubStats = onSnapshot(doc(getDb(), 'usageStats', code), snap => {
         setRows(prev => ({ ...prev, [code]: { ...(prev[code] ?? { code, completedSteps: [] }), code, userName: snap.data()?.userName } }))
@@ -226,11 +235,22 @@ export default function GroupTracking() {
                             <div style={{ fontWeight: 600, fontSize: 14, color: '#1d1d1f' }}>{row?.userName || '(가입 대기 중)'}</div>
                             <div style={{ fontSize: 11, color: '#aeaeb2', fontFamily: M, marginTop: 1 }}>{code}</div>
                           </td>
-                          {tutorialStepsList.map(s => (
-                            <td key={s.n} style={{ padding: '13px 8px', textAlign: 'center' }}>
-                              <span style={{ fontSize: 14, color: done.includes(s.n) ? '#34c759' : '#d1d1d6' }}>{done.includes(s.n) ? '✓' : '·'}</span>
-                            </td>
-                          ))}
+                          {tutorialStepsList.map(s => {
+                            const isDone = done.includes(s.n)
+                            const lp = row?.liveProgress
+                            const inProgress = !isDone && lp && lp.step === s.n && lp.count > 0
+                            return (
+                              <td key={s.n} style={{ padding: '13px 8px', textAlign: 'center' }}>
+                                {isDone ? (
+                                  <span style={{ fontSize: 14, color: '#34c759' }}>✓</span>
+                                ) : inProgress ? (
+                                  <span style={{ fontSize: 12, fontWeight: 700, color: '#ff9500', fontFamily: M }}>{lp!.count}/{lp!.total}</span>
+                                ) : (
+                                  <span style={{ fontSize: 14, color: '#d1d1d6' }}>·</span>
+                                )}
+                              </td>
+                            )
+                          })}
                           <td style={{ padding: '13px 20px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                             <span style={{ fontSize: 11, color: '#0071e3' }}>{expanded ? '개별 제어 접기 ▲' : '개별 제어 펼치기 ▼'}</span>
                           </td>

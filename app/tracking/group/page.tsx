@@ -52,6 +52,7 @@ export default function GroupTracking() {
   const [rawInput, setRawInput] = useState('')
   const [editing, setEditing] = useState(false)
   const [sendingStep, setSendingStep] = useState<number | null>(null)
+  const [sendingAction, setSendingAction] = useState<{step: number, type: string} | null>(null)
   const [expandedCode, setExpandedCode] = useState<string | null>(null)
   const [runningStep, setRunningStep] = useState<{code: string, step: number} | null>(null)
   const [runningAction, setRunningAction] = useState<{code: string, step: number, type: string} | null>(null)
@@ -107,6 +108,13 @@ export default function GroupTracking() {
     setRunningAction(null)
   }
 
+  async function sendActionToAll(step: number, type: string) {
+    if (!codes.length) return
+    setSendingAction({ step, type })
+    await Promise.all(codes.map(code => setDoc(doc(getDb(), 'tutorialConfig', code), { remoteActionType: type, remoteActionStep: step, requestedAt: new Date() }, { merge: true })))
+    setSendingAction(null)
+  }
+
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f2f2f7', fontFamily: F }}>
       <div style={{ height: 56, background: '#1d1d1f', display: 'flex', alignItems: 'center', padding: '0 24px', gap: 16, flexShrink: 0 }}>
@@ -136,20 +144,59 @@ export default function GroupTracking() {
         {!editing && codes.length > 0 && (
           <>
             <div style={{ background: '#fff', borderRadius: 14, padding: '16px 20px', marginBottom: 20, border: '1px solid rgba(0,0,0,0.06)' }}>
-              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, color: '#1d1d1f' }}>전체 일괄 제어 — {codes.length}대 전부에 동시 전송</div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {tutorialStepsList.map(s => (
-                  <button key={s.n} onClick={() => sendToAll({ steps: [s.n] }, s.n)} disabled={sendingStep !== null}
-                    style={{ ...smallBtn, background: '#0071e3' }}>
-                    {sendingStep === s.n ? '전송 중...' : `${s.n}단계 (${s.label}) 열기`}
-                  </button>
-                ))}
-                <button onClick={() => sendToAll({ steps: [0] }, 0)} disabled={sendingStep !== null} style={{ ...smallBtn, background: '#8e8e93' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#1d1d1f' }}>전체 일괄 제어 — {codes.length}대 전부에 동시 전송</div>
+                <div style={{ flex: 1 }} />
+                <button onClick={() => sendToAll({ steps: [0] }, 0)} disabled={sendingStep !== null || !!sendingAction} style={{ ...smallBtn, background: '#8e8e93' }}>
                   {sendingStep === 0 ? '전송 중...' : '전체 대기화면으로'}
                 </button>
-                <button onClick={() => sendToAll({ steps: [10] }, 10)} disabled={sendingStep !== null} style={{ ...smallBtn, background: '#34c759' }}>
+                <button onClick={() => sendToAll({ steps: [10] }, 10)} disabled={sendingStep !== null || !!sendingAction} style={{ ...smallBtn, background: '#34c759' }}>
                   {sendingStep === 10 ? '전송 중...' : '전체 대기 해제(키보드로)'}
                 </button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {tutorialStepsList.map(s => {
+                  const isCalibrationStep = s.n <= 3
+                  const isTutorialStep = s.n >= 4
+                  const busy = sendingStep !== null || !!sendingAction
+                  const actionSending = (type: string) => sendingAction?.step === s.n && sendingAction.type === type
+                  return (
+                    <div key={s.n} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', border: '1px solid #e5e5ea', borderRadius: 10, background: '#fafafc' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#1d1d1f' }}>{s.n}. {s.label}</div>
+                        <div style={{ fontSize: 11, color: '#8e8e93', fontFamily: M }}>{s.desc}</div>
+                      </div>
+                      {isCalibrationStep && (
+                        <>
+                          <button type="button" onClick={() => sendActionToAll(s.n, 'practice')} disabled={busy}
+                            style={{ ...smallBtn, padding: '6px 12px', fontSize: 11, flexShrink: 0, background: '#34c759' }}>
+                            {actionSending('practice') ? '전송 중...' : '직접 해보기'}
+                          </button>
+                          <button type="button" onClick={() => sendActionToAll(s.n, 'retry')} disabled={busy}
+                            style={{ ...smallBtn, padding: '6px 12px', fontSize: 11, flexShrink: 0, background: '#ff3b30' }}>
+                            {actionSending('retry') ? '전송 중...' : '다시 하기'}
+                          </button>
+                        </>
+                      )}
+                      {isTutorialStep && (
+                        <>
+                          <button type="button" onClick={() => sendActionToAll(s.n, 'retry')} disabled={busy}
+                            style={{ ...smallBtn, padding: '6px 12px', fontSize: 11, flexShrink: 0, background: '#ff3b30' }}>
+                            {actionSending('retry') ? '전송 중...' : '다시 해보기'}
+                          </button>
+                          <button type="button" onClick={() => sendActionToAll(s.n, 'advance')} disabled={busy}
+                            style={{ ...smallBtn, padding: '6px 12px', fontSize: 11, flexShrink: 0, background: '#34c759' }}>
+                            {actionSending('advance') ? '전송 중...' : '다음 단계'}
+                          </button>
+                        </>
+                      )}
+                      <button type="button" onClick={() => sendToAll({ steps: [s.n] }, s.n)} disabled={busy}
+                        style={{ ...smallBtn, padding: '6px 12px', fontSize: 11, flexShrink: 0, background: '#0071e3' }}>
+                        {sendingStep === s.n ? '전송 중...' : '지금 실행'}
+                      </button>
+                    </div>
+                  )
+                })}
               </div>
             </div>
 

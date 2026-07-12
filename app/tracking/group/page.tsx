@@ -57,6 +57,7 @@ export default function GroupTracking() {
   const [expandedCode, setExpandedCode] = useState<string | null>(null)
   const [runningStep, setRunningStep] = useState<{code: string, step: number} | null>(null)
   const [runningAction, setRunningAction] = useState<{code: string, step: number, type: string} | null>(null)
+  const [resettingCode, setResettingCode] = useState<string | null>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
@@ -103,6 +104,13 @@ export default function GroupTracking() {
     if (stepForSpinner !== undefined) setSendingStep(stepForSpinner)
     await Promise.all(codes.map(code => setDoc(doc(getDb(), 'tutorialConfig', code), { ...payload, requestedAt: new Date() }, { merge: true })))
     setSendingStep(null)
+  }
+
+  async function resetProgress(code: string) {
+    if (!confirm(`${code}의 완료 체크(✓)를 전부 초기화할까요?`)) return
+    setResettingCode(code)
+    await setDoc(doc(getDb(), 'tutorialConfig', code), { completedSteps: [], liveProgress: null }, { merge: true })
+    setResettingCode(null)
   }
 
   async function runStepNow(code: string, step: number) {
@@ -252,6 +260,10 @@ export default function GroupTracking() {
                             )
                           })}
                           <td style={{ padding: '13px 20px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                            <button type="button" onClick={(e) => { e.stopPropagation(); resetProgress(code) }} disabled={resettingCode === code}
+                              style={{ fontSize: 11, color: '#ff3b30', background: 'none', border: '1px solid #ffd7d3', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', marginRight: 10 }}>
+                              {resettingCode === code ? '초기화 중...' : '체크 초기화'}
+                            </button>
                             <span style={{ fontSize: 11, color: '#0071e3' }}>{expanded ? '개별 제어 접기 ▲' : '개별 제어 펼치기 ▼'}</span>
                           </td>
                         </tr>

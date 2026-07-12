@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { initializeApp, getApps } from 'firebase/app'
 import { getFirestore, doc, setDoc, onSnapshot } from 'firebase/firestore'
 
@@ -22,15 +22,15 @@ function getDb() {
 const STORAGE_KEY = 'morspeak_tracking_group_codes'
 
 const tutorialStepsList = [
-  { n: 1, label: '짧게' },
-  { n: 2, label: '길게' },
-  { n: 3, label: '혼합' },
-  { n: 4, label: 'ㄱ' },
-  { n: 5, label: 'ㅏ' },
-  { n: 6, label: '말하기' },
-  { n: 7, label: '단축어전환' },
-  { n: 8, label: '표현선택' },
-  { n: 9, label: '호출' },
+  { n: 1, short: '짧게', label: '짧게 깜빡이기', desc: '캘리브레이션 · 짧게 ×5' },
+  { n: 2, short: '길게', label: '길게 깜빡이기', desc: '캘리브레이션 · 길게 ×5' },
+  { n: 3, short: '혼합', label: '혼합 깜빡이기', desc: '캘리브레이션 · 짧게/길게 혼합 ×5' },
+  { n: 4, short: 'ㄱ', label: 'ㄱ 입력하기', desc: '짧게·짧게·길게 깜빡임' },
+  { n: 5, short: 'ㅏ', label: 'ㅏ 입력하기', desc: '길게·짧게 깜빡임' },
+  { n: 6, short: '말하기', label: '말하기', desc: '짧게·짧게 (11)' },
+  { n: 7, short: '단축어전환', label: '단축어 모드 전환', desc: '길게·짧게·짧게·짧게·짧게 (21111)' },
+  { n: 8, short: '표현선택', label: '표현 선택하기', desc: '길게·짧게 (21)' },
+  { n: 9, short: '호출', label: '호출하기', desc: '길게·길게' },
 ]
 
 const smallBtn: React.CSSProperties = { padding: '6px 12px', borderRadius: 7, border: '1px solid #d2d2d7', background: '#1d1d1f', color: '#fff', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: F }
@@ -52,6 +52,9 @@ export default function GroupTracking() {
   const [rawInput, setRawInput] = useState('')
   const [editing, setEditing] = useState(false)
   const [sendingStep, setSendingStep] = useState<number | null>(null)
+  const [expandedCode, setExpandedCode] = useState<string | null>(null)
+  const [runningStep, setRunningStep] = useState<{code: string, step: number} | null>(null)
+  const [runningAction, setRunningAction] = useState<{code: string, step: number, type: string} | null>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
@@ -90,6 +93,18 @@ export default function GroupTracking() {
     if (stepForSpinner !== undefined) setSendingStep(stepForSpinner)
     await Promise.all(codes.map(code => setDoc(doc(getDb(), 'tutorialConfig', code), { ...payload, requestedAt: new Date() }, { merge: true })))
     setSendingStep(null)
+  }
+
+  async function runStepNow(code: string, step: number) {
+    setRunningStep({ code, step })
+    await setDoc(doc(getDb(), 'tutorialConfig', code), { steps: [step], requestedAt: new Date() }, { merge: true })
+    setRunningStep(null)
+  }
+
+  async function runAction(code: string, step: number, type: string) {
+    setRunningAction({ code, step, type })
+    await setDoc(doc(getDb(), 'tutorialConfig', code), { remoteActionType: type, remoteActionStep: step, requestedAt: new Date() }, { merge: true })
+    setRunningAction(null)
   }
 
   return (
@@ -147,7 +162,7 @@ export default function GroupTracking() {
                   <tr style={{ background: '#fafafa', borderBottom: '1px solid #f2f2f7' }}>
                     <th style={{ padding: '10px 20px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#8e8e93', textTransform: 'uppercase', letterSpacing: '.06em' }}>코드 / 이름</th>
                     {tutorialStepsList.map(s => (
-                      <th key={s.n} style={{ padding: '10px 8px', textAlign: 'center', fontSize: 10.5, fontWeight: 600, color: '#8e8e93', whiteSpace: 'nowrap' }}>{s.n}. {s.label}</th>
+                      <th key={s.n} style={{ padding: '10px 8px', textAlign: 'center', fontSize: 10.5, fontWeight: 600, color: '#8e8e93', whiteSpace: 'nowrap' }}>{s.n}. {s.short}</th>
                     ))}
                     <th style={{ padding: '10px 20px', width: 60 }} />
                   </tr>
@@ -156,21 +171,80 @@ export default function GroupTracking() {
                   {codes.map(code => {
                     const row = rows[code]
                     const done = row?.completedSteps ?? []
+                    const expanded = expandedCode === code
                     return (
-                      <tr key={code} style={{ borderBottom: '1px solid #f7f7f7' }}>
-                        <td style={{ padding: '13px 20px' }}>
-                          <div style={{ fontWeight: 600, fontSize: 14, color: '#1d1d1f' }}>{row?.userName || '(가입 대기 중)'}</div>
-                          <div style={{ fontSize: 11, color: '#aeaeb2', fontFamily: M, marginTop: 1 }}>{code}</div>
-                        </td>
-                        {tutorialStepsList.map(s => (
-                          <td key={s.n} style={{ padding: '13px 8px', textAlign: 'center' }}>
-                            <span style={{ fontSize: 14, color: done.includes(s.n) ? '#34c759' : '#d1d1d6' }}>{done.includes(s.n) ? '✓' : '·'}</span>
+                      <React.Fragment key={code}>
+                        <tr style={{ borderBottom: '1px solid #f7f7f7', cursor: 'pointer' }} onClick={() => setExpandedCode(expanded ? null : code)}>
+                          <td style={{ padding: '13px 20px' }}>
+                            <div style={{ fontWeight: 600, fontSize: 14, color: '#1d1d1f' }}>{row?.userName || '(가입 대기 중)'}</div>
+                            <div style={{ fontSize: 11, color: '#aeaeb2', fontFamily: M, marginTop: 1 }}>{code}</div>
                           </td>
-                        ))}
-                        <td style={{ padding: '13px 20px', textAlign: 'right' }}>
-                          <a href={`/tracking/patients/${code}`} style={{ fontSize: 11, color: '#0071e3', textDecoration: 'none' }}>개별 제어 →</a>
-                        </td>
-                      </tr>
+                          {tutorialStepsList.map(s => (
+                            <td key={s.n} style={{ padding: '13px 8px', textAlign: 'center' }}>
+                              <span style={{ fontSize: 14, color: done.includes(s.n) ? '#34c759' : '#d1d1d6' }}>{done.includes(s.n) ? '✓' : '·'}</span>
+                            </td>
+                          ))}
+                          <td style={{ padding: '13px 20px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                            <span style={{ fontSize: 11, color: '#0071e3' }}>{expanded ? '개별 제어 접기 ▲' : '개별 제어 펼치기 ▼'}</span>
+                          </td>
+                        </tr>
+                        {expanded && (
+                          <tr>
+                            <td colSpan={tutorialStepsList.length + 2} style={{ padding: '16px 20px 20px', background: '#fafafc' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {tutorialStepsList.map(s => {
+                                  const stepDone = done.includes(s.n)
+                                  const isCalibrationStep = s.n <= 3
+                                  const isTutorialStep = s.n >= 4
+                                  const stepRunning = runningStep?.code === code && runningStep.step === s.n
+                                  const actionRunning = (type: string) => runningAction?.code === code && runningAction.step === s.n && runningAction.type === type
+                                  const anyBusy = (runningStep?.code === code) || (runningAction?.code === code)
+                                  return (
+                                    <div key={s.n} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', border: '1px solid #e5e5ea', borderRadius: 10, background: '#fff' }}>
+                                      <div style={{ flex: 1 }}>
+                                        <div style={{ fontSize: 13, fontWeight: 600, color: '#1d1d1f' }}>{s.n}. {s.label}</div>
+                                        <div style={{ fontSize: 11, color: '#8e8e93', fontFamily: M }}>{s.desc}</div>
+                                      </div>
+                                      {stepDone && <span style={{ fontSize: 11, fontWeight: 700, color: '#34c759', fontFamily: M, flexShrink: 0 }}>✓ 완료</span>}
+                                      {isCalibrationStep && (
+                                        <>
+                                          <button type="button" onClick={() => runAction(code, s.n, 'practice')} disabled={anyBusy}
+                                            style={{ ...smallBtn, padding: '6px 12px', fontSize: 11, flexShrink: 0, background: '#34c759' }}>
+                                            {actionRunning('practice') ? '실행 중...' : '직접 해보기'}
+                                          </button>
+                                          <button type="button" onClick={() => runAction(code, s.n, 'retry')} disabled={anyBusy}
+                                            style={{ ...smallBtn, padding: '6px 12px', fontSize: 11, flexShrink: 0, background: '#ff3b30' }}>
+                                            {actionRunning('retry') ? '실행 중...' : '다시 하기'}
+                                          </button>
+                                        </>
+                                      )}
+                                      {isTutorialStep && (
+                                        <>
+                                          <button type="button" onClick={() => runAction(code, s.n, 'retry')} disabled={anyBusy}
+                                            style={{ ...smallBtn, padding: '6px 12px', fontSize: 11, flexShrink: 0, background: '#ff3b30' }}>
+                                            {actionRunning('retry') ? '실행 중...' : '다시 해보기'}
+                                          </button>
+                                          <button type="button" onClick={() => runAction(code, s.n, 'advance')} disabled={anyBusy}
+                                            style={{ ...smallBtn, padding: '6px 12px', fontSize: 11, flexShrink: 0, background: '#34c759' }}>
+                                            {actionRunning('advance') ? '실행 중...' : '다음 단계'}
+                                          </button>
+                                        </>
+                                      )}
+                                      <button type="button" onClick={() => runStepNow(code, s.n)} disabled={anyBusy}
+                                        style={{ ...smallBtn, padding: '6px 12px', fontSize: 11, flexShrink: 0, background: '#0071e3' }}>
+                                        {stepRunning ? '실행 중...' : '지금 실행'}
+                                      </button>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                              <div style={{ marginTop: 10 }}>
+                                <a href={`/tracking/patients/${code}`} style={{ fontSize: 11, color: '#8e8e93', textDecoration: 'none' }}>전체 관리 페이지로 이동 →</a>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     )
                   })}
                 </tbody>

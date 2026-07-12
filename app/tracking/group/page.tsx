@@ -35,6 +35,28 @@ const tutorialStepsList = [
 
 const smallBtn: React.CSSProperties = { padding: '6px 12px', borderRadius: 7, border: '1px solid #d2d2d7', background: '#1d1d1f', color: '#fff', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: F }
 
+const FEATURE_FLAGS: { key: string; label: string; morse: string; defaultOn: boolean }[] = [
+  { key: 'speak',       label: '말하기',       morse: '●● (11)',            defaultOn: true  },
+  { key: 'sendMessage', label: '메시지 보내기', morse: '● (1, 기능모드)',     defaultOn: true  },
+  { key: 'call',        label: '호출',          morse: '━━ (22)',            defaultOn: true  },
+  { key: 'lock',        label: '잠금',          morse: '━ (2, 기능모드)',     defaultOn: true  },
+  { key: 'repeatSpeak', label: '반복 말하기',   morse: '●●━ (112, 기능모드)', defaultOn: true  },
+  { key: 'youtube',     label: '유튜브',        morse: '●●● (111, 기능모드)', defaultOn: false },
+  { key: 'outlet1',     label: '콘센트 1',      morse: '●━ (12, 기능모드)',   defaultOn: true  },
+  { key: 'outlet2',     label: '콘센트 2',      morse: '━●● (211, 기능모드)', defaultOn: true  },
+  { key: 'outlet3',     label: '콘센트 3',       morse: '●━● (121, 기능모드)',   defaultOn: true  },
+  { key: 'reset',       label: '초기화',          morse: '●●━●● (11211)',        defaultOn: true  },
+  { key: 'delete',      label: '삭제',            morse: '● (1, 키보드모드)',      defaultOn: true  },
+  { key: 'aiSuggest',   label: 'AI 추천',         morse: '●━ (12, 키보드/단축어)', defaultOn: true  },
+  { key: 'commandMode', label: '커맨드(쌍자음)',   morse: '━ (2, 키보드/단축어모드)', defaultOn: true  },
+]
+
+const MODE_FLAGS: { key: string; label: string; morse: string; defaultOn: boolean }[] = [
+  { key: 'keyboardMode', label: '키보드 모드 진입', morse: '●●●●━ (11112)', defaultOn: true },
+  { key: 'shortcut',     label: '단축어 모드 진입', morse: '━●●●● (21111)', defaultOn: false },
+  { key: 'functionMode', label: '기능 모드 진입',   morse: '(기능 버튼)',    defaultOn: false },
+]
+
 function parseCodes(raw: string): string[] {
   const codes = raw.split(/[\s,]+/).map(s => s.trim().toUpperCase()).filter(Boolean)
   return Array.from(new Set(codes))
@@ -58,6 +80,8 @@ export default function GroupTracking() {
   const [runningStep, setRunningStep] = useState<{code: string, step: number} | null>(null)
   const [runningAction, setRunningAction] = useState<{code: string, step: number, type: string} | null>(null)
   const [resettingCode, setResettingCode] = useState<string | null>(null)
+  const [groupFlags, setGroupFlags] = useState<Record<string, boolean>>({})
+  const [flagSending, setFlagSending] = useState<string | null>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
@@ -130,6 +154,14 @@ export default function GroupTracking() {
     setSendingAction({ step, type })
     await Promise.all(codes.map(code => setDoc(doc(getDb(), 'tutorialConfig', code), { remoteActionType: type, remoteActionStep: step, requestedAt: new Date() }, { merge: true })))
     setSendingAction(null)
+  }
+
+  async function setFlagForAll(key: string, next: boolean) {
+    if (!codes.length) return
+    setFlagSending(key)
+    await Promise.all(codes.map(code => setDoc(doc(getDb(), 'featureFlags', code), { [key]: next }, { merge: true })))
+    setGroupFlags(prev => ({ ...prev, [key]: next }))
+    setFlagSending(null)
   }
 
   return (
@@ -210,6 +242,48 @@ export default function GroupTracking() {
                       <button type="button" onClick={() => sendToAll({ steps: [s.n] }, s.n)} disabled={busy}
                         style={{ ...smallBtn, padding: '6px 12px', fontSize: 11, flexShrink: 0, background: '#0071e3' }}>
                         {sendingStep === s.n ? '전송 중...' : '지금 실행'}
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div style={{ background: '#fff', borderRadius: 14, padding: '16px 20px', marginBottom: 20, border: '1px solid rgba(0,0,0,0.06)' }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#1d1d1f', marginBottom: 4 }}>모드 접근 제어 — {codes.length}대 전부에 동시 적용</div>
+              <p style={{ fontSize: 12, color: '#8e8e93', marginBottom: 12 }}>아직 배우지 않은 모드로 넘어가지 못하도록 전체 일괄로 막거나 열어줍니다.</p>
+              <div style={{ border: '1px solid #d2d2d7', borderRadius: 12, overflow: 'hidden', marginBottom: 20 }}>
+                {MODE_FLAGS.map((f, i) => {
+                  const enabled = f.key in groupFlags ? groupFlags[f.key] : f.defaultOn
+                  return (
+                    <div key={f.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: i === MODE_FLAGS.length - 1 ? 'none' : '1px solid #f0f0f5', background: enabled ? '#fff' : '#fafafa' }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: enabled ? '#1d1d1f' : '#aeaeb2' }}>{f.label}</div>
+                        <div style={{ fontSize: 10.5, fontFamily: M, color: '#aeaeb2', marginTop: 2 }}>{f.morse}</div>
+                      </div>
+                      <button disabled={flagSending === f.key} onClick={() => setFlagForAll(f.key, !enabled)}
+                        style={{ position: 'relative', width: 40, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', background: enabled ? '#34c759' : '#d1d1d6', opacity: flagSending === f.key ? 0.5 : 1, flexShrink: 0 }}>
+                        <span style={{ position: 'absolute', top: 3, left: enabled ? 19 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,.25)', transition: 'left .15s' }} />
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#1d1d1f', marginBottom: 4 }}>개별 기능 관리 — {codes.length}대 전부에 동시 적용</div>
+              <p style={{ fontSize: 12, color: '#8e8e93', marginBottom: 12 }}>각 기능의 모스부호 입력이 실행되지 않도록 전체 일괄로 차단합니다.</p>
+              <div style={{ border: '1px solid #d2d2d7', borderRadius: 12, overflow: 'hidden' }}>
+                {FEATURE_FLAGS.map((f, i) => {
+                  const enabled = f.key in groupFlags ? groupFlags[f.key] : f.defaultOn
+                  return (
+                    <div key={f.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: i === FEATURE_FLAGS.length - 1 ? 'none' : '1px solid #f0f0f5', background: enabled ? '#fff' : '#fafafa' }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: enabled ? '#1d1d1f' : '#aeaeb2' }}>{f.label}</div>
+                        <div style={{ fontSize: 10.5, fontFamily: M, color: '#aeaeb2', marginTop: 2 }}>{f.morse}</div>
+                      </div>
+                      <button disabled={flagSending === f.key} onClick={() => setFlagForAll(f.key, !enabled)}
+                        style={{ position: 'relative', width: 40, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', background: enabled ? '#34c759' : '#d1d1d6', opacity: flagSending === f.key ? 0.5 : 1, flexShrink: 0 }}>
+                        <span style={{ position: 'absolute', top: 3, left: enabled ? 19 : 3, width: 18, height: 18, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,.25)', transition: 'left .15s' }} />
                       </button>
                     </div>
                   )

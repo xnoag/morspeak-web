@@ -94,6 +94,7 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
   const [tutorialSending, setTutorialSending] = useState(false)
   const [completedSteps, setCompletedSteps] = useState<number[]>([])
   const [runningStep, setRunningStep] = useState<number | null>(null)
+  const [runningAction, setRunningAction] = useState<{step:number, type:string} | null>(null)
   const [eduStatus, setEduStatus] = useState<string>('idle')  // idle | pending | active
   const [adminContact, setAdminContact] = useState('xnoag@icloud.com')
 
@@ -717,6 +718,9 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                   const checked = tutorialSteps.includes(s.n)
                   const done = completedSteps.includes(s.n)
                   const running = runningStep === s.n
+                  const isCalibrationStep = s.n <= 3 // 1~3(짧게/길게/혼합)만 "직접 해보기"/"다시 하기" 개념이 있음
+                  const runningPractice = runningAction?.step === s.n && runningAction.type === 'practice'
+                  const runningRetry = runningAction?.step === s.n && runningAction.type === 'retry'
                   return (
                     <label key={s.n} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',border:`1.5px solid ${checked?'#007AFF':'#d2d2d7'}`,borderRadius:10,cursor:'pointer',background:checked?'#f0f7ff':'#fff'}}>
                       <input type="checkbox" checked={checked} onChange={() =>
@@ -728,6 +732,38 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                       </div>
                       {done && (
                         <span style={{fontSize:11,fontWeight:700,color:'#34c759',fontFamily:M,flexShrink:0}}>✓ 완료</span>
+                      )}
+                      {isCalibrationStep && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={async (e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              setRunningAction({step:s.n, type:'practice'})
+                              await setDoc(doc(getDb(),'tutorialConfig',code), { remoteActionType: 'practice', remoteActionStep: s.n, requestedAt: new Date() }, {merge:true})
+                              setRunningAction(null)
+                            }}
+                            disabled={!!runningAction}
+                            style={{...smallBtn,padding:'6px 12px',fontSize:11,flexShrink:0,background:'#34c759'}}
+                          >
+                            {runningPractice ? '실행 중...' : '직접 해보기'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async (e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              setRunningAction({step:s.n, type:'retry'})
+                              await setDoc(doc(getDb(),'tutorialConfig',code), { remoteActionType: 'retry', remoteActionStep: s.n, requestedAt: new Date() }, {merge:true})
+                              setRunningAction(null)
+                            }}
+                            disabled={!!runningAction}
+                            style={{...smallBtn,padding:'6px 12px',fontSize:11,flexShrink:0,background:'#ff3b30'}}
+                          >
+                            {runningRetry ? '실행 중...' : '다시 하기'}
+                          </button>
+                        </>
                       )}
                       <button
                         type="button"

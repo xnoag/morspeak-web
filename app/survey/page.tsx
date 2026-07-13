@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import {
@@ -276,6 +276,28 @@ export default function PreSurveyPage() {
   const questionIndex = (id: string) => allVisibleQuestions.findIndex((x) => x.id === id) + 1;
   const progress = progressIndex >= 0 ? { current: progressIndex + 1, total: PROGRESS_STEPS.length } : undefined;
 
+  const slide = SLIDES.find((s) => s.id === step);
+  const questions = slide ? getSlideQuestions(slide, answers) : [];
+
+  // 단계가 바뀌면(다음/이전) 스크롤을 맨 위로 — 새 화면 첫 문항부터 다시 보이도록.
+  // #survey-scroll-area는 min-height 레이아웃이라 실제로는 내부가 아니라 창(window)이 스크롤된다.
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, [step]);
+
+  // 단일선택/순위선택 문항에 답하면 자동으로 다음 문항으로 스크롤 — 응답 흐름이 끊기지 않게.
+  // 복수선택·서술형은 계속 고르거나 입력해야 하니 자동 스크롤하지 않는다.
+  const questionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const scrollToNextQuestion = (currentId: string) => {
+    const idx = questions.findIndex((x) => x.id === currentId);
+    const next = questions[idx + 1];
+    if (next) {
+      setTimeout(() => {
+        questionRefs.current[next.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 300);
+    }
+  };
+
   const setSingle = (id: string, value: string) => setAnswers((prev) => ({ ...prev, [id]: value }));
   const setText = (id: string, value: string) => setAnswers((prev) => ({ ...prev, [id]: value }));
   const setOtherText = (id: string, value: string) => setAnswers((prev) => ({ ...prev, [`${id}_other`]: value }));
@@ -298,6 +320,18 @@ export default function PreSurveyPage() {
       }
       return { ...prev, [id]: arr };
     });
+
+  const handleSingle = (id: string, value: string) => {
+    setSingle(id, value);
+    scrollToNextQuestion(id);
+  };
+  const handleRanked = (id: string, value: string, max: number) => {
+    toggleRanked(id, value, max);
+    const current = Array.isArray(answers[id]) ? (answers[id] as string[]) : [];
+    const willBeSelected = !current.includes(value);
+    const resultingLength = willBeSelected ? current.length + 1 : current.length - 1;
+    if (willBeSelected && resultingLength >= max) scrollToNextQuestion(id);
+  };
 
   const primaryBtn = (disabled?: boolean): React.CSSProperties => ({
     padding: '16px', borderRadius: 980, border: 'none',
@@ -486,9 +520,7 @@ export default function PreSurveyPage() {
   }
 
   // ── SLIDE STEPS (A, B1~B5, C) ─────────────────────────────────
-  const slide = SLIDES.find((s) => s.id === step);
   if (!slide) return null;
-  const questions = getSlideQuestions(slide, answers);
   const complete = isSlideComplete(slide, answers);
   const isLast = slide.id === 'C';
 
@@ -517,18 +549,19 @@ export default function PreSurveyPage() {
       {!slide.description && <div style={{ marginBottom: 12 }} />}
 
       {questions.map((q) => (
-        <QuestionBlock
-          key={q.id}
-          q={q}
-          index={questionIndex(q.id)}
-          total={allVisibleQuestions.length}
-          answers={answers}
-          onSingle={setSingle}
-          onToggleMulti={toggleMulti}
-          onToggleRanked={toggleRanked}
-          onText={setText}
-          onOtherText={setOtherText}
-        />
+        <div key={q.id} ref={(el) => { questionRefs.current[q.id] = el; }}>
+          <QuestionBlock
+            q={q}
+            index={questionIndex(q.id)}
+            total={allVisibleQuestions.length}
+            answers={answers}
+            onSingle={handleSingle}
+            onToggleMulti={toggleMulti}
+            onToggleRanked={handleRanked}
+            onText={setText}
+            onOtherText={setOtherText}
+          />
+        </div>
       ))}
     </Layout>
   );

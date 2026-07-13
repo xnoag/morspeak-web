@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+const PROTECTED_PREFIXES = ['/tracking', '/survey-admin']
+
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
 
-  if (pathname.startsWith('/tracking') && !pathname.startsWith('/tracking/login')) {
+  const isProtected =
+    PROTECTED_PREFIXES.some(p => pathname.startsWith(p)) && !pathname.startsWith('/tracking/login')
+
+  if (isProtected) {
     const session = req.cookies.get('admin_session')
     if (!session || session.value !== 'authenticated') {
-      return NextResponse.redirect(new URL('/tracking/login', req.url))
+      const loginUrl = new URL('/tracking/login', req.url)
+      loginUrl.searchParams.set('redirect', pathname)
+      return NextResponse.redirect(loginUrl)
     }
   }
 
@@ -14,5 +21,5 @@ export function proxy(req: NextRequest) {
 }
 
 export const proxyConfig = {
-  matcher: ['/tracking/:path*'],
+  matcher: ['/tracking/:path*', '/survey-admin/:path*'],
 }

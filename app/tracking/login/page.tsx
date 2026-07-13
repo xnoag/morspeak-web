@@ -1,15 +1,24 @@
 'use client'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 const F = "-apple-system,'SF Pro Display',BlinkMacSystemFont,'Helvetica Neue',sans-serif"
 
 export default function AdminLogin() {
+  return (
+    <Suspense fallback={null}>
+      <AdminLoginForm />
+    </Suspense>
+  )
+}
+
+function AdminLoginForm() {
   const [id, setId] = useState('')
   const [pw, setPw] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -20,7 +29,7 @@ export default function AdminLogin() {
       body: JSON.stringify({ id, pw }),
     })
     if (res.ok) {
-      router.push('/tracking/dashboard')
+      router.push(searchParams.get('redirect') || '/tracking/dashboard')
     } else {
       setError('아이디 또는 비밀번호가 올바르지 않습니다.')
     }

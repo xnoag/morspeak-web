@@ -286,21 +286,6 @@ export default function PreSurveyPage() {
       return { ...prev, [id]: arr };
     });
 
-  // 단일선택 문항에 답하거나 순위선택이 다 채워지면, 이 문항은 더 손댈 게 없으니
-  // 살짝 뒤 자동으로 다음 문항으로 넘어간다(마지막 문항이면 넘어가지 않고 제출 버튼만 활성화).
-  // 복수선택·서술형은 더 고르거나 입력할 수 있어야 하니 자동으로 넘기지 않는다.
-  const handleSingle = (id: string, value: string) => {
-    setSingle(id, value);
-    if (!isLastQuestion) setTimeout(() => goNext(), 350);
-  };
-  const handleRanked = (id: string, value: string, max: number) => {
-    toggleRanked(id, value, max);
-    const current = Array.isArray(answers[id]) ? (answers[id] as string[]) : [];
-    const willBeSelected = !current.includes(value);
-    const resultingLength = willBeSelected ? current.length + 1 : current.length - 1;
-    if (willBeSelected && resultingLength >= max && !isLastQuestion) setTimeout(() => goNext(), 350);
-  };
-
   const primaryBtn = (disabled?: boolean): React.CSSProperties => ({
     padding: '16px', borderRadius: 980, border: 'none',
     background: disabled ? 'rgba(60,60,67,0.12)' : dark,
@@ -351,6 +336,9 @@ export default function PreSurveyPage() {
             모스픽 사용 전, 환자분과의 기존 의사소통 방식과 현재 돌봄 상황을 여쭤보는 설문입니다.
           </p>
           <p style={{ fontSize: 14, color: lbl2, marginTop: 12 }}>약 5~7분 소요, 보호자분이 응답해 주세요.</p>
+          <p style={{ fontSize: 14, color: lbl2, marginTop: 12, lineHeight: 1.6 }}>
+            보호자분의 답변은 모스픽을 개선하고 더 나은 방향으로 나아가기 위한 연구에 직접 반영됩니다.
+          </p>
         </div>
         <div style={{ padding: '16px 28px 36px', maxWidth: 520, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
           <button style={{ ...primaryBtn(), width: '100%' }} onClick={goNext}>시작하기</button>
@@ -479,6 +467,7 @@ export default function PreSurveyPage() {
           <h1 style={{ fontSize: 28, fontWeight: 700, color: lbl, letterSpacing: '-0.4px', marginBottom: 12 }}>설문 완료</h1>
           <p style={{ fontSize: 17, color: lbl2, lineHeight: 1.7 }}>
             소중한 시간 내어 응답해 주셔서 감사합니다.<br /><br />
+            보내주신 답변은 모스픽을 개선하고 더 나은 방향으로 나아가기 위한 연구에 큰 도움이 됩니다.<br /><br />
             모스픽 팀이 답변을 확인하고 다음 단계를 안내드리겠습니다.
           </p>
           <p style={{ fontSize: 14, color: 'rgba(60,60,67,0.35)', marginTop: 20 }}>창을 닫으셔도 됩니다.</p>
@@ -523,9 +512,9 @@ export default function PreSurveyPage() {
         key={currentQuestion.id}
         q={currentQuestion}
         answers={answers}
-        onSingle={handleSingle}
+        onSingle={setSingle}
         onToggleMulti={toggleMulti}
-        onToggleRanked={handleRanked}
+        onToggleRanked={toggleRanked}
         onText={setText}
         onOtherText={setOtherText}
       />

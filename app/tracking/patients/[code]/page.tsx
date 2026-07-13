@@ -26,6 +26,14 @@ function fmtT(sec?: number) {
 }
 function fmtS(s?: number) { return s != null ? `${s.toFixed(2)}s` : '—' }
 function n(v: any) { return (v ?? 0) as number }
+// 단계 완료까지 걸린 시간 표시용 — 60초 넘으면 "1분 20초"로
+function fmtDur(sec?: number) {
+  if (sec == null) return null
+  if (sec < 60) return `${sec.toFixed(1)}초`
+  const m = Math.floor(sec / 60), s = Math.round(sec % 60)
+  return `${m}분 ${s}초`
+}
+function meanOf(arr?: number[]) { return arr && arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null }
 
 const KBD_C = ['ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ']
 const KBD_V = ['ㅏ','ㅑ','ㅓ','ㅕ','ㅗ','ㅛ','ㅜ','ㅠ','ㅡ','ㅣ','ㅐ','ㅒ','ㅔ','ㅖ']
@@ -96,6 +104,7 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
   const [completedSteps, setCompletedSteps] = useState<number[]>([])
   const [liveProgress, setLiveProgress] = useState<{step: number, count: number, total: number} | null>(null)
   const [activeStep, setActiveStep] = useState<number | null>(null)
+  const [stepDurations, setStepDurations] = useState<Record<string, number>>({})
   const [focusMode, setFocusMode] = useState(true)
   const [runningStep, setRunningStep] = useState<number | null>(null)
   const [runningAction, setRunningAction] = useState<{step:number, type:string} | null>(null)
@@ -153,6 +162,7 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
       setCompletedSteps((snap.data()?.completedSteps as number[]) ?? [])
       setLiveProgress((snap.data()?.liveProgress as {step:number,count:number,total:number}) ?? null)
       setActiveStep((snap.data()?.activeStep as number | null | undefined) ?? null)
+      setStepDurations((snap.data()?.stepDurations as Record<string,number>) ?? {})
     })
     return () => unsub()
   }, [code])
@@ -700,9 +710,25 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                         </div>
                         <div style={{fontSize:22,fontWeight:700,color:'#1d1d1f',marginBottom:4}}>{currentStep.n}. {currentStep.label}</div>
                         <div style={{fontSize:13,color:'#8e8e93',fontFamily:M,marginBottom:18}}>{currentStep.desc}</div>
-                        {completedSteps.includes(currentStep.n) && (
-                          <div style={{fontSize:13,fontWeight:700,color:'#34c759',marginBottom:14}}>✓ 완료됨</div>
-                        )}
+                        {completedSteps.includes(currentStep.n) && (() => {
+                          const dur = fmtDur(stepDurations[String(currentStep.n)])
+                          const shortMs = meanOf(blink.onboardingShortDurations)
+                          const longMs  = meanOf(blink.onboardingLongDurations)
+                          return (
+                            <div style={{marginBottom:14}}>
+                              <div style={{fontSize:13,fontWeight:700,color:'#34c759'}}>
+                                ✓ 완료됨{dur ? ` · ${dur} 소요` : ''}
+                              </div>
+                              {currentStep.n <= 3 && (
+                                <div style={{fontSize:11,color:'#8e8e93',fontFamily:M,marginTop:4}}>
+                                  {currentStep.n !== 2 && shortMs != null && `짧게 ${blink.onboardingShortDurations.length}회 · 평균 ${fmtS(shortMs)}`}
+                                  {currentStep.n === 3 && shortMs != null && longMs != null && '  ·  '}
+                                  {currentStep.n !== 1 && longMs != null && `길게 ${blink.onboardingLongDurations.length}회 · 평균 ${fmtS(longMs)}`}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })()}
                         {!completedSteps.includes(currentStep.n) && liveProgress?.step === currentStep.n && liveProgress.count > 0 && (
                           <div style={{fontSize:15,fontWeight:700,color:'#ff9500',fontFamily:M,marginBottom:14}}>{liveProgress.count}/{liveProgress.total}</div>
                         )}
@@ -791,7 +817,9 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                         <div style={{fontSize:11,color:'#8e8e93',fontFamily:M}}>{s.desc}</div>
                       </div>
                       {done && (
-                        <span style={{fontSize:11,fontWeight:700,color:'#34c759',fontFamily:M,flexShrink:0}}>✓ 완료</span>
+                        <span style={{fontSize:11,fontWeight:700,color:'#34c759',fontFamily:M,flexShrink:0}}>
+                          ✓ 완료{fmtDur(stepDurations[String(s.n)]) ? ` · ${fmtDur(stepDurations[String(s.n)])}` : ''}
+                        </span>
                       )}
                       {!done && liveProgress?.step === s.n && liveProgress.count > 0 && (
                         <span style={{fontSize:12,fontWeight:700,color:'#ff9500',fontFamily:M,flexShrink:0}}>{liveProgress.count}/{liveProgress.total}</span>

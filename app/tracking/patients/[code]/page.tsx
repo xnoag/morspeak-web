@@ -94,6 +94,7 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
   const [tutorialSending, setTutorialSending] = useState(false)
   const [completedSteps, setCompletedSteps] = useState<number[]>([])
   const [liveProgress, setLiveProgress] = useState<{step: number, count: number, total: number} | null>(null)
+  const [activeStep, setActiveStep] = useState<number | null>(null)
   const [runningStep, setRunningStep] = useState<number | null>(null)
   const [runningAction, setRunningAction] = useState<{step:number, type:string} | null>(null)
   const [eduStatus, setEduStatus] = useState<string>('idle')  // idle | pending | active
@@ -149,6 +150,7 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
     const unsub = onSnapshot(doc(getDb(),'tutorialConfig',code), snap => {
       setCompletedSteps((snap.data()?.completedSteps as number[]) ?? [])
       setLiveProgress((snap.data()?.liveProgress as {step:number,count:number,total:number}) ?? null)
+      setActiveStep((snap.data()?.activeStep as number | null | undefined) ?? null)
     })
     return () => unsub()
   }, [code])
@@ -676,12 +678,13 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
             {n:7, label:'잠그기',           desc:'길게·짧게·길게 (212)'},
             {n:8, label:'잠그기 해제',      desc:'길게·짧게·길게 (212)'},
             {n:9, label:'AI 추천',          desc:'짧게·길게 (12)'},
-            {n:10, label:'AI 추천 선택하기', desc:'길게·짧게 (21)'},
-            {n:11, label:'초기화',          desc:'짧게·짧게·길게·짧게·짧게 (11211)'},
-            {n:12, label:'단축어 모드 전환', desc:'길게·짧게·짧게·짧게·짧게 (21111)'},
-            {n:13, label:'표현 선택하기',    desc:'길게·짧게 (21)'},
-            {n:14, label:'기능 모드 전환',   desc:'짧게·짧게·짧게·짧게·길게 (11112)'},
-            {n:15, label:'호출',            desc:'짧게·길게 (12, 기능모드)'},
+            // 10은 "대기 해제" 명령과 겹쳐서 건너뜀
+            {n:11, label:'AI 추천 선택하기', desc:'길게·짧게 (21)'},
+            {n:12, label:'초기화',          desc:'짧게·짧게·길게·짧게·짧게 (11211)'},
+            {n:13, label:'단축어 모드 전환', desc:'길게·짧게·짧게·짧게·짧게 (21111)'},
+            {n:14, label:'표현 선택하기',    desc:'길게·짧게 (21)'},
+            {n:15, label:'기능 모드 전환',   desc:'짧게·짧게·짧게·짧게·길게 (11112)'},
+            {n:16, label:'호출',            desc:'짧게·길게 (12, 기능모드)'},
           ]
           return (
           <div style={{maxWidth:560}}>
@@ -727,7 +730,9 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                   const done = completedSteps.includes(s.n)
                   const running = runningStep === s.n
                   const isCalibrationStep = s.n <= 3 // 1~3(짧게/길게/혼합) — "직접 해보기"/"다시 하기"
-                  const isTutorialStep = s.n >= 4 // 4~9(ㄱ입력~호출) — "다시 해보기"/"다음 단계", 자동 진행 안 됨
+                  // 지금 환자 화면에 실제로 떠 있는 단계일 때만 "다시 해보기"/"다음 단계"를 보여줌 —
+                  // 아직 열어주지 않은 단계에서 눌러도 의미가 없으므로 버튼 자체를 숨김
+                  const isTutorialStep = s.n >= 4 && activeStep === s.n
                   const runningPractice = runningAction?.step === s.n && runningAction.type === 'practice'
                   const runningRetry = runningAction?.step === s.n && runningAction.type === 'retry'
                   const runningAdvance = runningAction?.step === s.n && runningAction.type === 'advance'

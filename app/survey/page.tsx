@@ -1,47 +1,42 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import {
-  SURVEY_QUESTIONS,
-  SurveyAnswers,
-  SurveyQuestion,
-  getVisibleQuestions,
-  isQuestionAnswered,
-} from '@/lib/survey-questions';
+import { SURVEY_QUESTIONS, SurveyAnswers, SurveyQuestion, isQuestionAnswered } from '@/lib/survey-questions';
 
-interface Slide {
-  id: string;
-  heading: string;
-  description?: string;
-  section?: SurveyQuestion['section'];
-  group?: string;
-}
-
-const SLIDES: Slide[] = [
-  {
-    id: 'A',
+// 문항이 새 주제로 넘어가는 첫 지점에만 회상을 유도하는 문구를 보여준다 —
+// 같은 안내가 문항마다 반복되지 않게, "이 섹션의 첫 문항 id"에만 매칭시킨다.
+const SECTION_INTROS: Record<string, { heading: string; description: string }> = {
+  A1: {
     heading: '기존 의사소통 방식 및 돌봄 상황',
-    description: '환자분과의 기존 의사소통 방식과 현재 돌봄 상황에 대해 여쭤볼게요.',
-    section: 'A',
+    description: '환자분과 함께한 최근의 일상을 천천히 떠올려보며 답해주세요.',
   },
-  { id: 'B1', heading: '의사소통의 명확성', group: '의사소통의 명확성 측면' },
-  { id: 'B2', heading: '의사소통 주제의 다양성', group: '의사소통 주제의 다양성 측면' },
-  { id: 'B3', heading: '의사소통의 적시성', group: '의사소통의 적시성 측면' },
-  { id: 'B4', heading: '일상제어 및 자기결정권', group: '일상제어 및 자기결정권 측면' },
-  { id: 'B5', heading: '환자분과의 관계', group: '환자분과의 관계' },
-  {
-    id: 'C',
+  B1: {
+    heading: '의사소통의 명확성',
+    description: '환자분과 나눈 대화의 순간들을 하나씩 떠올려보세요.',
+  },
+  B6: {
+    heading: '의사소통 주제의 다양성',
+    description: '여러 상황에서 나눈 대화들을 생각해보세요.',
+  },
+  B8: {
+    heading: '의사소통의 적시성',
+    description: '환자분이 도움이 필요했던 순간들을 떠올려보세요.',
+  },
+  B13: {
+    heading: '일상제어 및 자기결정권',
+    description: '환자분이 스스로 무언가를 선택했던 순간을 생각해보세요.',
+  },
+  B17: {
+    heading: '환자분과의 관계',
+    description: '마지막으로, 환자분과의 관계에 대해 여쭤보겠습니다.',
+  },
+  C1: {
     heading: '니즈 및 기대사항',
-    description: '마지막으로, 모스픽에 대한 기대와 바라시는 점을 여쭤볼게요.',
-    section: 'C',
+    description: '지금까지의 답변을 떠올리며, 모스픽을 통해 기대하시는 부분을 천천히 생각해보세요.',
   },
-];
-
-const STEP_ORDER = ['intro', 'consent', 'identity', ...SLIDES.map((s) => s.id), 'complete'] as const;
-type Step = typeof STEP_ORDER[number];
-const PROGRESS_STEPS = STEP_ORDER.filter((s) => s !== 'intro' && s !== 'complete');
+};
 
 interface Identity {
   patientName: string;
@@ -63,15 +58,6 @@ const lbl = '#000';
 const lbl2 = 'rgba(60,60,67,0.6)';
 const sep = 'rgba(60,60,67,0.18)';
 const bg = '#F2F2F7';
-
-function getSlideQuestions(slide: Slide, answers: SurveyAnswers) {
-  if (slide.section) return getVisibleQuestions(slide.section, answers);
-  return getVisibleQuestions('B', answers).filter((q) => q.group === slide.group);
-}
-
-function isSlideComplete(slide: Slide, answers: SurveyAnswers) {
-  return getSlideQuestions(slide, answers).every((q) => isQuestionAnswered(q, answers));
-}
 
 function ProgressBar({ current, total }: { current: number; total: number }) {
   const pct = Math.round((current / total) * 100);
@@ -155,8 +141,6 @@ function OtherInput({ value, onChange }: { value: string; onChange: (v: string) 
 
 function QuestionBlock({
   q,
-  index,
-  total,
   answers,
   onSingle,
   onToggleMulti,
@@ -165,8 +149,6 @@ function QuestionBlock({
   onOtherText,
 }: {
   q: SurveyQuestion;
-  index: number;
-  total: number;
   answers: SurveyAnswers;
   onSingle: (id: string, value: string) => void;
   onToggleMulti: (id: string, value: string) => void;
@@ -178,12 +160,9 @@ function QuestionBlock({
   const otherText = (answers[`${q.id}_other`] as string) ?? '';
 
   return (
-    <div style={{ background: '#fff', border: `1px solid ${sep}`, borderRadius: 16, padding: '18px 16px', marginBottom: 12 }}>
-      {index > 0 && (
-        <p style={{ fontSize: 12, color: lbl2, fontWeight: 600, marginBottom: 6 }}>질문 {index} / {total}</p>
-      )}
+    <div style={{ background: '#fff', border: `1px solid ${sep}`, borderRadius: 16, padding: '20px 18px' }}>
       {/* q.helperNote는 분기 조건 설명용 내부 메모라 응답자에게는 보여주지 않는다 — 조건에 안 맞으면 문항 자체가 노출되지 않는다 */}
-      <p style={{ fontSize: 16, fontWeight: 600, color: lbl, lineHeight: 1.5, marginBottom: 12 }}>{q.title}</p>
+      <p style={{ fontSize: 18, fontWeight: 600, color: lbl, lineHeight: 1.5, marginBottom: 16 }}>{q.title}</p>
 
       {q.type === 'text' && (
         <input
@@ -231,7 +210,7 @@ function QuestionBlock({
                   background: selected ? 'rgba(58,58,60,0.06)' : '#fff',
                   border: `1px solid ${selected ? green : sep}`,
                   borderRadius: 12,
-                  padding: '12px 14px',
+                  padding: '14px 16px',
                   cursor: disabled ? 'not-allowed' : 'pointer',
                   opacity: disabled ? 0.4 : 1,
                   fontFamily: font,
@@ -239,7 +218,7 @@ function QuestionBlock({
                 }}
               >
                 <Check checked={selected} shape={q.type === 'single' ? 'circle' : 'square'} rank={rank} />
-                <span style={{ fontSize: 15, color: lbl, lineHeight: 1.4 }}>{opt.label}</span>
+                <span style={{ fontSize: 15.5, color: lbl, lineHeight: 1.4 }}>{opt.label}</span>
               </button>
               {opt.isOther && selected && <OtherInput value={otherText} onChange={(v) => onOtherText(q.id, v)} />}
             </div>
@@ -250,7 +229,7 @@ function QuestionBlock({
 }
 
 export default function PreSurveyPage() {
-  const [step, setStep] = useState<Step>('intro');
+  const [step, setStep] = useState('intro');
   const [consentChecked, setConsentChecked] = useState(false);
   const [consentExpanded, setConsentExpanded] = useState(false);
   const [identity, setIdentity] = useState<Identity>({ patientName: '', caregiverName: '', caregiverContact: '' });
@@ -258,45 +237,31 @@ export default function PreSurveyPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
-  const stepIndex = STEP_ORDER.indexOf(step);
-  const goPrev = () => { if (stepIndex > 0) setStep(STEP_ORDER[stepIndex - 1]); };
-  const goNext = () => { if (stepIndex < STEP_ORDER.length - 1) setStep(STEP_ORDER[stepIndex + 1]); };
-  const progressIndex = PROGRESS_STEPS.indexOf(step);
-
-  // 현재 답변 기준으로 A/B/C 전체에서 실제로 보이는 문항을 순서대로 나열 — 문항 카드에
-  // "질문 N / 총 M" 번호를 붙이는 기준. 분기 조건이 뒤에서 풀리면 총 개수가 늘어날 수 있음.
-  const allVisibleQuestions = useMemo(
-    () => [
-      ...getVisibleQuestions('A', answers),
-      ...getVisibleQuestions('B', answers),
-      ...getVisibleQuestions('C', answers),
-    ],
+  // 문항 하나 = 화면 하나. 여러 문항을 한 화면에 몰아서 보여주면 훑어보며 답을 빠르게
+  // 찍는 경향(straightlining)이 생기기 쉬워서, 현재 답변 기준으로 조건분기까지 반영한
+  // "지금 보여줘야 할 문항" 순서를 매번 계산하고 그 흐름을 그대로 단계로 사용한다.
+  const visibleQuestions = useMemo(
+    () => SURVEY_QUESTIONS.filter((q) => !q.showIf || q.showIf(answers)),
     [answers]
   );
-  const questionIndex = (id: string) => allVisibleQuestions.findIndex((x) => x.id === id) + 1;
-  const progress = progressIndex >= 0 ? { current: progressIndex + 1, total: PROGRESS_STEPS.length } : undefined;
+  const FLOW = useMemo(() => ['intro', 'consent', 'identity', ...visibleQuestions.map((q) => q.id)], [visibleQuestions]);
+  const flowIndex = FLOW.indexOf(step);
+  const currentQuestion = visibleQuestions.find((q) => q.id === step) ?? null;
+  const isLastQuestion = !!currentQuestion && flowIndex === FLOW.length - 1;
 
-  const slide = SLIDES.find((s) => s.id === step);
-  const questions = slide ? getSlideQuestions(slide, answers) : [];
+  const goPrev = () => { if (flowIndex > 0) setStep(FLOW[flowIndex - 1]); };
+  const goNext = () => { if (flowIndex >= 0 && flowIndex < FLOW.length - 1) setStep(FLOW[flowIndex + 1]); };
 
-  // 단계가 바뀌면(다음/이전) 스크롤을 맨 위로 — 새 화면 첫 문항부터 다시 보이도록.
-  // #survey-scroll-area는 min-height 레이아웃이라 실제로는 내부가 아니라 창(window)이 스크롤된다.
+  // progress는 intro를 뺀 나머지(동의 → 응답자정보 → 문항들) 기준으로 표시한다.
+  const PROGRESS_FLOW = FLOW.slice(1);
+  const progressIndex = PROGRESS_FLOW.indexOf(step);
+  const progress = progressIndex >= 0 ? { current: progressIndex + 1, total: PROGRESS_FLOW.length } : undefined;
+
+  // 화면(문항)이 바뀌면 스크롤을 맨 위로 — 실제로 스크롤되는 건 이 페이지의 내부 div가
+  // 아니라 창(window) 쪽이라(레이아웃이 min-height라 내부 div는 늘어날 뿐 넘치지 않음).
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, [step]);
-
-  // 단일선택/순위선택 문항에 답하면 자동으로 다음 문항으로 스크롤 — 응답 흐름이 끊기지 않게.
-  // 복수선택·서술형은 계속 고르거나 입력해야 하니 자동 스크롤하지 않는다.
-  const questionRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const scrollToNextQuestion = (currentId: string) => {
-    const idx = questions.findIndex((x) => x.id === currentId);
-    const next = questions[idx + 1];
-    if (next) {
-      setTimeout(() => {
-        questionRefs.current[next.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 300);
-    }
-  };
 
   const setSingle = (id: string, value: string) => setAnswers((prev) => ({ ...prev, [id]: value }));
   const setText = (id: string, value: string) => setAnswers((prev) => ({ ...prev, [id]: value }));
@@ -321,16 +286,19 @@ export default function PreSurveyPage() {
       return { ...prev, [id]: arr };
     });
 
+  // 단일선택 문항에 답하거나 순위선택이 다 채워지면, 이 문항은 더 손댈 게 없으니
+  // 살짝 뒤 자동으로 다음 문항으로 넘어간다(마지막 문항이면 넘어가지 않고 제출 버튼만 활성화).
+  // 복수선택·서술형은 더 고르거나 입력할 수 있어야 하니 자동으로 넘기지 않는다.
   const handleSingle = (id: string, value: string) => {
     setSingle(id, value);
-    scrollToNextQuestion(id);
+    if (!isLastQuestion) setTimeout(() => goNext(), 350);
   };
   const handleRanked = (id: string, value: string, max: number) => {
     toggleRanked(id, value, max);
     const current = Array.isArray(answers[id]) ? (answers[id] as string[]) : [];
     const willBeSelected = !current.includes(value);
     const resultingLength = willBeSelected ? current.length + 1 : current.length - 1;
-    if (willBeSelected && resultingLength >= max) scrollToNextQuestion(id);
+    if (willBeSelected && resultingLength >= max && !isLastQuestion) setTimeout(() => goNext(), 350);
   };
 
   const primaryBtn = (disabled?: boolean): React.CSSProperties => ({
@@ -519,10 +487,10 @@ export default function PreSurveyPage() {
     );
   }
 
-  // ── SLIDE STEPS (A, B1~B5, C) ─────────────────────────────────
-  if (!slide) return null;
-  const complete = isSlideComplete(slide, answers);
-  const isLast = slide.id === 'C';
+  // ── QUESTION (한 화면에 문항 하나) ────────────────────────────────
+  if (!currentQuestion) return null;
+  const intro = SECTION_INTROS[currentQuestion.id];
+  const answered = isQuestionAnswered(currentQuestion, answers);
 
   return (
     <Layout
@@ -534,35 +502,33 @@ export default function PreSurveyPage() {
           <div style={{ display: 'flex', gap: 10 }}>
             <button onClick={goPrev} style={{ ...prevBtn, flexShrink: 0 }}>이전</button>
             <button
-              style={{ ...primaryBtn(!complete || submitting), flex: 1 }}
-              disabled={!complete || submitting}
-              onClick={isLast ? handleSubmit : goNext}
+              style={{ ...primaryBtn(!answered || submitting), flex: 1 }}
+              disabled={!answered || submitting}
+              onClick={isLastQuestion ? handleSubmit : goNext}
             >
-              {isLast ? (submitting ? '제출 중...' : '제출하기') : '다음'}
+              {isLastQuestion ? (submitting ? '제출 중...' : '제출하기') : '다음'}
             </button>
           </div>
         </div>
       }
     >
-      <h1 style={{ fontSize: 24, fontWeight: 700, color: lbl, letterSpacing: '-0.4px', marginBottom: 6 }}>{slide.heading}</h1>
-      {slide.description && <p style={{ fontSize: 15, color: lbl2, marginBottom: 20 }}>{slide.description}</p>}
-      {!slide.description && <div style={{ marginBottom: 12 }} />}
-
-      {questions.map((q) => (
-        <div key={q.id} ref={(el) => { questionRefs.current[q.id] = el; }}>
-          <QuestionBlock
-            q={q}
-            index={questionIndex(q.id)}
-            total={allVisibleQuestions.length}
-            answers={answers}
-            onSingle={handleSingle}
-            onToggleMulti={toggleMulti}
-            onToggleRanked={handleRanked}
-            onText={setText}
-            onOtherText={setOtherText}
-          />
+      {intro && (
+        <div style={{ marginBottom: 20 }}>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: lbl, letterSpacing: '-0.4px', marginBottom: 6 }}>{intro.heading}</h1>
+          <p style={{ fontSize: 14.5, color: lbl2, lineHeight: 1.6 }}>{intro.description}</p>
         </div>
-      ))}
+      )}
+
+      <QuestionBlock
+        key={currentQuestion.id}
+        q={currentQuestion}
+        answers={answers}
+        onSingle={handleSingle}
+        onToggleMulti={toggleMulti}
+        onToggleRanked={handleRanked}
+        onText={setText}
+        onOtherText={setOtherText}
+      />
     </Layout>
   );
 }

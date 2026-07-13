@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import {
@@ -155,6 +155,8 @@ function OtherInput({ value, onChange }: { value: string; onChange: (v: string) 
 
 function QuestionBlock({
   q,
+  index,
+  total,
   answers,
   onSingle,
   onToggleMulti,
@@ -163,6 +165,8 @@ function QuestionBlock({
   onOtherText,
 }: {
   q: SurveyQuestion;
+  index: number;
+  total: number;
   answers: SurveyAnswers;
   onSingle: (id: string, value: string) => void;
   onToggleMulti: (id: string, value: string) => void;
@@ -175,6 +179,9 @@ function QuestionBlock({
 
   return (
     <div style={{ background: '#fff', border: `1px solid ${sep}`, borderRadius: 16, padding: '18px 16px', marginBottom: 12 }}>
+      {index > 0 && (
+        <p style={{ fontSize: 12, color: lbl2, fontWeight: 600, marginBottom: 6 }}>질문 {index} / {total}</p>
+      )}
       {/* q.helperNote는 분기 조건 설명용 내부 메모라 응답자에게는 보여주지 않는다 — 조건에 안 맞으면 문항 자체가 노출되지 않는다 */}
       <p style={{ fontSize: 16, fontWeight: 600, color: lbl, lineHeight: 1.5, marginBottom: 12 }}>{q.title}</p>
 
@@ -255,6 +262,18 @@ export default function PreSurveyPage() {
   const goPrev = () => { if (stepIndex > 0) setStep(STEP_ORDER[stepIndex - 1]); };
   const goNext = () => { if (stepIndex < STEP_ORDER.length - 1) setStep(STEP_ORDER[stepIndex + 1]); };
   const progressIndex = PROGRESS_STEPS.indexOf(step);
+
+  // 현재 답변 기준으로 A/B/C 전체에서 실제로 보이는 문항을 순서대로 나열 — 문항 카드에
+  // "질문 N / 총 M" 번호를 붙이는 기준. 분기 조건이 뒤에서 풀리면 총 개수가 늘어날 수 있음.
+  const allVisibleQuestions = useMemo(
+    () => [
+      ...getVisibleQuestions('A', answers),
+      ...getVisibleQuestions('B', answers),
+      ...getVisibleQuestions('C', answers),
+    ],
+    [answers]
+  );
+  const questionIndex = (id: string) => allVisibleQuestions.findIndex((x) => x.id === id) + 1;
   const progress = progressIndex >= 0 ? { current: progressIndex + 1, total: PROGRESS_STEPS.length } : undefined;
 
   const setSingle = (id: string, value: string) => setAnswers((prev) => ({ ...prev, [id]: value }));
@@ -501,6 +520,8 @@ export default function PreSurveyPage() {
         <QuestionBlock
           key={q.id}
           q={q}
+          index={questionIndex(q.id)}
+          total={allVisibleQuestions.length}
           answers={answers}
           onSingle={setSingle}
           onToggleMulti={toggleMulti}

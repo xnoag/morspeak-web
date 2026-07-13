@@ -95,6 +95,7 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
   const [completedSteps, setCompletedSteps] = useState<number[]>([])
   const [liveProgress, setLiveProgress] = useState<{step: number, count: number, total: number} | null>(null)
   const [activeStep, setActiveStep] = useState<number | null>(null)
+  const [focusMode, setFocusMode] = useState(true)
   const [runningStep, setRunningStep] = useState<number | null>(null)
   const [runningAction, setRunningAction] = useState<{step:number, type:string} | null>(null)
   const [eduStatus, setEduStatus] = useState<string>('idle')  // idle | pending | active
@@ -719,7 +720,101 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
 
             {/* 튜토리얼 · 캘리브레이션 단계 열기 */}
             <div style={{marginBottom:32}}>
-              <div style={{fontSize:13,fontWeight:600,color:'#1d1d1f',marginBottom:8}}>튜토리얼 · 캘리브레이션 단계 열기</div>
+              <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
+                <div style={{fontSize:13,fontWeight:600,color:'#1d1d1f'}}>튜토리얼 · 캘리브레이션 단계 열기</div>
+                <div style={{flex:1}}/>
+                <button onClick={()=>setFocusMode(v=>!v)}
+                  style={{fontSize:11,color:'#0071e3',background:'none',border:'1px solid #d2e6fb',borderRadius:6,padding:'4px 10px',cursor:'pointer'}}>
+                  {focusMode ? '전체 목록 보기' : '포커스 모드 (화상통화용)'}
+                </button>
+              </div>
+              {focusMode ? (() => {
+                const currentStep = tutorialStepsList.find(s => s.n === activeStep)
+                  ?? tutorialStepsList.find(s => !completedSteps.includes(s.n))
+                const suggestingNext = !currentStep || currentStep.n !== activeStep
+                const isCalibrationStep = !!currentStep && currentStep.n <= 3
+                const isTutorialStep = !!currentStep && currentStep.n >= 4 && activeStep === currentStep.n
+                const running = !!currentStep && runningStep === currentStep.n
+                const runningPractice = !!currentStep && runningAction?.step === currentStep.n && runningAction.type === 'practice'
+                const runningRetry = !!currentStep && runningAction?.step === currentStep.n && runningAction.type === 'retry'
+                const runningAdvance = !!currentStep && runningAction?.step === currentStep.n && runningAction.type === 'advance'
+                return (
+                  <div>
+                    <p style={{fontSize:12,color:'#8e8e93',lineHeight:1.6,marginBottom:12}}>
+                      화면 공유 보면서 실시간으로 단계를 열어줄 때 쓰는 모드입니다. 지금 환자 화면에 떠 있는 단계만 크게 보여줍니다.
+                    </p>
+                    {currentStep ? (
+                      <div style={{border:`2px solid ${suggestingNext?'#d2d2d7':'#007AFF'}`,borderRadius:16,padding:'24px 28px',background:suggestingNext?'#fafafa':'#f0f7ff'}}>
+                        <div style={{fontSize:11,fontWeight:700,color:suggestingNext?'#8e8e93':'#007AFF',fontFamily:M,marginBottom:6,textTransform:'uppercase',letterSpacing:'.06em'}}>
+                          {suggestingNext ? '다음으로 열어줄 단계' : '지금 환자 화면에 열려있는 단계'}
+                        </div>
+                        <div style={{fontSize:22,fontWeight:700,color:'#1d1d1f',marginBottom:4}}>{currentStep.n}. {currentStep.label}</div>
+                        <div style={{fontSize:13,color:'#8e8e93',fontFamily:M,marginBottom:18}}>{currentStep.desc}</div>
+                        {completedSteps.includes(currentStep.n) && (
+                          <div style={{fontSize:13,fontWeight:700,color:'#34c759',marginBottom:14}}>✓ 완료됨</div>
+                        )}
+                        {!completedSteps.includes(currentStep.n) && liveProgress?.step === currentStep.n && liveProgress.count > 0 && (
+                          <div style={{fontSize:15,fontWeight:700,color:'#ff9500',fontFamily:M,marginBottom:14}}>{liveProgress.count}/{liveProgress.total}</div>
+                        )}
+                        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+                          {isCalibrationStep && (
+                            <>
+                              <button type="button" disabled={!!runningAction} style={{...smallBtn,padding:'12px 22px',fontSize:15,background:'#34c759'}}
+                                onClick={async()=>{ setRunningAction({step:currentStep.n,type:'practice'}); await setDoc(doc(getDb(),'tutorialConfig',code),{remoteActionType:'practice',remoteActionStep:currentStep.n,requestedAt:new Date()},{merge:true}); setRunningAction(null) }}>
+                                {runningPractice?'실행 중...':'직접 해보기'}
+                              </button>
+                              <button type="button" disabled={!!runningAction} style={{...smallBtn,padding:'12px 22px',fontSize:15,background:'#ff3b30'}}
+                                onClick={async()=>{ setRunningAction({step:currentStep.n,type:'retry'}); await setDoc(doc(getDb(),'tutorialConfig',code),{remoteActionType:'retry',remoteActionStep:currentStep.n,requestedAt:new Date()},{merge:true}); setRunningAction(null) }}>
+                                {runningRetry?'실행 중...':'다시 하기'}
+                              </button>
+                            </>
+                          )}
+                          {isTutorialStep && (
+                            <>
+                              <button type="button" disabled={!!runningAction} style={{...smallBtn,padding:'12px 22px',fontSize:15,background:'#ff3b30'}}
+                                onClick={async()=>{ setRunningAction({step:currentStep.n,type:'retry'}); await setDoc(doc(getDb(),'tutorialConfig',code),{remoteActionType:'retry',remoteActionStep:currentStep.n,requestedAt:new Date()},{merge:true}); setRunningAction(null) }}>
+                                {runningRetry?'실행 중...':'다시 해보기'}
+                              </button>
+                              <button type="button" disabled={!!runningAction} style={{...smallBtn,padding:'12px 22px',fontSize:15,background:'#34c759'}}
+                                onClick={async()=>{ setRunningAction({step:currentStep.n,type:'advance'}); await setDoc(doc(getDb(),'tutorialConfig',code),{remoteActionType:'advance',remoteActionStep:currentStep.n,requestedAt:new Date()},{merge:true}); setRunningAction(null) }}>
+                                {runningAdvance?'실행 중...':'다음 단계'}
+                              </button>
+                            </>
+                          )}
+                          <button type="button" disabled={running} style={{...smallBtn,padding:'12px 22px',fontSize:15,background:'#0071e3'}}
+                            onClick={async()=>{ setRunningStep(currentStep.n); await setDoc(doc(getDb(),'tutorialConfig',code),{steps:[currentStep.n],requestedAt:new Date()},{merge:true}); setRunningStep(null) }}>
+                            {running?'실행 중...':(suggestingNext?'이 단계 열기':'지금 실행')}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{padding:32,textAlign:'center',color:'#8e8e93',fontSize:13,border:'1px solid #e5e5ea',borderRadius:16}}>
+                        전체 단계를 다 완료했어요 🎉
+                      </div>
+                    )}
+                    <div style={{display:'flex',gap:6,flexWrap:'wrap',marginTop:16}}>
+                      {tutorialStepsList.map(s => {
+                        const isDone = completedSteps.includes(s.n)
+                        const isCurrent = s.n === currentStep?.n
+                        return (
+                          <button key={s.n} type="button"
+                            onClick={async()=>{ setRunningStep(s.n); await setDoc(doc(getDb(),'tutorialConfig',code),{steps:[s.n],requestedAt:new Date()},{merge:true}); setRunningStep(null) }}
+                            title={s.label}
+                            style={{
+                              width:32,height:32,borderRadius:8,fontSize:11,fontFamily:M,fontWeight:700,cursor:'pointer',
+                              border: isCurrent ? '2px solid #007AFF' : '1px solid #d2d2d7',
+                              background: isDone ? '#34c759' : isCurrent ? '#f0f7ff' : '#fff',
+                              color: isDone ? '#fff' : isCurrent ? '#007AFF' : '#8e8e93',
+                            }}>
+                            {s.n}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })() : (
+              <>
               <p style={{fontSize:12,color:'#8e8e93',lineHeight:1.6,marginBottom:12}}>
                 단계를 선택하고 열면 환자 앱에서 해당 단계가 실행됩니다. 1~3은 눈 깜빡임 캘리브레이션, 4~9는 실제 사용법 튜토리얼입니다.
                 완료 여부는 실시간으로 아래에 표시되니, 이전 단계 완료를 확인한 뒤 직접 다음 단계를 열어주세요.
@@ -848,6 +943,8 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                 <button onClick={()=>setTutorialSteps([])}
                   style={{...smallBtn,background:'#f5f5f7',color:'#3c3c43',border:'none'}}>선택 해제</button>
               </div>
+              </>
+              )}
             </div>
 
             {/* 개별 기능 관리 */}

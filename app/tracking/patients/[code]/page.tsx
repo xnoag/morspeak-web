@@ -673,9 +673,15 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
             {n:4, label:'ㄱ 입력하기',      desc:'짧게·짧게·길게 깜빡임'},
             {n:5, label:'ㅏ 입력하기',      desc:'길게·짧게 깜빡임'},
             {n:6, label:'말하기',           desc:'짧게·짧게 (11)'},
-            {n:7, label:'단축어 모드 전환', desc:'길게·짧게·짧게·짧게·짧게 (21111)'},
-            {n:8, label:'표현 선택하기',    desc:'길게·짧게 (21)'},
-            {n:9, label:'호출하기',         desc:'길게·길게 (22)'},
+            {n:7, label:'잠그기',           desc:'길게·짧게·길게 (212)'},
+            {n:8, label:'잠그기 해제',      desc:'길게·짧게·길게 (212)'},
+            {n:9, label:'AI 추천',          desc:'짧게·길게 (12)'},
+            {n:10, label:'AI 추천 선택하기', desc:'길게·짧게 (21)'},
+            {n:11, label:'초기화',          desc:'짧게·짧게·길게·짧게·짧게 (11211)'},
+            {n:12, label:'단축어 모드 전환', desc:'길게·짧게·짧게·짧게·짧게 (21111)'},
+            {n:13, label:'표현 선택하기',    desc:'길게·짧게 (21)'},
+            {n:14, label:'기능 모드 전환',   desc:'짧게·짧게·짧게·짧게·길게 (11112)'},
+            {n:15, label:'호출',            desc:'짧게·길게 (12, 기능모드)'},
           ]
           return (
           <div style={{maxWidth:560}}>

@@ -28,9 +28,15 @@ const tutorialStepsList = [
   { n: 4, short: 'ㄱ', label: 'ㄱ 입력하기', desc: '짧게·짧게·길게 깜빡임' },
   { n: 5, short: 'ㅏ', label: 'ㅏ 입력하기', desc: '길게·짧게 깜빡임' },
   { n: 6, short: '말하기', label: '말하기', desc: '짧게·짧게 (11)' },
-  { n: 7, short: '단축어전환', label: '단축어 모드 전환', desc: '길게·짧게·짧게·짧게·짧게 (21111)' },
-  { n: 8, short: '표현선택', label: '표현 선택하기', desc: '길게·짧게 (21)' },
-  { n: 9, short: '호출', label: '호출하기', desc: '길게·길게' },
+  { n: 7, short: '잠그기', label: '잠그기', desc: '길게·짧게·길게 (212)' },
+  { n: 8, short: '잠금해제', label: '잠그기 해제', desc: '길게·짧게·길게 (212)' },
+  { n: 9, short: 'AI추천', label: 'AI 추천', desc: '짧게·길게 (12)' },
+  { n: 10, short: 'AI선택', label: 'AI 추천 선택하기', desc: '길게·짧게 (21)' },
+  { n: 11, short: '초기화', label: '초기화', desc: '짧게·짧게·길게·짧게·짧게 (11211)' },
+  { n: 12, short: '단축어전환', label: '단축어 모드 전환', desc: '길게·짧게·짧게·짧게·짧게 (21111)' },
+  { n: 13, short: '표현선택', label: '표현 선택하기', desc: '길게·짧게 (21)' },
+  { n: 14, short: '기능전환', label: '기능 모드 전환', desc: '짧게·짧게·짧게·짧게·길게 (11112)' },
+  { n: 15, short: '호출', label: '호출', desc: '짧게·길게 (12, 기능모드)' },
 ]
 
 const smallBtn: React.CSSProperties = { padding: '6px 12px', borderRadius: 7, border: '1px solid #d2d2d7', background: '#1d1d1f', color: '#fff', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: F }

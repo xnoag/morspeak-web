@@ -675,29 +675,82 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
         {/* ── 교육 · 온보딩 ── */}
         {tab==='교육온보딩' && (() => {
           const tutorialStepsList = [
-            {n:1, label:'짧게 깜빡이기',     desc:'캘리브레이션 · 짧게 ×5'},
-            {n:2, label:'길게 깜빡이기',     desc:'캘리브레이션 · 길게 ×5'},
-            {n:3, label:'혼합 깜빡이기',     desc:'캘리브레이션 · 짧게/길게 혼합 ×5'},
-            {n:4, label:'ㄱ 입력하기',      desc:'짧게·짧게·길게 깜빡임'},
-            {n:5, label:'ㅏ 입력하기',      desc:'길게·짧게 깜빡임'},
-            {n:6, label:'말하기',           desc:'짧게·짧게 (11)'},
-            {n:7, label:'잠그기',           desc:'길게·짧게·길게 (212)'},
-            {n:8, label:'잠그기 해제',      desc:'길게·짧게·길게 (212)'},
-            {n:9, label:'AI 추천',          desc:'짧게·길게 (12)'},
+            {n:1, label:'짧게 깜빡이기',     desc:'캘리브레이션 · 짧게 ×5',
+              script:'"눈에 힘을 빼고 편안하게, 짧게 감았다가 떠보세요. 5번 정도 반복하면 짧은 깜빡임 길이를 기억해둘게요."'},
+            {n:2, label:'길게 깜빡이기',     desc:'캘리브레이션 · 길게 ×5',
+              script:'"이번엔 조금 더 길게 감았다가 떠보세요. 짧게보다 확실히 오래 감아주시면 돼요."'},
+            {n:3, label:'혼합 깜빡이기',     desc:'캘리브레이션 · 짧게/길게 혼합 ×5',
+              script:'"이제 짧게와 길게를 화면에 나오는 순서대로 섞어서 깜빡여볼게요."'},
+            {n:4, label:'ㄱ 입력하기',      desc:'짧게·짧게·길게 깜빡임',
+              script:'"짧게·짧게·길게 순서로 깜빡이면 \'ㄱ\'이 입력돼요. 화면에 ㄱ이 뜨는지 같이 확인해볼게요."'},
+            {n:5, label:'ㅏ 입력하기',      desc:'길게·짧게 깜빡임',
+              script:'"길게·짧게로 깜빡이면 \'ㅏ\'가 입력돼요. ㄱ 다음에 이어서 \'가\'를 만들어볼게요."'},
+            {n:6, label:'말하기',           desc:'짧게·짧게 (11)',
+              script:'"짧게·짧게로 깜빡이면 지금까지 입력한 문장을 소리로 읽어줘요."'},
+            {n:7, label:'잠그기',           desc:'길게·짧게·길게 (212)',
+              script:'"길게·짧게·길게로 깜빡이면 화면이 잠겨요. 원치 않는 입력을 막고 싶을 때 사용해요."'},
+            {n:8, label:'잠그기 해제',      desc:'길게·짧게·길게 (212)',
+              script:'"잠긴 상태에서 같은 동작(길게·짧게·길게)을 반복하면 다시 풀려요."'},
+            {n:9, label:'AI 추천',          desc:'짧게·길게 (12)',
+              script:'"짧게·길게로 깜빡이면 AI가 이어서 할 말을 추천해줘요."'},
             // 10은 "대기 해제" 명령과 겹쳐서 건너뜀
-            {n:11, label:'AI 추천 선택하기', desc:'길게·짧게 (21)'},
-            {n:12, label:'초기화',          desc:'짧게·짧게·길게·짧게·짧게 (11211)'},
-            {n:13, label:'단축어 모드 전환', desc:'길게·짧게·짧게·짧게·짧게 (21111)'},
-            {n:14, label:'표현 선택하기',    desc:'길게·짧게 (21)'},
-            {n:15, label:'기능 모드 전환',   desc:'짧게·짧게·짧게·짧게·길게 (11112)'},
-            {n:16, label:'호출',            desc:'짧게·길게 (12, 기능모드)'},
+            {n:11, label:'AI 추천 선택하기', desc:'길게·짧게 (21)',
+              script:'"추천된 표현 중 첫 번째를 길게·짧게로 선택해서 바로 말할 수 있어요."'},
+            {n:12, label:'초기화',          desc:'짧게·짧게·길게·짧게·짧게 (11211)',
+              script:'"이 동작을 하면 지금까지 입력한 내용이 전부 지워져요. 잘못 입력했을 때 사용해요."'},
+            {n:13, label:'단축어 모드 전환', desc:'길게·짧게·짧게·짧게·짧게 (21111)',
+              script:'"이 동작으로 자주 쓰는 표현들이 모여있는 화면으로 넘어가요."'},
+            {n:14, label:'표현 선택하기',    desc:'길게·짧게 (21)',
+              script:'"단축어 모드에서 길게·짧게로 첫 번째 표현을 바로 말할 수 있어요."'},
+            {n:15, label:'기능 모드 전환',   desc:'짧게·짧게·짧게·짧게·길게 (11112)',
+              script:'"이 동작으로 여러 기능이 모여있는 화면으로 넘어가요."'},
+            {n:16, label:'호출',            desc:'짧게·길게 (12, 기능모드)',
+              script:'"기능 모드에서 짧게·길게로 보호자를 호출할 수 있어요. 잠금 상태에서도 항상 작동해요."'},
+          ]
+          const CHAPTERS = [
+            {title:'1장 · 캘리브레이션', desc:'눈 깜빡임 길이를 학습시켜요', steps:[1,2,3]},
+            {title:'2장 · 기본 입력',   desc:'자모를 직접 입력해봐요', steps:[4,5]},
+            {title:'3장 · 핵심 기능',   desc:'말하기·잠금·AI추천·초기화', steps:[6,7,8,9,11,12]},
+            {title:'4장 · 모드 전환',   desc:'단축어·기능 모드로 넘어가기', steps:[13,14,15,16]},
           ]
           return (
           <div style={{maxWidth:920}}>
             <ColTitle>교육 · 온보딩</ColTitle>
-            <p style={{fontSize:13,color:'#6e6e73',lineHeight:1.7,marginBottom:24}}>
+            <p style={{fontSize:13,color:'#6e6e73',lineHeight:1.7,marginBottom:20}}>
               캘리브레이션부터 튜토리얼 단계, 화면 제어, 감지 파라미터까지 온보딩 교육에 필요한 모든 것을 여기서 관리하고 진행 상황을 추적합니다.
             </p>
+
+            {/* 전체 진행률 개요 */}
+            <div style={{marginBottom:32,padding:'20px 24px',background:'#fff',border:'1px solid #e5e5ea',borderRadius:16}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:10}}>
+                <div style={{fontSize:14,fontWeight:700,color:'#1d1d1f'}}>전체 온보딩 진행률</div>
+                <div style={{fontSize:13,fontFamily:M,fontWeight:700,color:'#007AFF'}}>
+                  {tutorialStepsList.filter(s=>completedSteps.includes(s.n)).length}/{tutorialStepsList.length}
+                </div>
+              </div>
+              <div style={{height:8,background:'#f0f0f5',borderRadius:4,overflow:'hidden',marginBottom:16}}>
+                <div style={{
+                  height:'100%',
+                  width:`${Math.round(tutorialStepsList.filter(s=>completedSteps.includes(s.n)).length/tutorialStepsList.length*100)}%`,
+                  background:'#34c759',borderRadius:4,transition:'width .3s',
+                }}/>
+              </div>
+              <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                {CHAPTERS.map(ch => {
+                  const chSteps = tutorialStepsList.filter(s=>ch.steps.includes(s.n))
+                  const chDone = chSteps.filter(s=>completedSteps.includes(s.n)).length
+                  const allDone = chSteps.length>0 && chDone===chSteps.length
+                  return (
+                    <div key={ch.title} style={{
+                      fontSize:11,fontFamily:M,fontWeight:600,padding:'5px 10px',borderRadius:20,
+                      background:allDone?'#e8f9ee':'#f5f5f7',color:allDone?'#34c759':'#6e6e73',
+                    }}>
+                      {ch.title.split(' · ')[0]} {chDone}/{chSteps.length}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
 
             {/* 지금 화면 제어 */}
             <div style={{marginBottom:32}}>
@@ -757,7 +810,13 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                           {suggestingNext ? '다음으로 열어줄 단계' : '지금 환자 화면에 열려있는 단계'}
                         </div>
                         <div style={{fontSize:24,fontWeight:700,color:'#1d1d1f',marginBottom:4}}>{currentStep.n}. {currentStep.label}</div>
-                        <div style={{fontSize:14,color:'#8e8e93',fontFamily:M,marginBottom:20}}>{currentStep.desc}</div>
+                        <div style={{fontSize:14,color:'#8e8e93',fontFamily:M,marginBottom:16}}>{currentStep.desc}</div>
+                        {currentStep.script && (
+                          <div style={{fontSize:14,color:'#3a3a3c',lineHeight:1.65,marginBottom:20,padding:'14px 18px',background:'#fff',borderRadius:12,border:'1px solid #e5e5ea'}}>
+                            <span style={{fontSize:11,fontWeight:700,color:'#8e8e93',textTransform:'uppercase',letterSpacing:'.04em',display:'block',marginBottom:5}}>환자에게 말하기</span>
+                            💬 {currentStep.script}
+                          </div>
+                        )}
                         {completedSteps.includes(currentStep.n) && (() => {
                           const dur = fmtDur(stepDurations[String(currentStep.n)])
                           const shortStats = statsOf(blink.onboardingShortDurations)
@@ -861,8 +920,20 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                 단계를 선택하고 열면 환자 앱에서 해당 단계가 실행됩니다. 1~3은 눈 깜빡임 캘리브레이션, 4~9는 실제 사용법 튜토리얼입니다.
                 완료 여부는 실시간으로 아래에 표시되니, 이전 단계 완료를 확인한 뒤 직접 다음 단계를 열어주세요.
               </p>
-              <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:12}}>
-                {tutorialStepsList.map(s => {
+              <div style={{display:'flex',flexDirection:'column',gap:20,marginBottom:12}}>
+                {CHAPTERS.map(ch => {
+                  const chSteps = tutorialStepsList.filter(s => ch.steps.includes(s.n))
+                  const chDone = chSteps.filter(s=>completedSteps.includes(s.n)).length
+                  return (
+                  <div key={ch.title}>
+                    <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:8}}>
+                      <div style={{fontSize:13,fontWeight:700,color:'#1d1d1f'}}>{ch.title}</div>
+                      <div style={{fontSize:11,color:'#8e8e93'}}>{ch.desc}</div>
+                      <div style={{flex:1}}/>
+                      <div style={{fontSize:11,fontFamily:M,fontWeight:600,color:chDone===chSteps.length?'#34c759':'#8e8e93'}}>{chDone}/{chSteps.length}</div>
+                    </div>
+                    <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                    {chSteps.map(s => {
                   const checked = tutorialSteps.includes(s.n)
                   const done = completedSteps.includes(s.n)
                   const running = runningStep === s.n
@@ -881,6 +952,7 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                       <div style={{flex:1}}>
                         <div style={{fontSize:13,fontWeight:600,color:checked?'#007AFF':'#1d1d1f'}}>{s.n}. {s.label}</div>
                         <div style={{fontSize:11,color:'#8e8e93',fontFamily:M}}>{s.desc}</div>
+                        {s.script && <div style={{fontSize:11,color:'#aeaeb2',marginTop:2,fontStyle:'italic'}}>💬 {s.script}</div>}
                       </div>
                       {done && (
                         <span style={{fontSize:11,fontWeight:700,color:'#34c759',fontFamily:M,flexShrink:0}}>
@@ -969,6 +1041,10 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                         {running ? '실행 중...' : '지금 실행'}
                       </button>
                     </label>
+                  )
+                    })}
+                    </div>
+                  </div>
                   )
                 })}
               </div>

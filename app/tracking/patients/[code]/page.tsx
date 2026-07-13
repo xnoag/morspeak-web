@@ -110,6 +110,7 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
   const [activeStep, setActiveStep] = useState<number | null>(null)
   const [stepDurations, setStepDurations] = useState<Record<string, number>>({})
   const [focusMode, setFocusMode] = useState(true)
+  const [previewStep, setPreviewStep] = useState<number | null>(null)
   const [runningStep, setRunningStep] = useState<number | null>(null)
   const [runningAction, setRunningAction] = useState<{step:number, type:string} | null>(null)
   const [eduStatus, setEduStatus] = useState<string>('idle')  // idle | pending | active
@@ -693,7 +694,9 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                 </button>
               </div>
               {focusMode ? (() => {
-                const currentStep = tutorialStepsList.find(s => s.n === activeStep)
+                // 번호 눌렀을 때 바로 실행되지 않고, 먼저 미리보기만 하고 "지금 실행"을 눌러야 실제로 전송됨
+                const currentStep = tutorialStepsList.find(s => s.n === previewStep)
+                  ?? tutorialStepsList.find(s => s.n === activeStep)
                   ?? tutorialStepsList.find(s => !completedSteps.includes(s.n))
                 const suggestingNext = !currentStep || currentStep.n !== activeStep
                 const isCalibrationStep = !!currentStep && currentStep.n <= 3
@@ -755,11 +758,11 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                           {isCalibrationStep && (
                             <>
                               <button type="button" disabled={!!runningAction} style={{...smallBtn,padding:'12px 22px',fontSize:15,background:'#34c759'}}
-                                onClick={async()=>{ setRunningAction({step:currentStep.n,type:'practice'}); await setDoc(doc(getDb(),'tutorialConfig',code),{remoteActionType:'practice',remoteActionStep:currentStep.n,requestedAt:new Date()},{merge:true}); setRunningAction(null) }}>
+                                onClick={async()=>{ setRunningAction({step:currentStep.n,type:'practice'}); await setDoc(doc(getDb(),'tutorialConfig',code),{remoteActionType:'practice',remoteActionStep:currentStep.n,requestedAt:new Date()},{merge:true}); setRunningAction(null); setPreviewStep(null) }}>
                                 {runningPractice?'실행 중...':'직접 해보기'}
                               </button>
                               <button type="button" disabled={!!runningAction} style={{...smallBtn,padding:'12px 22px',fontSize:15,background:'#ff3b30'}}
-                                onClick={async()=>{ setRunningAction({step:currentStep.n,type:'retry'}); await setDoc(doc(getDb(),'tutorialConfig',code),{remoteActionType:'retry',remoteActionStep:currentStep.n,requestedAt:new Date()},{merge:true}); setRunningAction(null) }}>
+                                onClick={async()=>{ setRunningAction({step:currentStep.n,type:'retry'}); await setDoc(doc(getDb(),'tutorialConfig',code),{remoteActionType:'retry',remoteActionStep:currentStep.n,requestedAt:new Date()},{merge:true}); setRunningAction(null); setPreviewStep(null) }}>
                                 {runningRetry?'실행 중...':'다시 하기'}
                               </button>
                             </>
@@ -767,17 +770,17 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                           {isTutorialStep && (
                             <>
                               <button type="button" disabled={!!runningAction} style={{...smallBtn,padding:'12px 22px',fontSize:15,background:'#ff3b30'}}
-                                onClick={async()=>{ setRunningAction({step:currentStep.n,type:'retry'}); await setDoc(doc(getDb(),'tutorialConfig',code),{remoteActionType:'retry',remoteActionStep:currentStep.n,requestedAt:new Date()},{merge:true}); setRunningAction(null) }}>
+                                onClick={async()=>{ setRunningAction({step:currentStep.n,type:'retry'}); await setDoc(doc(getDb(),'tutorialConfig',code),{remoteActionType:'retry',remoteActionStep:currentStep.n,requestedAt:new Date()},{merge:true}); setRunningAction(null); setPreviewStep(null) }}>
                                 {runningRetry?'실행 중...':'다시 해보기'}
                               </button>
                               <button type="button" disabled={!!runningAction} style={{...smallBtn,padding:'12px 22px',fontSize:15,background:'#34c759'}}
-                                onClick={async()=>{ setRunningAction({step:currentStep.n,type:'advance'}); await setDoc(doc(getDb(),'tutorialConfig',code),{remoteActionType:'advance',remoteActionStep:currentStep.n,requestedAt:new Date()},{merge:true}); setRunningAction(null) }}>
+                                onClick={async()=>{ setRunningAction({step:currentStep.n,type:'advance'}); await setDoc(doc(getDb(),'tutorialConfig',code),{remoteActionType:'advance',remoteActionStep:currentStep.n,requestedAt:new Date()},{merge:true}); setRunningAction(null); setPreviewStep(null) }}>
                                 {runningAdvance?'실행 중...':'다음 단계'}
                               </button>
                             </>
                           )}
                           <button type="button" disabled={running} style={{...smallBtn,padding:'12px 22px',fontSize:15,background:'#0071e3'}}
-                            onClick={async()=>{ setRunningStep(currentStep.n); await setDoc(doc(getDb(),'tutorialConfig',code),{steps:[currentStep.n],requestedAt:new Date()},{merge:true}); setRunningStep(null) }}>
+                            onClick={async()=>{ setRunningStep(currentStep.n); await setDoc(doc(getDb(),'tutorialConfig',code),{steps:[currentStep.n],requestedAt:new Date()},{merge:true}); setRunningStep(null); setPreviewStep(null) }}>
                             {running?'실행 중...':(suggestingNext?'이 단계 열기':'지금 실행')}
                           </button>
                         </div>
@@ -787,13 +790,16 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                         전체 단계를 다 완료했어요 🎉
                       </div>
                     )}
-                    <div style={{display:'flex',gap:6,flexWrap:'wrap',marginTop:16}}>
+                    <div style={{fontSize:11,color:'#8e8e93',marginTop:16,marginBottom:6}}>
+                      번호를 누르면 위 카드에 미리보기만 되고, 실제로 환자 화면에 보내려면 위의 "지금 실행"/"이 단계 열기"를 눌러야 합니다.
+                    </div>
+                    <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
                       {tutorialStepsList.map(s => {
                         const isDone = completedSteps.includes(s.n)
                         const isCurrent = s.n === currentStep?.n
                         return (
                           <button key={s.n} type="button"
-                            onClick={async()=>{ setRunningStep(s.n); await setDoc(doc(getDb(),'tutorialConfig',code),{steps:[s.n],requestedAt:new Date()},{merge:true}); setRunningStep(null) }}
+                            onClick={() => setPreviewStep(s.n === previewStep ? null : s.n)}
                             title={s.label}
                             style={{
                               width:32,height:32,borderRadius:8,fontSize:11,fontFamily:M,fontWeight:700,cursor:'pointer',

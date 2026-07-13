@@ -41,6 +41,7 @@ const SLIDES: Slide[] = [
 
 const STEP_ORDER = ['intro', 'consent', 'identity', ...SLIDES.map((s) => s.id), 'complete'] as const;
 type Step = typeof STEP_ORDER[number];
+const PROGRESS_STEPS = STEP_ORDER.filter((s) => s !== 'intro' && s !== 'complete');
 
 interface Identity {
   patientName: string;
@@ -72,10 +73,26 @@ function isSlideComplete(slide: Slide, answers: SurveyAnswers) {
   return getSlideQuestions(slide, answers).every((q) => isQuestionAnswered(q, answers));
 }
 
-function Layout({ children, footer, onBack }: { children: React.ReactNode; footer: React.ReactNode; onBack?: () => void }) {
+function ProgressBar({ current, total }: { current: number; total: number }) {
+  const pct = Math.round((current / total) * 100);
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+        <span style={{ fontSize: 12, color: lbl2, fontWeight: 600 }}>{current} / {total}</span>
+        <span style={{ fontSize: 12, color: lbl2 }}>{pct}%</span>
+      </div>
+      <div style={{ height: 4, background: 'rgba(60,60,67,0.12)', borderRadius: 2, overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${pct}%`, background: green, borderRadius: 2, transition: 'width 0.2s' }} />
+      </div>
+    </div>
+  );
+}
+
+function Layout({ children, footer, onBack, progress }: { children: React.ReactNode; footer: React.ReactNode; onBack?: () => void; progress?: { current: number; total: number } }) {
   return (
     <div style={{ minHeight: '100svh', background: bg, fontFamily: font, display: 'flex', flexDirection: 'column' }}>
       <div style={{ flex: 1, overflowY: 'auto', padding: onBack ? '20px 20px 0' : '52px 20px 0', maxWidth: 560, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
+        {progress && <ProgressBar current={progress.current} total={progress.total} />}
         {children}
       </div>
       <div style={{ position: 'sticky', bottom: 0, background: bg, padding: '16px 20px 32px', maxWidth: 560, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
@@ -158,8 +175,8 @@ function QuestionBlock({
 
   return (
     <div style={{ background: '#fff', border: `1px solid ${sep}`, borderRadius: 16, padding: '18px 16px', marginBottom: 12 }}>
-      <p style={{ fontSize: 16, fontWeight: 600, color: lbl, lineHeight: 1.5, marginBottom: q.helperNote ? 4 : 12 }}>{q.title}</p>
-      {q.helperNote && <p style={{ fontSize: 12.5, color: lbl2, marginBottom: 12 }}>※ {q.helperNote}</p>}
+      {/* q.helperNote는 분기 조건 설명용 내부 메모라 응답자에게는 보여주지 않는다 — 조건에 안 맞으면 문항 자체가 노출되지 않는다 */}
+      <p style={{ fontSize: 16, fontWeight: 600, color: lbl, lineHeight: 1.5, marginBottom: 12 }}>{q.title}</p>
 
       {q.type === 'text' && (
         <input
@@ -237,6 +254,8 @@ export default function PreSurveyPage() {
   const stepIndex = STEP_ORDER.indexOf(step);
   const goPrev = () => { if (stepIndex > 0) setStep(STEP_ORDER[stepIndex - 1]); };
   const goNext = () => { if (stepIndex < STEP_ORDER.length - 1) setStep(STEP_ORDER[stepIndex + 1]); };
+  const progressIndex = PROGRESS_STEPS.indexOf(step);
+  const progress = progressIndex >= 0 ? { current: progressIndex + 1, total: PROGRESS_STEPS.length } : undefined;
 
   const setSingle = (id: string, value: string) => setAnswers((prev) => ({ ...prev, [id]: value }));
   const setText = (id: string, value: string) => setAnswers((prev) => ({ ...prev, [id]: value }));
@@ -324,6 +343,7 @@ export default function PreSurveyPage() {
     return (
       <Layout
         onBack={goPrev}
+        progress={progress}
         footer={
           <div style={{ display: 'flex', gap: 10 }}>
             <button onClick={goPrev} style={{ ...prevBtn, flexShrink: 0 }}>이전</button>
@@ -382,6 +402,7 @@ export default function PreSurveyPage() {
     return (
       <Layout
         onBack={goPrev}
+        progress={progress}
         footer={
           <div style={{ display: 'flex', gap: 10 }}>
             <button onClick={goPrev} style={{ ...prevBtn, flexShrink: 0 }}>이전</button>
@@ -455,6 +476,7 @@ export default function PreSurveyPage() {
   return (
     <Layout
       onBack={goPrev}
+      progress={progress}
       footer={
         <div>
           {submitError && <p style={{ fontSize: 13, color: '#FF3B30', marginBottom: 8 }}>{submitError}</p>}

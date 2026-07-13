@@ -38,6 +38,24 @@ function statsOf(arr?: number[]) {
   const mean = arr.reduce((a,b)=>a+b,0) / arr.length
   return { count: arr.length, mean, min: Math.min(...arr), max: Math.max(...arr) }
 }
+// activeStep(관리자가 보낸 의도)과 deviceStatus.renderedStep(기기가 실제로 그리고 있는 화면)을 비교해서
+// "명령을 보냈는데 화면이 안 바뀜"을 자동으로 감지 — 기기에 로그를 뽑으러 갈 필요 없이 여기서 바로 보여줌
+function reflectionStatus(
+  activeStep: number | null,
+  deviceStatus: {screen:string, renderedStep:number|null, updatedAt:any} | null,
+  requestedAt: any,
+): { label: string; color: string } {
+  if (!deviceStatus) return { label: '기기 상태 정보 없음 (앱 업데이트 필요)', color: '#8e8e93' }
+  const matches = (deviceStatus.renderedStep ?? null) === (activeStep ?? null)
+  if (matches) {
+    return activeStep == null
+      ? { label: '대기 중', color: '#8e8e93' }
+      : { label: '화면에 반영됨', color: '#34c759' }
+  }
+  const sentAgo = requestedAt?.toDate ? (Date.now() - requestedAt.toDate().getTime()) / 1000 : Infinity
+  if (sentAgo < 8) return { label: '반영 대기 중...', color: '#ff9500' }
+  return { label: '화면이 반영되지 않았어요 — 기기 확인 필요', color: '#ff3b30' }
+}
 
 const KBD_C = ['ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ']
 const KBD_V = ['ㅏ','ㅑ','ㅓ','ㅕ','ㅗ','ㅛ','ㅜ','ㅠ','ㅡ','ㅣ','ㅐ','ㅒ','ㅔ','ㅖ']
@@ -109,6 +127,8 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
   const [liveProgress, setLiveProgress] = useState<{step: number, count: number, total: number} | null>(null)
   const [activeStep, setActiveStep] = useState<number | null>(null)
   const [stepDurations, setStepDurations] = useState<Record<string, number>>({})
+  const [requestedAt, setRequestedAt] = useState<any>(null)
+  const [deviceStatus, setDeviceStatus] = useState<{screen:string, renderedStep:number|null, updatedAt:any} | null>(null)
   const [focusMode, setFocusMode] = useState(true)
   const [previewStep, setPreviewStep] = useState<number | null>(null)
   const [runningStep, setRunningStep] = useState<number | null>(null)
@@ -168,6 +188,18 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
       setLiveProgress((snap.data()?.liveProgress as {step:number,count:number,total:number}) ?? null)
       setActiveStep((snap.data()?.activeStep as number | null | undefined) ?? null)
       setStepDurations((snap.data()?.stepDurations as Record<string,number>) ?? {})
+      setRequestedAt(snap.data()?.requestedAt ?? null)
+    })
+    return () => unsub()
+  }, [code])
+
+  // 기기가 지금 실제로 뭘 보여주고 있는지(반영 확인용) — activeStep은 앱이 전환하기로 "결정한" 의도일
+  // 뿐이라, 화면이 실제로 그걸 그리는지는 별도로 확인해야 함. 명령을 보냈는데 화면이 안 바뀌는 걸
+  // 로그를 뽑지 않고도 여기서 바로 알 수 있게 하기 위한 리스너
+  useEffect(() => {
+    const unsub = onSnapshot(doc(getDb(),'deviceStatus',code), snap => {
+      const d = snap.data()
+      setDeviceStatus(d ? {screen: d.screen, renderedStep: d.renderedStep ?? null, updatedAt: d.updatedAt} : null)
     })
     return () => unsub()
   }, [code])
@@ -707,9 +739,18 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                 const runningAdvance = !!currentStep && runningAction?.step === currentStep.n && runningAction.type === 'advance'
                 return (
                   <div>
-                    <p style={{fontSize:12,color:'#8e8e93',lineHeight:1.6,marginBottom:12}}>
+                    <p style={{fontSize:12,color:'#8e8e93',lineHeight:1.6,marginBottom:8}}>
                       화면 공유 보면서 실시간으로 단계를 열어줄 때 쓰는 모드입니다. 지금 환자 화면에 떠 있는 단계만 크게 보여줍니다.
                     </p>
+                    {(() => {
+                      const rs = reflectionStatus(activeStep, deviceStatus, requestedAt)
+                      return (
+                        <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:16}}>
+                          <span style={{width:8,height:8,borderRadius:'50%',background:rs.color,flexShrink:0}}/>
+                          <span style={{fontSize:12,fontWeight:600,color:rs.color}}>{rs.label}</span>
+                        </div>
+                      )
+                    })()}
                     {currentStep ? (
                       <div style={{border:`2px solid ${suggestingNext?'#d2d2d7':'#007AFF'}`,borderRadius:16,padding:'32px 36px',background:suggestingNext?'#fafafa':'#f0f7ff'}}>
                         <div style={{fontSize:11,fontWeight:700,color:suggestingNext?'#8e8e93':'#007AFF',fontFamily:M,marginBottom:6,textTransform:'uppercase',letterSpacing:'.06em'}}>

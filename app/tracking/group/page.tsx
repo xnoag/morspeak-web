@@ -75,6 +75,21 @@ type RowState = {
   completedSteps: number[]
   liveProgress?: { step: number, count: number, total: number }
   activeStep?: number | null
+  requestedAt?: any
+  deviceStatus?: { screen: string, renderedStep: number | null } | null
+}
+
+// activeStep(관리자가 보낸 의도)과 deviceStatus.renderedStep(기기가 실제로 그리고 있는 화면)을 비교해서
+// "명령을 보냈는데 화면이 안 바뀜"을 자동으로 감지 — patients/[code]/page.tsx와 동일한 판단 로직
+function reflectionStatus(row: RowState): { label: string; color: string } {
+  if (row.deviceStatus === undefined) return { label: '···', color: '#d1d1d6' }
+  if (!row.deviceStatus) return { label: '기기 정보 없음', color: '#8e8e93' }
+  const activeStep = row.activeStep ?? null
+  const matches = (row.deviceStatus.renderedStep ?? null) === activeStep
+  if (matches) return activeStep == null ? { label: '대기', color: '#8e8e93' } : { label: '반영됨', color: '#34c759' }
+  const sentAgo = row.requestedAt?.toDate ? (Date.now() - row.requestedAt.toDate().getTime()) / 1000 : Infinity
+  if (sentAgo < 8) return { label: '반영 중...', color: '#ff9500' }
+  return { label: '반영 안 됨', color: '#ff3b30' }
 }
 
 export default function GroupTracking() {
@@ -114,13 +129,25 @@ export default function GroupTracking() {
             completedSteps: (snap.data()?.completedSteps as number[]) ?? [],
             liveProgress: snap.data()?.liveProgress as RowState['liveProgress'],
             activeStep: (snap.data()?.activeStep as number | null | undefined) ?? null,
+            requestedAt: snap.data()?.requestedAt ?? null,
           }
         }))
       })
       const unsubStats = onSnapshot(doc(getDb(), 'usageStats', code), snap => {
         setRows(prev => ({ ...prev, [code]: { ...(prev[code] ?? { code, completedSteps: [] }), code, userName: snap.data()?.userName } }))
       })
-      return () => { unsubConfig(); unsubStats() }
+      const unsubDevice = onSnapshot(doc(getDb(), 'deviceStatus', code), snap => {
+        const d = snap.data()
+        setRows(prev => ({
+          ...prev,
+          [code]: {
+            ...(prev[code] ?? { code, completedSteps: [] }),
+            code,
+            deviceStatus: d ? { screen: d.screen, renderedStep: d.renderedStep ?? null } : null,
+          }
+        }))
+      })
+      return () => { unsubConfig(); unsubStats(); unsubDevice() }
     })
     return () => unsubs.forEach(u => u())
   }, [codes])
@@ -323,7 +350,13 @@ export default function GroupTracking() {
                       <React.Fragment key={code}>
                         <tr style={{ borderBottom: '1px solid #f7f7f7', cursor: 'pointer' }} onClick={() => setExpandedCode(expanded ? null : code)}>
                           <td style={{ padding: '13px 20px' }}>
-                            <div style={{ fontWeight: 600, fontSize: 14, color: '#1d1d1f' }}>{row?.userName || '(가입 대기 중)'}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span style={{ fontWeight: 600, fontSize: 14, color: '#1d1d1f' }}>{row?.userName || '(가입 대기 중)'}</span>
+                              {(() => {
+                                const rs = reflectionStatus(row ?? { code, completedSteps: [] })
+                                return <span title={rs.label} style={{ width: 7, height: 7, borderRadius: '50%', background: rs.color, flexShrink: 0 }} />
+                              })()}
+                            </div>
                             <div style={{ fontSize: 11, color: '#aeaeb2', fontFamily: M, marginTop: 1 }}>{code}</div>
                           </td>
                           {tutorialStepsList.map(s => {

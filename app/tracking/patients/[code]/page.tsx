@@ -41,6 +41,7 @@ const NAV_ITEMS = [
   { id: '일별데이터',icon: '📅', label: '일별 데이터' },
   { id: '세션기록', icon: '⏱', label: '세션 기록' },
   { id: '버튼분석', icon: '🎯', label: '버튼 분석' },
+  { id: '교육온보딩', icon: '🎓', label: '교육 · 온보딩' },
   { id: '기능관리', icon: '🔧', label: '기능 관리' },
   { id: '설정',     icon: '⚙️', label: '설정' },
 ]
@@ -624,51 +625,8 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
         {/* ── 세션 기록 ── */}
         {tab==='세션기록' && <SessionSection sessions={sessions} />}
 
-
-        {/* ── 기능 관리 ── */}
-        {tab==='기능관리' && (() => {
-          const toggleRow = (f: {key:string;label:string;morse:string;defaultOn:boolean}, i: number, list: typeof FEATURE_FLAGS) => {
-            const enabled = f.key in featureFlags ? featureFlags[f.key] : f.defaultOn
-            const isLast = i === list.length - 1
-            return (
-              <div key={f.key} style={{
-                display:'flex',alignItems:'center',justifyContent:'space-between',
-                padding:'14px 20px',
-                borderBottom: isLast ? 'none' : '1px solid #f0f0f5',
-                background: enabled ? '#fff' : '#fafafa',
-              }}>
-                <div>
-                  <div style={{fontSize:14,fontWeight:500,color: enabled ? '#1d1d1f' : '#aeaeb2'}}>{f.label}</div>
-                  <div style={{fontSize:11,fontFamily:M,color:'#aeaeb2',marginTop:2}}>{f.morse}</div>
-                </div>
-                <button
-                  disabled={flagSaving === f.key}
-                  onClick={async () => {
-                    const next = !enabled
-                    setFlagSaving(f.key)
-                    try {
-                      await setDoc(doc(getDb(),'featureFlags',code), { [f.key]: next }, { merge: true })
-                      setFeatureFlags(prev => ({...prev, [f.key]: next}))
-                    } finally {
-                      setFlagSaving(null)
-                    }
-                  }}
-                  style={{
-                    position:'relative',width:44,height:26,borderRadius:13,border:'none',cursor:'pointer',
-                    background: enabled ? '#34c759' : '#d1d1d6',
-                    transition:'background .2s',padding:0,flexShrink:0,
-                    opacity: flagSaving === f.key ? 0.5 : 1,
-                  }}
-                >
-                  <span style={{
-                    position:'absolute',top:3,left: enabled ? 21 : 3,
-                    width:20,height:20,borderRadius:'50%',background:'#fff',
-                    boxShadow:'0 1px 3px rgba(0,0,0,.25)',transition:'left .2s',display:'block',
-                  }}/>
-                </button>
-              </div>
-            )
-          }
+        {/* ── 교육 · 온보딩 ── */}
+        {tab==='교육온보딩' && (() => {
           const tutorialStepsList = [
             {n:1, label:'짧게 깜빡이기',     desc:'캘리브레이션 · 짧게 ×5'},
             {n:2, label:'길게 깜빡이기',     desc:'캘리브레이션 · 길게 ×5'},
@@ -688,8 +646,11 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
             {n:16, label:'호출',            desc:'짧게·길게 (12, 기능모드)'},
           ]
           return (
-          <div style={{maxWidth:560}}>
-            <ColTitle>기능 관리</ColTitle>
+          <div style={{maxWidth:640}}>
+            <ColTitle>교육 · 온보딩</ColTitle>
+            <p style={{fontSize:13,color:'#6e6e73',lineHeight:1.7,marginBottom:24}}>
+              캘리브레이션부터 튜토리얼 단계, 화면 제어, 감지 파라미터까지 온보딩 교육에 필요한 모든 것을 여기서 관리하고 진행 상황을 추적합니다.
+            </p>
 
             {/* 지금 화면 제어 */}
             <div style={{marginBottom:32}}>
@@ -704,17 +665,6 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                 <button onClick={async () => {
                   await setDoc(doc(getDb(),'tutorialConfig',code), { steps: [10], requestedAt: new Date() }, {merge:true})
                 }} style={{...smallBtn,background:'#0071e3'}}>대기 해제 (키보드 모드로)</button>
-              </div>
-            </div>
-
-            {/* 모드 접근 제어 — 개별 기능보다 넓은 의미 */}
-            <div style={{marginBottom:32}}>
-              <div style={{fontSize:13,fontWeight:600,color:'#1d1d1f',marginBottom:8}}>모드 접근 제어</div>
-              <p style={{fontSize:12,color:'#8e8e93',lineHeight:1.6,marginBottom:12}}>
-                튜토리얼 진행 상황에 맞춰 아직 배우지 않은 모드로 넘어가지 못하도록 막습니다. 꺼진 모드는 전환을 시도해도 진입하지 않습니다.
-              </p>
-              <div style={{border:'1px solid #d2d2d7',borderRadius:12,overflow:'hidden'}}>
-                {MODE_FLAGS.map((f, i) => toggleRow(f, i, MODE_FLAGS))}
               </div>
             </div>
 
@@ -947,6 +897,165 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
               )}
             </div>
 
+            {/* 캘리브레이션 조정 */}
+            <div>
+              <div style={{fontSize:13,fontWeight:600,color:'#1d1d1f',marginBottom:8}}>캘리브레이션 조정</div>
+              <p style={{fontSize:12,color:'#8e8e93',lineHeight:1.6,marginBottom:16}}>
+                눈깜빡임 감지 파라미터를 수동으로 조정합니다. 변경 즉시 앱에 반영됩니다.
+              </p>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 48px'}}>
+                {/* 점/선 경계값 */}
+                <div>
+                  <div style={{fontSize:12,fontWeight:600,color:'#6e6e73',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:12}}>점·선 경계값 (초)</div>
+                  {(() => {
+                    const shorts: number[] = blink.onboardingShortDurations ?? []
+                    const longs:  number[] = blink.onboardingLongDurations  ?? []
+                    const boundary = editBoundary ?? blink.dotDashBoundary ?? 0.6
+                    const allVals  = [...shorts, ...longs]
+                    const maxVal   = Math.max(...allVals, boundary * 1.5, 1.2)
+                    const toX = (v: number) => Math.round(v / maxVal * 100)
+                    return (
+                      <div>
+                        {/* 분포 시각화 */}
+                        {allVals.length > 0 && (
+                          <div style={{position:'relative',height:40,marginBottom:8,background:'#f5f5f7',borderRadius:8,overflow:'hidden'}}>
+                            {shorts.map((v,i) => (
+                              <div key={`s${i}`} style={{position:'absolute',left:`${toX(v)}%`,top:4,width:3,height:14,background:'#007AFF',borderRadius:2,opacity:.6}}/>
+                            ))}
+                            {longs.map((v,i) => (
+                              <div key={`l${i}`} style={{position:'absolute',left:`${toX(v)}%`,top:22,width:3,height:14,background:'#ff9500',borderRadius:2,opacity:.6}}/>
+                            ))}
+                            <div style={{position:'absolute',left:`${toX(boundary)}%`,top:0,width:2,height:40,background:'#ff3b30'}}/>
+                          </div>
+                        )}
+                        {allVals.length > 0 && (
+                          <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'#aeaeb2',marginBottom:12}}>
+                            <span style={{color:'#007AFF'}}>● 짧게 ({shorts.length}회)</span>
+                            <span style={{color:'#ff9500'}}>● 길게 ({longs.length}회)</span>
+                            <span style={{color:'#ff3b30'}}>│ 경계</span>
+                          </div>
+                        )}
+                        <div style={{display:'flex',alignItems:'center',gap:12}}>
+                          <input type="range" min={0.20} max={1.20} step={0.01}
+                            value={boundary}
+                            onChange={e => setEditBoundary(parseFloat(e.target.value))}
+                            style={{flex:1,accentColor:'#ff3b30'}}
+                          />
+                          <span style={{fontFamily:M,fontSize:14,fontWeight:700,color:'#ff3b30',minWidth:48}}>{boundary.toFixed(2)}s</span>
+                        </div>
+                        <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'#aeaeb2',marginTop:4,marginBottom:16}}>
+                          <span>빠름 0.20s</span><span>느림 1.20s</span>
+                        </div>
+                      </div>
+                    )
+                  })()}
+                </div>
+                {/* 입력 대기 시간 */}
+                <div>
+                  <div style={{fontSize:12,fontWeight:600,color:'#6e6e73',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:12}}>입력 대기 시간 (초)</div>
+                  <p style={{fontSize:12,color:'#6e6e73',lineHeight:1.6,marginBottom:12}}>깜빡임 후 이 시간 안에 다음 깜빡임이 없으면 현재까지 입력한 모스코드를 확정합니다.</p>
+                  {(() => {
+                    const timer = editTimer ?? (blink.blinkTimerInterval ?? 2.5)
+                    return (
+                      <div>
+                        <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:4}}>
+                          <input type="range" min={1.5} max={4.0} step={0.1}
+                            value={timer}
+                            onChange={e => setEditTimer(parseFloat(e.target.value))}
+                            style={{flex:1,accentColor:'#007AFF'}}
+                          />
+                          <span style={{fontFamily:M,fontSize:14,fontWeight:700,color:'#007AFF',minWidth:48}}>{timer.toFixed(1)}s</span>
+                        </div>
+                        <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'#aeaeb2',marginBottom:16}}>
+                          <span>빠름 1.5s</span><span>느림 4.0s</span>
+                        </div>
+                      </div>
+                    )
+                  })()}
+                </div>
+              </div>
+              {(editBoundary !== null || editTimer !== null) && (
+                <div style={{display:'flex',gap:8,marginTop:8}}>
+                  <button onClick={async () => {
+                    setCalibSaving(true)
+                    const update: Record<string,number> = {}
+                    if (editBoundary !== null) update.dotDashBoundary = editBoundary
+                    if (editTimer !== null) update.blinkTimerInterval = editTimer
+                    await setDoc(doc(getDb(),'blinkProfiles',code), update, {merge: true})
+                    if (editBoundary !== null) setBlink((b:any) => ({...b, dotDashBoundary: editBoundary}))
+                    if (editTimer !== null) setBlink((b:any) => ({...b, blinkTimerInterval: editTimer}))
+                    setEditBoundary(null); setEditTimer(null); setCalibSaving(false)
+                  }} disabled={calibSaving} style={smallBtn}>
+                    {calibSaving ? '저장 중...' : '저장'}
+                  </button>
+                  <button onClick={() => { setEditBoundary(null); setEditTimer(null) }}
+                    style={{...smallBtn, background:'#f5f5f7', color:'#3c3c43', border:'none'}}>취소</button>
+                </div>
+              )}
+            </div>
+          </div>
+          )
+        })()}
+
+        {/* ── 기능 관리 ── */}
+        {tab==='기능관리' && (() => {
+          const toggleRow = (f: {key:string;label:string;morse:string;defaultOn:boolean}, i: number, list: typeof FEATURE_FLAGS) => {
+            const enabled = f.key in featureFlags ? featureFlags[f.key] : f.defaultOn
+            const isLast = i === list.length - 1
+            return (
+              <div key={f.key} style={{
+                display:'flex',alignItems:'center',justifyContent:'space-between',
+                padding:'14px 20px',
+                borderBottom: isLast ? 'none' : '1px solid #f0f0f5',
+                background: enabled ? '#fff' : '#fafafa',
+              }}>
+                <div>
+                  <div style={{fontSize:14,fontWeight:500,color: enabled ? '#1d1d1f' : '#aeaeb2'}}>{f.label}</div>
+                  <div style={{fontSize:11,fontFamily:M,color:'#aeaeb2',marginTop:2}}>{f.morse}</div>
+                </div>
+                <button
+                  disabled={flagSaving === f.key}
+                  onClick={async () => {
+                    const next = !enabled
+                    setFlagSaving(f.key)
+                    try {
+                      await setDoc(doc(getDb(),'featureFlags',code), { [f.key]: next }, { merge: true })
+                      setFeatureFlags(prev => ({...prev, [f.key]: next}))
+                    } finally {
+                      setFlagSaving(null)
+                    }
+                  }}
+                  style={{
+                    position:'relative',width:44,height:26,borderRadius:13,border:'none',cursor:'pointer',
+                    background: enabled ? '#34c759' : '#d1d1d6',
+                    transition:'background .2s',padding:0,flexShrink:0,
+                    opacity: flagSaving === f.key ? 0.5 : 1,
+                  }}
+                >
+                  <span style={{
+                    position:'absolute',top:3,left: enabled ? 21 : 3,
+                    width:20,height:20,borderRadius:'50%',background:'#fff',
+                    boxShadow:'0 1px 3px rgba(0,0,0,.25)',transition:'left .2s',display:'block',
+                  }}/>
+                </button>
+              </div>
+            )
+          }
+          return (
+          <div style={{maxWidth:560}}>
+            <ColTitle>기능 관리</ColTitle>
+
+            {/* 모드 접근 제어 — 개별 기능보다 넓은 의미 */}
+            <div style={{marginBottom:32}}>
+              <div style={{fontSize:13,fontWeight:600,color:'#1d1d1f',marginBottom:8}}>모드 접근 제어</div>
+              <p style={{fontSize:12,color:'#8e8e93',lineHeight:1.6,marginBottom:12}}>
+                튜토리얼 진행 상황에 맞춰 아직 배우지 않은 모드로 넘어가지 못하도록 막습니다. 꺼진 모드는 전환을 시도해도 진입하지 않습니다.
+              </p>
+              <div style={{border:'1px solid #d2d2d7',borderRadius:12,overflow:'hidden'}}>
+                {MODE_FLAGS.map((f, i) => toggleRow(f, i, MODE_FLAGS))}
+              </div>
+            </div>
+
             {/* 개별 기능 관리 */}
             <div>
               <div style={{fontSize:13,fontWeight:600,color:'#1d1d1f',marginBottom:8}}>개별 기능 관리</div>
@@ -965,102 +1074,6 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
         {/* ── 설정 ── */}
         {tab==='설정' && (
           <div>
-          {/* 캘리브레이션 조정 */}
-          <div style={{marginBottom:48}}>
-            <ColTitle>캘리브레이션 조정</ColTitle>
-            <p style={{fontSize:13,color:'#6e6e73',lineHeight:1.7,marginBottom:24}}>
-              눈깜빡임 감지 파라미터를 수동으로 조정합니다. 변경 즉시 앱에 반영됩니다.
-            </p>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 48px'}}>
-              {/* 점/선 경계값 */}
-              <div>
-                <div style={{fontSize:12,fontWeight:600,color:'#6e6e73',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:12}}>점·선 경계값 (초)</div>
-                {(() => {
-                  const shorts: number[] = blink.onboardingShortDurations ?? []
-                  const longs:  number[] = blink.onboardingLongDurations  ?? []
-                  const boundary = editBoundary ?? blink.dotDashBoundary ?? 0.6
-                  const allVals  = [...shorts, ...longs]
-                  const maxVal   = Math.max(...allVals, boundary * 1.5, 1.2)
-                  const toX = (v: number) => Math.round(v / maxVal * 100)
-                  return (
-                    <div>
-                      {/* 분포 시각화 */}
-                      {allVals.length > 0 && (
-                        <div style={{position:'relative',height:40,marginBottom:8,background:'#f5f5f7',borderRadius:8,overflow:'hidden'}}>
-                          {shorts.map((v,i) => (
-                            <div key={`s${i}`} style={{position:'absolute',left:`${toX(v)}%`,top:4,width:3,height:14,background:'#007AFF',borderRadius:2,opacity:.6}}/>
-                          ))}
-                          {longs.map((v,i) => (
-                            <div key={`l${i}`} style={{position:'absolute',left:`${toX(v)}%`,top:22,width:3,height:14,background:'#ff9500',borderRadius:2,opacity:.6}}/>
-                          ))}
-                          <div style={{position:'absolute',left:`${toX(boundary)}%`,top:0,width:2,height:40,background:'#ff3b30'}}/>
-                        </div>
-                      )}
-                      {allVals.length > 0 && (
-                        <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'#aeaeb2',marginBottom:12}}>
-                          <span style={{color:'#007AFF'}}>● 짧게 ({shorts.length}회)</span>
-                          <span style={{color:'#ff9500'}}>● 길게 ({longs.length}회)</span>
-                          <span style={{color:'#ff3b30'}}>│ 경계</span>
-                        </div>
-                      )}
-                      <div style={{display:'flex',alignItems:'center',gap:12}}>
-                        <input type="range" min={0.20} max={1.20} step={0.01}
-                          value={boundary}
-                          onChange={e => setEditBoundary(parseFloat(e.target.value))}
-                          style={{flex:1,accentColor:'#ff3b30'}}
-                        />
-                        <span style={{fontFamily:M,fontSize:14,fontWeight:700,color:'#ff3b30',minWidth:48}}>{boundary.toFixed(2)}s</span>
-                      </div>
-                      <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'#aeaeb2',marginTop:4,marginBottom:16}}>
-                        <span>빠름 0.20s</span><span>느림 1.20s</span>
-                      </div>
-                    </div>
-                  )
-                })()}
-              </div>
-              {/* 입력 대기 시간 */}
-              <div>
-                <div style={{fontSize:12,fontWeight:600,color:'#6e6e73',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:12}}>입력 대기 시간 (초)</div>
-                <p style={{fontSize:12,color:'#6e6e73',lineHeight:1.6,marginBottom:12}}>깜빡임 후 이 시간 안에 다음 깜빡임이 없으면 현재까지 입력한 모스코드를 확정합니다.</p>
-                {(() => {
-                  const timer = editTimer ?? (blink.blinkTimerInterval ?? 2.5)
-                  return (
-                    <div>
-                      <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:4}}>
-                        <input type="range" min={1.5} max={4.0} step={0.1}
-                          value={timer}
-                          onChange={e => setEditTimer(parseFloat(e.target.value))}
-                          style={{flex:1,accentColor:'#007AFF'}}
-                        />
-                        <span style={{fontFamily:M,fontSize:14,fontWeight:700,color:'#007AFF',minWidth:48}}>{timer.toFixed(1)}s</span>
-                      </div>
-                      <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'#aeaeb2',marginBottom:16}}>
-                        <span>빠름 1.5s</span><span>느림 4.0s</span>
-                      </div>
-                    </div>
-                  )
-                })()}
-              </div>
-            </div>
-            {(editBoundary !== null || editTimer !== null) && (
-              <div style={{display:'flex',gap:8,marginTop:8}}>
-                <button onClick={async () => {
-                  setCalibSaving(true)
-                  const update: Record<string,number> = {}
-                  if (editBoundary !== null) update.dotDashBoundary = editBoundary
-                  if (editTimer !== null) update.blinkTimerInterval = editTimer
-                  await setDoc(doc(getDb(),'blinkProfiles',code), update, {merge: true})
-                  if (editBoundary !== null) setBlink((b:any) => ({...b, dotDashBoundary: editBoundary}))
-                  if (editTimer !== null) setBlink((b:any) => ({...b, blinkTimerInterval: editTimer}))
-                  setEditBoundary(null); setEditTimer(null); setCalibSaving(false)
-                }} disabled={calibSaving} style={smallBtn}>
-                  {calibSaving ? '저장 중...' : '저장'}
-                </button>
-                <button onClick={() => { setEditBoundary(null); setEditTimer(null) }}
-                  style={{...smallBtn, background:'#f5f5f7', color:'#3c3c43', border:'none'}}>취소</button>
-              </div>
-            )}
-          </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 48px'}}>
             {/* 자주 쓰는 표현 */}
             <div>

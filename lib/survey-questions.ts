@@ -66,13 +66,13 @@ export const SURVEY_QUESTIONS: SurveyQuestion[] = [
     id: 'A4', section: 'A', type: 'text', required: false,
     title: '도입을 가장 우선적으로 고려했던 보조기기(또는 제품명)는 무엇인가요?',
     placeholder: '제품명을 입력해주세요',
-    showIf: (a) => !includesA2(a, 'h'),
+    showIf: (a) => !includesA2(a, 'h') && a.A3 === 'a',
   },
   {
     id: 'A5', section: 'A', type: 'single', required: true,
     title: '그렇다면, 실제로 해당 보조기기를 도입하여 사용해 보신 적이 있으신가요? (구매, 대여, 지원 포함)',
     options: [{ value: 'a', label: '네' }, { value: 'b', label: '아니오' }],
-    showIf: (a) => !includesA2(a, 'h'),
+    showIf: (a) => !includesA2(a, 'h') && a.A3 === 'a',
   },
   {
     id: 'A6', section: 'A', type: 'multiRanked', maxSelect: 2, required: true,
@@ -86,7 +86,7 @@ export const SURVEY_QUESTIONS: SurveyQuestion[] = [
       { value: 'f', label: '기타', isOther: true },
       { value: 'g', label: '특별히 어려움은 없었음' },
     ],
-    showIf: (a) => !includesA2(a, 'h'),
+    showIf: (a) => !includesA2(a, 'h') && a.A3 === 'a',
   },
   {
     id: 'A7', section: 'A', type: 'single', required: true,

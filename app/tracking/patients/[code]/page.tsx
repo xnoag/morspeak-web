@@ -33,7 +33,11 @@ function fmtDur(sec?: number) {
   const m = Math.floor(sec / 60), s = Math.round(sec % 60)
   return `${m}분 ${s}초`
 }
-function meanOf(arr?: number[]) { return arr && arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null }
+function statsOf(arr?: number[]) {
+  if (!arr || !arr.length) return null
+  const mean = arr.reduce((a,b)=>a+b,0) / arr.length
+  return { count: arr.length, mean, min: Math.min(...arr), max: Math.max(...arr) }
+}
 
 const KBD_C = ['ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ']
 const KBD_V = ['ㅏ','ㅑ','ㅓ','ㅕ','ㅗ','ㅛ','ㅜ','ㅠ','ㅡ','ㅣ','ㅐ','ㅒ','ㅔ','ㅖ']
@@ -656,7 +660,7 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
             {n:16, label:'호출',            desc:'짧게·길게 (12, 기능모드)'},
           ]
           return (
-          <div style={{maxWidth:640}}>
+          <div style={{maxWidth:920}}>
             <ColTitle>교육 · 온보딩</ColTitle>
             <p style={{fontSize:13,color:'#6e6e73',lineHeight:1.7,marginBottom:24}}>
               캘리브레이션부터 튜토리얼 단계, 화면 제어, 감지 파라미터까지 온보딩 교육에 필요한 모든 것을 여기서 관리하고 진행 상황을 추적합니다.
@@ -704,26 +708,41 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                       화면 공유 보면서 실시간으로 단계를 열어줄 때 쓰는 모드입니다. 지금 환자 화면에 떠 있는 단계만 크게 보여줍니다.
                     </p>
                     {currentStep ? (
-                      <div style={{border:`2px solid ${suggestingNext?'#d2d2d7':'#007AFF'}`,borderRadius:16,padding:'24px 28px',background:suggestingNext?'#fafafa':'#f0f7ff'}}>
+                      <div style={{border:`2px solid ${suggestingNext?'#d2d2d7':'#007AFF'}`,borderRadius:16,padding:'32px 36px',background:suggestingNext?'#fafafa':'#f0f7ff'}}>
                         <div style={{fontSize:11,fontWeight:700,color:suggestingNext?'#8e8e93':'#007AFF',fontFamily:M,marginBottom:6,textTransform:'uppercase',letterSpacing:'.06em'}}>
                           {suggestingNext ? '다음으로 열어줄 단계' : '지금 환자 화면에 열려있는 단계'}
                         </div>
-                        <div style={{fontSize:22,fontWeight:700,color:'#1d1d1f',marginBottom:4}}>{currentStep.n}. {currentStep.label}</div>
-                        <div style={{fontSize:13,color:'#8e8e93',fontFamily:M,marginBottom:18}}>{currentStep.desc}</div>
+                        <div style={{fontSize:24,fontWeight:700,color:'#1d1d1f',marginBottom:4}}>{currentStep.n}. {currentStep.label}</div>
+                        <div style={{fontSize:14,color:'#8e8e93',fontFamily:M,marginBottom:20}}>{currentStep.desc}</div>
                         {completedSteps.includes(currentStep.n) && (() => {
                           const dur = fmtDur(stepDurations[String(currentStep.n)])
-                          const shortMs = meanOf(blink.onboardingShortDurations)
-                          const longMs  = meanOf(blink.onboardingLongDurations)
+                          const shortStats = statsOf(blink.onboardingShortDurations)
+                          const longStats  = statsOf(blink.onboardingLongDurations)
+                          const cards: {label:string; value:string; sub?:string; color:string}[] = []
+                          if (dur) cards.push({label:'완료까지 걸린 시간', value:dur, color:'#34c759'})
+                          if (currentStep.n !== 2 && shortStats) cards.push({
+                            label:'짧게 깜빡임 길이', value:`평균 ${fmtS(shortStats.mean)}`,
+                            sub:`${shortStats.count}회 누적 · 최소 ${fmtS(shortStats.min)} ~ 최대 ${fmtS(shortStats.max)}`, color:'#007AFF',
+                          })
+                          if (currentStep.n !== 1 && longStats) cards.push({
+                            label:'길게 깜빡임 길이', value:`평균 ${fmtS(longStats.mean)}`,
+                            sub:`${longStats.count}회 누적 · 최소 ${fmtS(longStats.min)} ~ 최대 ${fmtS(longStats.max)}`, color:'#ff9500',
+                          })
+                          if (blink.dotDashBoundary != null && currentStep.n <= 3) cards.push({
+                            label:'적용 중인 점·선 경계값', value:fmtS(blink.dotDashBoundary), color:'#ff3b30',
+                          })
                           return (
-                            <div style={{marginBottom:14}}>
-                              <div style={{fontSize:13,fontWeight:700,color:'#34c759'}}>
-                                ✓ 완료됨{dur ? ` · ${dur} 소요` : ''}
-                              </div>
-                              {currentStep.n <= 3 && (
-                                <div style={{fontSize:11,color:'#8e8e93',fontFamily:M,marginTop:4}}>
-                                  {currentStep.n !== 2 && shortMs != null && `짧게 ${blink.onboardingShortDurations.length}회 · 평균 ${fmtS(shortMs)}`}
-                                  {currentStep.n === 3 && shortMs != null && longMs != null && '  ·  '}
-                                  {currentStep.n !== 1 && longMs != null && `길게 ${blink.onboardingLongDurations.length}회 · 평균 ${fmtS(longMs)}`}
+                            <div style={{marginBottom:24}}>
+                              <div style={{fontSize:14,fontWeight:700,color:'#34c759',marginBottom:cards.length?14:0}}>✓ 완료됨</div>
+                              {cards.length > 0 && (
+                                <div style={{display:'grid',gridTemplateColumns:`repeat(${Math.min(cards.length,4)},1fr)`,gap:14}}>
+                                  {cards.map(c => (
+                                    <div key={c.label} style={{background:'#fff',border:'1px solid #e5e5ea',borderRadius:12,padding:'16px 18px'}}>
+                                      <div style={{fontSize:10,color:'#8e8e93',fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:8}}>{c.label}</div>
+                                      <div style={{fontSize:20,fontWeight:700,color:c.color,fontFamily:M}}>{c.value}</div>
+                                      {c.sub && <div style={{fontSize:11,color:'#aeaeb2',marginTop:6,fontFamily:M,lineHeight:1.5}}>{c.sub}</div>}
+                                    </div>
+                                  ))}
                                 </div>
                               )}
                             </div>

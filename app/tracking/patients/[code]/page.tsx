@@ -91,6 +91,7 @@ const FEATURE_FLAGS: { key: string; label: string; morse: string; defaultOn: boo
   { key: 'delete',      label: '삭제',            morse: '● (1, 키보드모드)',      defaultOn: true  },
   { key: 'aiSuggest',   label: 'AI 추천',         morse: '●━ (12, 키보드/단축어)', defaultOn: true  },
   { key: 'commandMode', label: '커맨드(쌍자음)',   morse: '━ (2, 키보드/단축어모드)', defaultOn: true  },
+  { key: 'voiceChange', label: '목소리 설정 (유료)', morse: '(설정 화면)',            defaultOn: true  },
 ]
 
 // 개별 기능보다 넓은 의미 — 모드 자체 진입 가능 여부 (튜토리얼 진행 상황에 맞춰 접근 제한)

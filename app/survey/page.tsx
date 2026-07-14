@@ -384,7 +384,7 @@ export default function PreSurveyPage() {
             {[
               ['수집 항목', '보호자 연락처(필수), 이름, 환자분 이름, 설문 응답 내용'],
               ['수집 목적', '모스픽 도입 전·중·후 변화 비교 분석'],
-              ['보유 기간', '연구·분석 완료 후 1년, 이후 즉시 파기'],
+              ['보유 기간', '별도 파기 요청 시까지 보관 후 즉시 파기'],
               ['제3자 제공', '없음'],
             ].map(([l, v], i) => (
               <div key={l} style={{ display: 'flex', gap: 12, padding: '9px 16px', borderTop: i > 0 ? `1px solid ${sep}` : 'none', background: 'rgba(60,60,67,0.02)' }}>
@@ -396,7 +396,7 @@ export default function PreSurveyPage() {
           {consentExpanded && (
             <div style={{ borderTop: `1px solid ${sep}`, padding: '14px 16px', background: 'rgba(60,60,67,0.02)' }}>
               <p style={{ fontSize: 13, color: lbl2, lineHeight: 1.7, margin: 0, whiteSpace: 'pre-line' }}>
-                {`모스픽은 도입 전·중·후 시점의 변화를 비교하기 위해 같은 보호자분께 설문을 여러 차례 요청드릴 수 있습니다. 이를 위해 보호자 연락처를 응답 매칭 목적으로 수집합니다.\n\n수집된 정보는 연구·분석 완료 후 1년간 보관되며, 보유 기간 만료 시 즉시 파기됩니다. 제3자 제공 및 처리 위탁은 없습니다.\n\n동의하지 않으실 경우 설문 참여가 어렵습니다. 문의는 hello@morspeak.com으로 연락해주세요.`}
+                {`모스픽은 도입 전·중·후 시점의 변화를 비교하기 위해 같은 보호자분께 설문을 여러 차례 요청드릴 수 있습니다. 이를 위해 보호자 연락처를 응답 매칭 목적으로 수집합니다.\n\n수집된 정보는 별도로 파기를 요청하시기 전까지 보관되며, 파기를 요청하시면 즉시 파기됩니다. 제3자 제공 및 처리 위탁은 없습니다.\n\n동의하지 않으실 경우 설문 참여가 어렵습니다. 문의는 hello@morspeak.com으로 연락해주세요.`}
               </p>
             </div>
           )}

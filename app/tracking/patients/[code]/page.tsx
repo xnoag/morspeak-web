@@ -287,15 +287,6 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
           <LessonPanel code={code} getDb={getDb}/>
           <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginTop:6}}>
             <span style={{fontSize:11,fontWeight:700,color:'#5ac8fa'}}>⚡ 실행</span>
-            {(() => {
-              const blinkOn = featureFlags.blinkDetection !== false
-              return (
-                <button onClick={async()=>{ await setDoc(doc(getDb(),'featureFlags',code),{blinkDetection:!blinkOn},{merge:true}) }}
-                  style={{padding:'4px 10px',borderRadius:6,border:`1px solid ${blinkOn?'#34c759':'#ff3b30'}`,background:blinkOn?'rgba(52,199,89,0.15)':'rgba(255,59,48,0.15)',color:blinkOn?'#34c759':'#ff3b30',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:F}}>
-                  👁 감지 {blinkOn ? '켜짐' : '꺼짐'}
-                </button>
-              )
-            })()}
             {[{label:'말하기',type:'speak'},{label:'초기화',type:'reset'},{label:'삭제',type:'delete'},{label:'호출',type:'call'},{label:'키보드',type:'toKeyboard'},{label:'단축어',type:'toShortcut'},{label:'기능',type:'toFunction'},{label:'잠금',type:'lock'}].map(b=>(
               <button key={b.type} onClick={async()=>{ await setDoc(doc(getDb(),'educationSessions',code),{command:{type:b.type,id:Math.random().toString(36),ts:new Date()}},{merge:true}) }}
                 style={{padding:'4px 10px',borderRadius:6,border:'1px solid rgba(255,255,255,0.3)',background:'transparent',color:'rgba(255,255,255,0.8)',fontSize:11,cursor:'pointer',fontFamily:F}}>{b.label}</button>

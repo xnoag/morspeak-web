@@ -235,12 +235,12 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
           <div style={{fontSize:15,fontWeight:700,color:'#fff',letterSpacing:'-.3px'}}>{stats.userName||code}</div>
           <div style={{fontSize:11,color:'rgba(255,255,255,0.45)',fontFamily:M}}>{[stats.diagnosis,stats.hospital].filter(Boolean).join(' · ')}{stats.diagnosis||stats.hospital?' · ':''}{code}</div>
         </div>
-        {/* 이 환자를 담당 FaceTime 주소(care01@morspeak.com 등)로 지정 — 공유 Apple ID에서
+        {/* 이 환자를 담당 FaceTime 주소(unit01@morspeak.com 등)로 지정 — 공유 Apple ID에서
             이 주소로 전화를 걸면 이 환자의 iPad만 울리도록 iPad 쪽 FaceTime 설정을 맞춰둠 */}
         <div style={{display:'flex',alignItems:'center',gap:4}}>
           <input value={careEmailInput} onChange={e=>setCareEmailInput(e.target.value)}
             onBlur={async()=>{ await setDoc(doc(getDb(),'featureFlags',code),{careEmail:careEmailInput},{merge:true}) }}
-            placeholder="care01" style={{width:70,padding:'4px 8px',borderRadius:8,border:'1px solid rgba(255,255,255,0.15)',background:'rgba(255,255,255,0.1)',fontSize:11,fontFamily:M,outline:'none',color:'#fff'}}/>
+            placeholder="unit01" style={{width:70,padding:'4px 8px',borderRadius:8,border:'1px solid rgba(255,255,255,0.15)',background:'rgba(255,255,255,0.1)',fontSize:11,fontFamily:M,outline:'none',color:'#fff'}}/>
           <span style={{fontSize:11,color:'rgba(255,255,255,0.45)',fontFamily:M}}>@morspeak.com</span>
         </div>
         <div style={{flex:1}}/>

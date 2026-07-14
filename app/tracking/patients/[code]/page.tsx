@@ -149,8 +149,6 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
       ])
       const ssSnap = await getDocs(query(collection(db,'usageStats',code,'sessions'),orderBy('start','desc'),limit(200)))
       setSessions(ssSnap.docs.map(d=>({id:d.id,...d.data()})))
-      const ffSnap = await getDoc(doc(db,'featureFlags',code))
-      if (ffSnap.exists()) setFeatureFlags(ffSnap.data() as Record<string, boolean>)
       let m: Record<string,any> = sS.exists() ? sS.data() : {}
       if (!pS.empty) m={...pS.docs[0].data(),...m}
       else if (pD.exists()) m={...pD.data(),...m}
@@ -189,6 +187,16 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
       setActiveStep((snap.data()?.activeStep as number | null | undefined) ?? null)
       setStepDurations((snap.data()?.stepDurations as Record<string,number>) ?? {})
       setRequestedAt(snap.data()?.requestedAt ?? null)
+    })
+    return () => unsub()
+  }, [code])
+
+  // featureFlags 실시간 리스너 — 특히 blinkDetection은 꺼져있으면 환자가 아무것도 할 수 없는
+  // 치명적인 상태라, 한 번만 읽고 끝나면(예전 getDoc) 다른 곳(교육세션 패널)에서 끄고 잊어버렸을 때
+  // 이 페이지에 반영이 안 돼서 못 알아차림 — 실시간으로 계속 구독해서 항상 최신 상태를 보여줌
+  useEffect(() => {
+    const unsub = onSnapshot(doc(getDb(),'featureFlags',code), snap => {
+      setFeatureFlags((snap.data() as Record<string, boolean>) ?? {})
     })
     return () => unsub()
   }, [code])
@@ -258,16 +266,35 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
         </button>
       </div>
 
+      {/* 깜빡임 감지 꺼짐 경고 — 탭/세션 상태와 무관하게 항상 보여야 함. 꺼진 채로 잊어버리기 쉽고
+          (교육 세션이 끝나면 이 토글 자체가 안 보이는 곳에 있었음), 꺼져있으면 환자가 아예 아무것도
+          할 수 없는 치명적인 상태라서 눈에 확 띄게 배너로 항상 노출 */}
+      {featureFlags.blinkDetection === false && (
+        <div style={{background:'#ff3b30',padding:'10px 24px',flexShrink:0,display:'flex',alignItems:'center',gap:12}}>
+          <span style={{fontSize:13,fontWeight:700,color:'#fff'}}>⚠️ 깜빡임 감지가 꺼져있어요 — 환자가 아무것도 입력할 수 없어요</span>
+          <div style={{flex:1}}/>
+          <button onClick={async()=>{ await setDoc(doc(getDb(),'featureFlags',code),{blinkDetection:true},{merge:true}) }}
+            style={{height:28,padding:'0 14px',borderRadius:8,border:'none',background:'#fff',color:'#ff3b30',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:F,flexShrink:0}}>
+            지금 켜기
+          </button>
+        </div>
+      )}
+
       {/* 교육 세션 패널 */}
       {eduStatus==='active' && (
         <div style={{background:'#1c3a5e',padding:'10px 24px',flexShrink:0}}>
           <LessonPanel code={code} getDb={getDb}/>
           <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginTop:6}}>
             <span style={{fontSize:11,fontWeight:700,color:'#5ac8fa'}}>⚡ 실행</span>
-            <button onClick={async()=>{ await setDoc(doc(getDb(),'featureFlags',code),{blinkDetection:true},{merge:true}) }}
-              style={{padding:'4px 10px',borderRadius:6,border:'1px solid #34c759',background:'transparent',color:'#34c759',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:F}}>👁 켜기</button>
-            <button onClick={async()=>{ await setDoc(doc(getDb(),'featureFlags',code),{blinkDetection:false},{merge:true}) }}
-              style={{padding:'4px 10px',borderRadius:6,border:'1px solid #ff453a',background:'transparent',color:'#ff453a',fontSize:11,fontWeight:600,cursor:'pointer',fontFamily:F}}>👁 끄기</button>
+            {(() => {
+              const blinkOn = featureFlags.blinkDetection !== false
+              return (
+                <button onClick={async()=>{ await setDoc(doc(getDb(),'featureFlags',code),{blinkDetection:!blinkOn},{merge:true}) }}
+                  style={{padding:'4px 10px',borderRadius:6,border:`1px solid ${blinkOn?'#34c759':'#ff3b30'}`,background:blinkOn?'rgba(52,199,89,0.15)':'rgba(255,59,48,0.15)',color:blinkOn?'#34c759':'#ff3b30',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:F}}>
+                  👁 감지 {blinkOn ? '켜짐' : '꺼짐'}
+                </button>
+              )
+            })()}
             {[{label:'말하기',type:'speak'},{label:'초기화',type:'reset'},{label:'삭제',type:'delete'},{label:'호출',type:'call'},{label:'키보드',type:'toKeyboard'},{label:'단축어',type:'toShortcut'},{label:'기능',type:'toFunction'},{label:'잠금',type:'lock'}].map(b=>(
               <button key={b.type} onClick={async()=>{ await setDoc(doc(getDb(),'educationSessions',code),{command:{type:b.type,id:Math.random().toString(36),ts:new Date()}},{merge:true}) }}
                 style={{padding:'4px 10px',borderRadius:6,border:'1px solid rgba(255,255,255,0.3)',background:'transparent',color:'rgba(255,255,255,0.8)',fontSize:11,cursor:'pointer',fontFamily:F}}>{b.label}</button>

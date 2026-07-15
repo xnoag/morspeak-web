@@ -6,6 +6,8 @@ export interface QuestionOption {
   value: string;
   label: string;
   isOther?: boolean;
+  /** 이 보기를 선택하면 같은 문항의 다른 보기는 전부 해제된다 (예: "특별히 어려움은 없었음"). */
+  isExclusive?: boolean;
 }
 
 export type SurveyAnswers = Record<string, string | string[] | undefined>;
@@ -44,7 +46,7 @@ export const SURVEY_QUESTIONS: SurveyQuestion[] = [
     id: 'A2', section: 'A', type: 'multi', required: true,
     title: '현재 환자분과 어떤 방법으로 소통하고 계신가요? 해당하는 방법을 모두 선택해 주세요.',
     options: [
-      { value: 'a', label: '의사소통이 거의 어려움' },
+      { value: 'a', label: '의사소통이 거의 어려움', isExclusive: true },
       { value: 'b', label: '보호자가 추측하여 의사를 파악' },
       { value: 'c', label: '표정·입모양 읽기' },
       { value: 'd', label: '손짓·몸짓' },
@@ -84,7 +86,7 @@ export const SURVEY_QUESTIONS: SurveyQuestion[] = [
       { value: 'd', label: '환자가 사용할 수 있을지 확신이 없음' },
       { value: 'e', label: '구매 후 설치·교육·AS가 걱정됨' },
       { value: 'f', label: '기타', isOther: true },
-      { value: 'g', label: '특별히 어려움은 없었음' },
+      { value: 'g', label: '특별히 어려움은 없었음', isExclusive: true },
     ],
     showIf: (a) => !includesA2(a, 'h') && a.A3 === 'a',
   },
@@ -249,7 +251,7 @@ export const SURVEY_QUESTIONS: SurveyQuestion[] = [
       { value: 'a', label: '조명 조절' }, { value: 'b', label: '온도 조절' }, { value: 'c', label: '인터넷 검색' },
       { value: 'd', label: '영상 시청' }, { value: 'e', label: '음악 감상' }, { value: 'f', label: '온라인 쇼핑' },
       { value: 'g', label: '메신저로 다른 사람과 소통' }, { value: 'h', label: '보호자 호출' },
-      { value: 'i', label: '기타', isOther: true }, { value: 'j', label: '보호자 도움 없이는 행동하기 어려움' },
+      { value: 'i', label: '기타', isOther: true }, { value: 'j', label: '보호자 도움 없이는 행동하기 어려움', isExclusive: true },
     ],
   },
   {
@@ -285,10 +287,10 @@ export const SURVEY_QUESTIONS: SurveyQuestion[] = [
       { value: 'a', label: '환자의 명확한 요구사항 파악' },
       { value: 'b', label: '환자의 의사소통에 대한 피로감 감소' },
       { value: 'c', label: '환자와의 일상적인 대화' },
-      { value: 'd', label: '긴급 상황에서의 알림' },
-      { value: 'e', label: '직접 문자, 카카오톡 등 외부 연락' },
-      { value: 'f', label: '직접 영상, 음악 등 여가 선택' },
-      { value: 'g', label: '직접 조명, 선풍기 등 주변 환경 조절' },
+      { value: 'd', label: '긴급 상황에서 환자로부터의 알림 수신' },
+      { value: 'e', label: '환자분이 직접 문자, 카카오톡 등 외부 연락' },
+      { value: 'f', label: '환자분이 직접 영상, 음악 등 여가 선택' },
+      { value: 'g', label: '환자분이 직접 조명, 선풍기 등 주변 환경 조절' },
       { value: 'h', label: '기타', isOther: true },
     ],
   },

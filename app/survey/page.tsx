@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { SURVEY_QUESTIONS, SurveyAnswers, SurveyQuestion, isQuestionAnswered } from '@/lib/survey-questions';
+import { SURVEY_QUESTIONS, SurveyAnswers, SurveyQuestion, QuestionOption, isQuestionAnswered } from '@/lib/survey-questions';
 
 // 문항이 새 주제로 넘어가는 첫 지점에만 회상을 유도하는 문구를 보여준다 —
 // 같은 안내가 문항마다 반복되지 않게, "이 섹션의 첫 문항 id"에만 매칭시킨다.
@@ -151,8 +151,8 @@ function QuestionBlock({
   q: SurveyQuestion;
   answers: SurveyAnswers;
   onSingle: (id: string, value: string) => void;
-  onToggleMulti: (id: string, value: string) => void;
-  onToggleRanked: (id: string, value: string, max: number) => void;
+  onToggleMulti: (id: string, value: string, options: QuestionOption[]) => void;
+  onToggleRanked: (id: string, value: string, max: number, options: QuestionOption[]) => void;
   onText: (id: string, value: string) => void;
   onOtherText: (id: string, value: string) => void;
 }) {
@@ -199,8 +199,8 @@ function QuestionBlock({
                 disabled={disabled}
                 onClick={() => {
                   if (q.type === 'single') onSingle(q.id, opt.value);
-                  else if (q.type === 'multi') onToggleMulti(q.id, opt.value);
-                  else onToggleRanked(q.id, opt.value, q.maxSelect ?? 2);
+                  else if (q.type === 'multi') onToggleMulti(q.id, opt.value, q.options ?? []);
+                  else onToggleRanked(q.id, opt.value, q.maxSelect ?? 2, q.options ?? []);
                 }}
                 style={{
                   width: '100%',
@@ -266,24 +266,36 @@ export default function PreSurveyPage() {
   const setSingle = (id: string, value: string) => setAnswers((prev) => ({ ...prev, [id]: value }));
   const setText = (id: string, value: string) => setAnswers((prev) => ({ ...prev, [id]: value }));
   const setOtherText = (id: string, value: string) => setAnswers((prev) => ({ ...prev, [`${id}_other`]: value }));
-  const toggleMulti = (id: string, value: string) =>
+  // "없음"류 배타적 보기(isExclusive)는 다른 보기와 같이 선택될 수 없다 — 그걸 고르면 나머지는
+  // 다 해제되고, 반대로 다른 보기를 고르면 이미 골라둔 배타적 보기가 해제된다.
+  const toggleMulti = (id: string, value: string, options: QuestionOption[]) =>
     setAnswers((prev) => {
       const arr = Array.isArray(prev[id]) ? [...(prev[id] as string[])] : [];
       const idx = arr.indexOf(value);
-      if (idx >= 0) arr.splice(idx, 1);
-      else arr.push(value);
-      return { ...prev, [id]: arr };
-    });
-  const toggleRanked = (id: string, value: string, max: number) =>
-    setAnswers((prev) => {
-      const arr = Array.isArray(prev[id]) ? [...(prev[id] as string[])] : [];
-      const idx = arr.indexOf(value);
-      if (idx >= 0) arr.splice(idx, 1);
-      else {
-        if (arr.length >= max) return prev;
-        arr.push(value);
+      if (idx >= 0) {
+        arr.splice(idx, 1);
+        return { ...prev, [id]: arr };
       }
-      return { ...prev, [id]: arr };
+      const clicked = options.find((o) => o.value === value);
+      if (clicked?.isExclusive) return { ...prev, [id]: [value] };
+      const next = arr.filter((v) => !options.find((o) => o.value === v)?.isExclusive);
+      next.push(value);
+      return { ...prev, [id]: next };
+    });
+  const toggleRanked = (id: string, value: string, max: number, options: QuestionOption[]) =>
+    setAnswers((prev) => {
+      const arr = Array.isArray(prev[id]) ? [...(prev[id] as string[])] : [];
+      const idx = arr.indexOf(value);
+      if (idx >= 0) {
+        arr.splice(idx, 1);
+        return { ...prev, [id]: arr };
+      }
+      const clicked = options.find((o) => o.value === value);
+      if (clicked?.isExclusive) return { ...prev, [id]: [value] };
+      const next = arr.filter((v) => !options.find((o) => o.value === v)?.isExclusive);
+      if (next.length >= max) return prev;
+      next.push(value);
+      return { ...prev, [id]: next };
     });
 
   const primaryBtn = (disabled?: boolean): React.CSSProperties => ({

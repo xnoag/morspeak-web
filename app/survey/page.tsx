@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { collection, addDoc, doc, deleteDoc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { SURVEY_QUESTIONS, SurveyAnswers, SurveyQuestion, QuestionOption, isQuestionAnswered } from '@/lib/survey-questions';
 
@@ -50,6 +50,10 @@ const formatPhone = (value: string) => {
   if (d.length <= 7) return `${d.slice(0, 3)}-${d.slice(3)}`;
   return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
 };
+
+// 연락처 숫자만 뽑은 값을 임시저장 문서의 id로 쓴다 — 같은 번호+이름으로 다시 들어오면
+// (다른 브라우저·기기여도) 그 문서를 찾아 이어서 진행할 수 있게.
+const draftId = (contact: string) => contact.replace(/\D/g, '');
 
 const font = '-apple-system, "SF Pro Display", "SF Pro Text", BlinkMacSystemFont, "Helvetica Neue", sans-serif';
 const dark = '#1C1C1E';
@@ -236,6 +240,8 @@ export default function PreSurveyPage() {
   const [answers, setAnswers] = useState<SurveyAnswers>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [resuming, setResuming] = useState(false);
+  const [justResumed, setJustResumed] = useState(false);
 
   // 문항 하나 = 화면 하나. 여러 문항을 한 화면에 몰아서 보여주면 훑어보며 답을 빠르게
   // 찍는 경향(straightlining)이 생기기 쉬워서, 현재 답변 기준으로 조건분기까지 반영한
@@ -262,6 +268,66 @@ export default function PreSurveyPage() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, [step]);
+
+  // 답변 진행 중간중간 임시저장 — 연락처를 문서 id로 써서, 이름+연락처가 같으면 다른
+  // 브라우저·기기에서도 이어서 불러올 수 있게 한다. 응답자정보 단계 이전에는 저장할 게 없다.
+  const draftSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    const id = draftId(identity.caregiverContact);
+    if (!id || step === 'intro' || step === 'consent' || step === 'identity' || step === 'complete') return;
+    if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current);
+    draftSaveTimer.current = setTimeout(() => {
+      setDoc(
+        doc(db, 'survey_drafts', id),
+        {
+          caregiverName: identity.caregiverName || null,
+          caregiverContact: identity.caregiverContact,
+          patientName: identity.patientName || null,
+          answers,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      ).catch((e) => console.error('[survey draft save]', e));
+    }, 700);
+    return () => { if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current); };
+  }, [answers, identity, step]);
+
+  // 잠깐 보여주는 "이어서 진행합니다" 안내는 몇 초 후 자동으로 사라진다.
+  useEffect(() => {
+    if (!justResumed) return;
+    const t = setTimeout(() => setJustResumed(false), 4000);
+    return () => clearTimeout(t);
+  }, [justResumed]);
+
+  async function handleIdentityNext() {
+    const id = draftId(identity.caregiverContact);
+    if (!id) { goNext(); return; }
+    setResuming(true);
+    try {
+      const snap = await getDoc(doc(db, 'survey_drafts', id));
+      if (snap.exists()) {
+        const draft = snap.data() as { caregiverName?: string; patientName?: string; answers?: SurveyAnswers };
+        const nameMatches = (draft.caregiverName ?? '').trim() === identity.caregiverName.trim();
+        if (nameMatches) {
+          const restoredAnswers = draft.answers ?? {};
+          setAnswers(restoredAnswers);
+          if (draft.patientName && !identity.patientName) {
+            setIdentity((f) => ({ ...f, patientName: draft.patientName as string }));
+          }
+          const restoredVisible = SURVEY_QUESTIONS.filter((q) => !q.showIf || q.showIf(restoredAnswers));
+          const firstUnanswered = restoredVisible.find((q) => !isQuestionAnswered(q, restoredAnswers));
+          const target = firstUnanswered?.id ?? restoredVisible[restoredVisible.length - 1]?.id;
+          setJustResumed(true);
+          setResuming(false);
+          if (target) { setStep(target); return; }
+        }
+      }
+    } catch (e) {
+      console.error('[survey draft restore]', e);
+    }
+    setResuming(false);
+    goNext();
+  }
 
   const setSingle = (id: string, value: string) => setAnswers((prev) => ({ ...prev, [id]: value }));
   const setText = (id: string, value: string) => setAnswers((prev) => ({ ...prev, [id]: value }));
@@ -329,6 +395,8 @@ export default function PreSurveyPage() {
         userAgent: navigator.userAgent,
         createdAt: serverTimestamp(),
       });
+      const id = draftId(identity.caregiverContact);
+      if (id) deleteDoc(doc(db, 'survey_drafts', id)).catch((e) => console.error('[survey draft cleanup]', e));
       setStep('complete');
     } catch (e) {
       console.error(e);
@@ -427,7 +495,9 @@ export default function PreSurveyPage() {
         footer={
           <div style={{ display: 'flex', gap: 10 }}>
             <button onClick={goPrev} style={{ ...prevBtn, flexShrink: 0 }}>이전</button>
-            <button style={{ ...primaryBtn(!identityValid), flex: 1 }} disabled={!identityValid} onClick={goNext}>다음</button>
+            <button style={{ ...primaryBtn(!identityValid || resuming), flex: 1 }} disabled={!identityValid || resuming} onClick={handleIdentityNext}>
+              {resuming ? '확인 중...' : '다음'}
+            </button>
           </div>
         }
       >
@@ -513,6 +583,11 @@ export default function PreSurveyPage() {
         </div>
       }
     >
+      {justResumed && (
+        <div style={{ background: 'rgba(52,199,89,0.1)', border: '1px solid rgba(52,199,89,0.3)', borderRadius: 12, padding: '10px 14px', marginBottom: 16 }}>
+          <p style={{ fontSize: 13, color: '#248A3D', fontWeight: 600, margin: 0 }}>이전에 진행하시던 응답을 이어서 불러왔어요.</p>
+        </div>
+      )}
       {intro && (
         <div style={{ marginBottom: 20 }}>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: lbl, letterSpacing: '-0.4px', marginBottom: 6 }}>{intro.heading}</h1>

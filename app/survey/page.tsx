@@ -151,6 +151,7 @@ function QuestionBlock({
   onToggleRanked,
   onText,
   onOtherText,
+  onComment,
 }: {
   q: SurveyQuestion;
   answers: SurveyAnswers;
@@ -159,9 +160,11 @@ function QuestionBlock({
   onToggleRanked: (id: string, value: string, max: number, options: QuestionOption[]) => void;
   onText: (id: string, value: string) => void;
   onOtherText: (id: string, value: string) => void;
+  onComment: (id: string, value: string) => void;
 }) {
   const value = answers[q.id];
   const otherText = (answers[`${q.id}_other`] as string) ?? '';
+  const comment = (answers[`${q.id}_comment`] as string) ?? '';
 
   return (
     <div style={{ background: '#fff', border: `1px solid ${sep}`, borderRadius: 16, padding: '20px 18px' }}>
@@ -228,6 +231,31 @@ function QuestionBlock({
             </div>
           );
         })}
+
+      <div style={{ marginTop: q.type === 'text' ? 4 : 12, borderTop: `1px solid ${sep}`, paddingTop: 14 }}>
+        <p style={{ fontSize: 13, color: lbl2, marginBottom: 8 }}>
+          더 해주실 말씀이 있으신가요? 자유롭게 작성해주세요. <span style={{ color: 'rgba(60,60,67,0.4)' }}>(선택)</span>
+        </p>
+        <textarea
+          placeholder="자유롭게 작성해주세요"
+          value={comment}
+          onChange={(e) => onComment(q.id, e.target.value)}
+          rows={2}
+          style={{
+            width: '100%',
+            border: `1px solid ${sep}`,
+            borderRadius: 10,
+            outline: 'none',
+            fontSize: 14,
+            color: lbl,
+            padding: '10px 12px',
+            background: '#fff',
+            fontFamily: font,
+            boxSizing: 'border-box',
+            resize: 'vertical',
+          }}
+        />
+      </div>
     </div>
   );
 }
@@ -332,6 +360,7 @@ export default function PreSurveyPage() {
   const setSingle = (id: string, value: string) => setAnswers((prev) => ({ ...prev, [id]: value }));
   const setText = (id: string, value: string) => setAnswers((prev) => ({ ...prev, [id]: value }));
   const setOtherText = (id: string, value: string) => setAnswers((prev) => ({ ...prev, [`${id}_other`]: value }));
+  const setComment = (id: string, value: string) => setAnswers((prev) => ({ ...prev, [`${id}_comment`]: value }));
   // "없음"류 배타적 보기(isExclusive)는 다른 보기와 같이 선택될 수 없다 — 그걸 고르면 나머지는
   // 다 해제되고, 반대로 다른 보기를 고르면 이미 골라둔 배타적 보기가 해제된다.
   const toggleMulti = (id: string, value: string, options: QuestionOption[]) =>
@@ -604,6 +633,7 @@ export default function PreSurveyPage() {
         onToggleRanked={toggleRanked}
         onText={setText}
         onOtherText={setOtherText}
+        onComment={setComment}
       />
     </Layout>
   );

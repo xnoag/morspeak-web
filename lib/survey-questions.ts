@@ -342,20 +342,24 @@ export function isSectionComplete(section: SurveyQuestion['section'], answers: S
 export function formatAnswerLabel(q: SurveyQuestion, answers: SurveyAnswers) {
   const v = answers[q.id];
   const otherText = answers[`${q.id}_other`] as string | undefined;
+  const comment = answers[`${q.id}_comment`] as string | undefined;
+  const withComment = (s: string) => (comment ? `${s}\n[의견] ${comment}` : s);
   const labelOf = (val: string) => q.options?.find((o) => o.value === val)?.label ?? val;
-  if (q.type === 'text') return (v as string) || '(응답 없음)';
+  if (q.type === 'text') return withComment((v as string) || '(응답 없음)');
   if (Array.isArray(v)) {
-    if (v.length === 0) return '(응답 없음)';
-    return v
-      .map((val, i) => {
-        const l = labelOf(val);
-        const rank = q.type === 'multiRanked' ? `${i + 1}순위) ` : '';
-        const other = q.options?.find((o) => o.value === val)?.isOther && otherText ? `: ${otherText}` : '';
-        return `${rank}${l}${other}`;
-      })
-      .join(', ');
+    if (v.length === 0) return withComment('(응답 없음)');
+    return withComment(
+      v
+        .map((val, i) => {
+          const l = labelOf(val);
+          const rank = q.type === 'multiRanked' ? `${i + 1}순위) ` : '';
+          const other = q.options?.find((o) => o.value === val)?.isOther && otherText ? `: ${otherText}` : '';
+          return `${rank}${l}${other}`;
+        })
+        .join(', ')
+    );
   }
-  if (!v) return '(응답 없음)';
+  if (!v) return withComment('(응답 없음)');
   const other = q.options?.find((o) => o.value === v)?.isOther && otherText ? `: ${otherText}` : '';
-  return `${labelOf(v as string)}${other}`;
+  return withComment(`${labelOf(v as string)}${other}`);
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { collection, addDoc, doc, deleteDoc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { doc, deleteDoc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { SURVEY_QUESTIONS, SurveyAnswers, SurveyQuestion, QuestionOption, isQuestionAnswered } from '@/lib/survey-questions';
 
@@ -156,7 +156,7 @@ function QuestionBlock({
 }: {
   q: SurveyQuestion;
   answers: SurveyAnswers;
-  onSingle: (id: string, value: string) => void;
+  onSingle: (id: string, value: string, options: QuestionOption[]) => void;
   onToggleMulti: (id: string, value: string, options: QuestionOption[]) => void;
   onToggleRanked: (id: string, value: string, max: number, options: QuestionOption[]) => void;
   onText: (id: string, value: string) => void;
@@ -206,7 +206,7 @@ function QuestionBlock({
                 type="button"
                 disabled={disabled}
                 onClick={() => {
-                  if (q.type === 'single') onSingle(q.id, opt.value);
+                  if (q.type === 'single') onSingle(q.id, opt.value, q.options ?? []);
                   else if (q.type === 'multi') onToggleMulti(q.id, opt.value, q.options ?? []);
                   else onToggleRanked(q.id, opt.value, q.maxSelect ?? 2, q.options ?? []);
                 }}
@@ -271,6 +271,10 @@ export default function PreSurveyPage() {
   const [submitError, setSubmitError] = useState('');
   const [resuming, setResuming] = useState(false);
   const [justResumed, setJustResumed] = useState(false);
+  const [questionTimes, setQuestionTimes] = useState<Record<string, number>>({});
+  // 문항별로 "결국 이 답으로 바뀌기 전까지 어떤 답을 거쳤는지" 순서대로 남긴다
+  // (예: 매우 그렇다 → 아니다 → 보통). 마지막 항목이 최종 제출된 답과 같다.
+  const [answerHistory, setAnswerHistory] = useState<Record<string, string[]>>({});
 
   // 문항 하나 = 화면 하나. 여러 문항을 한 화면에 몰아서 보여주면 훑어보며 답을 빠르게
   // 찍는 경향(straightlining)이 생기기 쉬워서, 현재 답변 기준으로 조건분기까지 반영한
@@ -298,6 +302,20 @@ export default function PreSurveyPage() {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, [step]);
 
+  // 문항 화면에 머문 시간을 누적한다 — 관리자 페이지에서 문항별 소요 시간을 볼 수 있게.
+  // 클린업이 "떠나는 시점"에 실행되므로 그 시점의 step(클로저로 고정된 값)에 더한다.
+  // stepEnteredAtRef는 제출 시점에 "지금 보고 있는 문항"의 진행 중인 시간까지 더하기 위해 둔다.
+  const stepEnteredAtRef = useRef<number>(Date.now());
+  useEffect(() => {
+    stepEnteredAtRef.current = Date.now();
+    const leavingStep = step;
+    const enteredAt = stepEnteredAtRef.current;
+    return () => {
+      const elapsedSec = Math.round((Date.now() - enteredAt) / 1000);
+      setQuestionTimes((prev) => ({ ...prev, [leavingStep]: (prev[leavingStep] ?? 0) + elapsedSec }));
+    };
+  }, [step]);
+
   // 답변 진행 중간중간 임시저장 — 연락처를 문서 id로 써서, 이름+연락처가 같으면 다른
   // 브라우저·기기에서도 이어서 불러올 수 있게 한다. 응답자정보 단계 이전에는 저장할 게 없다.
   const draftSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -313,13 +331,15 @@ export default function PreSurveyPage() {
           caregiverContact: identity.caregiverContact,
           patientName: identity.patientName || null,
           answers,
+          questionTimes,
+          answerHistory,
           updatedAt: serverTimestamp(),
         },
         { merge: true }
       ).catch((e) => console.error('[survey draft save]', e));
     }, 700);
     return () => { if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current); };
-  }, [answers, identity, step]);
+  }, [answers, identity, step, questionTimes, answerHistory]);
 
   // 잠깐 보여주는 "이어서 진행합니다" 안내는 몇 초 후 자동으로 사라진다.
   useEffect(() => {
@@ -335,11 +355,19 @@ export default function PreSurveyPage() {
     try {
       const snap = await getDoc(doc(db, 'survey_drafts', id));
       if (snap.exists()) {
-        const draft = snap.data() as { caregiverName?: string; patientName?: string; answers?: SurveyAnswers };
+        const draft = snap.data() as {
+          caregiverName?: string;
+          patientName?: string;
+          answers?: SurveyAnswers;
+          questionTimes?: Record<string, number>;
+          answerHistory?: Record<string, string[]>;
+        };
         const nameMatches = (draft.caregiverName ?? '').trim() === identity.caregiverName.trim();
         if (nameMatches) {
           const restoredAnswers = draft.answers ?? {};
           setAnswers(restoredAnswers);
+          setQuestionTimes(draft.questionTimes ?? {});
+          setAnswerHistory(draft.answerHistory ?? {});
           if (draft.patientName && !identity.patientName) {
             setIdentity((f) => ({ ...f, patientName: draft.patientName as string }));
           }
@@ -358,41 +386,70 @@ export default function PreSurveyPage() {
     goNext();
   }
 
-  const setSingle = (id: string, value: string) => setAnswers((prev) => ({ ...prev, [id]: value }));
+  // 문항별 변경 이력에 새 값을 추가한다 — 직전 기록과 같으면(변경이 아니면) 남기지 않는다.
+  const recordHistory = (id: string, label: string) => {
+    setAnswerHistory((prev) => {
+      const existing = prev[id] ?? [];
+      if (existing[existing.length - 1] === label) return prev;
+      return { ...prev, [id]: [...existing, label] };
+    });
+  };
+  const labelOfChoice = (values: string[], options: QuestionOption[], ranked: boolean) => {
+    if (values.length === 0) return '(선택 없음)';
+    return values
+      .map((v, i) => {
+        const label = options.find((o) => o.value === v)?.label ?? v;
+        return ranked ? `${i + 1}) ${label}` : label;
+      })
+      .join(', ');
+  };
+
+  const setSingle = (id: string, value: string, options: QuestionOption[] = []) => {
+    recordHistory(id, options.find((o) => o.value === value)?.label ?? value);
+    setAnswers((prev) => ({ ...prev, [id]: value }));
+  };
   const setText = (id: string, value: string) => setAnswers((prev) => ({ ...prev, [id]: value }));
   const setOtherText = (id: string, value: string) => setAnswers((prev) => ({ ...prev, [`${id}_other`]: value }));
   const setComment = (id: string, value: string) => setAnswers((prev) => ({ ...prev, [`${id}_comment`]: value }));
   // "없음"류 배타적 보기(isExclusive)는 다른 보기와 같이 선택될 수 없다 — 그걸 고르면 나머지는
   // 다 해제되고, 반대로 다른 보기를 고르면 이미 골라둔 배타적 보기가 해제된다.
-  const toggleMulti = (id: string, value: string, options: QuestionOption[]) =>
-    setAnswers((prev) => {
-      const arr = Array.isArray(prev[id]) ? [...(prev[id] as string[])] : [];
-      const idx = arr.indexOf(value);
-      if (idx >= 0) {
-        arr.splice(idx, 1);
-        return { ...prev, [id]: arr };
-      }
+  const toggleMulti = (id: string, value: string, options: QuestionOption[]) => {
+    const arr = Array.isArray(answers[id]) ? [...(answers[id] as string[])] : [];
+    const idx = arr.indexOf(value);
+    let next: string[];
+    if (idx >= 0) {
+      next = arr.filter((_, i) => i !== idx);
+    } else {
       const clicked = options.find((o) => o.value === value);
-      if (clicked?.isExclusive) return { ...prev, [id]: [value] };
-      const next = arr.filter((v) => !options.find((o) => o.value === v)?.isExclusive);
-      next.push(value);
-      return { ...prev, [id]: next };
-    });
-  const toggleRanked = (id: string, value: string, max: number, options: QuestionOption[]) =>
-    setAnswers((prev) => {
-      const arr = Array.isArray(prev[id]) ? [...(prev[id] as string[])] : [];
-      const idx = arr.indexOf(value);
-      if (idx >= 0) {
-        arr.splice(idx, 1);
-        return { ...prev, [id]: arr };
+      if (clicked?.isExclusive) {
+        next = [value];
+      } else {
+        next = arr.filter((v) => !options.find((o) => o.value === v)?.isExclusive);
+        next.push(value);
       }
+    }
+    recordHistory(id, labelOfChoice(next, options, false));
+    setAnswers((prev) => ({ ...prev, [id]: next }));
+  };
+  const toggleRanked = (id: string, value: string, max: number, options: QuestionOption[]) => {
+    const arr = Array.isArray(answers[id]) ? [...(answers[id] as string[])] : [];
+    const idx = arr.indexOf(value);
+    let next: string[];
+    if (idx >= 0) {
+      next = arr.filter((_, i) => i !== idx);
+    } else {
       const clicked = options.find((o) => o.value === value);
-      if (clicked?.isExclusive) return { ...prev, [id]: [value] };
-      const next = arr.filter((v) => !options.find((o) => o.value === v)?.isExclusive);
-      if (next.length >= max) return prev;
-      next.push(value);
-      return { ...prev, [id]: next };
-    });
+      if (clicked?.isExclusive) {
+        next = [value];
+      } else {
+        const withoutExclusive = arr.filter((v) => !options.find((o) => o.value === v)?.isExclusive);
+        if (withoutExclusive.length >= max) return;
+        next = [...withoutExclusive, value];
+      }
+    }
+    recordHistory(id, labelOfChoice(next, options, true));
+    setAnswers((prev) => ({ ...prev, [id]: next }));
+  };
 
   const primaryBtn = (disabled?: boolean): React.CSSProperties => ({
     padding: '16px', borderRadius: 980, border: 'none',
@@ -414,19 +471,25 @@ export default function PreSurveyPage() {
         : /Tablet|iPad/i.test(navigator.userAgent)
         ? 'tablet'
         : 'desktop';
-      await addDoc(collection(db, 'survey_responses'), {
+      const currentElapsedSec = Math.round((Date.now() - stepEnteredAtRef.current) / 1000);
+      const finalQuestionTimes = { ...questionTimes, [step]: (questionTimes[step] ?? 0) + currentElapsedSec };
+      const contactId = draftId(identity.caregiverContact);
+      // 문서 id를 "설문회차_연락처"로 고정해서, 같은 사람이 같은 회차를 다시 제출해도
+      // 새 응답이 쌓이지 않고 기존 응답을 덮어쓴다(중복 제출 방지).
+      await setDoc(doc(db, 'survey_responses', `pre_${contactId}`), {
         surveyType: 'pre',
         surveyVersion: 'v1',
         patientName: identity.patientName || null,
         caregiverName: identity.caregiverName || null,
         caregiverContact: identity.caregiverContact || null,
         answers,
+        questionTimes: finalQuestionTimes,
+        answerHistory,
         deviceType,
         userAgent: navigator.userAgent,
         createdAt: serverTimestamp(),
       });
-      const id = draftId(identity.caregiverContact);
-      if (id) deleteDoc(doc(db, 'survey_drafts', id)).catch((e) => console.error('[survey draft cleanup]', e));
+      if (contactId) deleteDoc(doc(db, 'survey_drafts', contactId)).catch((e) => console.error('[survey draft cleanup]', e));
       setStep('complete');
     } catch (e) {
       console.error(e);

@@ -16,12 +16,22 @@ interface SurveyRow {
   caregiverName: string | null;
   caregiverContact: string | null;
   answers: SurveyAnswers;
+  questionTimes?: Record<string, number>;
+  answerHistory?: Record<string, string[]>;
   deviceType: string | null;
 }
 
 function fmtDate(ts?: Timestamp) {
   if (!ts) return '—';
   return ts.toDate().toLocaleString('ko-KR', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function fmtDuration(sec?: number) {
+  if (!sec || sec <= 0) return '—';
+  if (sec < 60) return `${sec}초`;
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return s === 0 ? `${m}분` : `${m}분 ${s}초`;
 }
 
 export default function SurveyAdminPage() {
@@ -74,7 +84,11 @@ export default function SurveyAdminPage() {
         r.caregiverName ?? '',
         r.caregiverContact ?? '',
         r.patientName ?? '',
-        ...SURVEY_QUESTIONS.map((q) => formatAnswerLabel(q, r.answers)),
+        ...SURVEY_QUESTIONS.map((q) => {
+          const history = r.answerHistory?.[q.id] ?? [];
+          const historyNote = history.length > 1 ? `\n[변경 이력] ${history.join(' → ')}` : '';
+          return `${formatAnswerLabel(q, r.answers)} (${fmtDuration(r.questionTimes?.[q.id])})${historyNote}`;
+        }),
       ]);
     });
     ws.getRow(1).font = { bold: true };
@@ -167,15 +181,28 @@ export default function SurveyAdminPage() {
                       <tr>
                         <td colSpan={4} style={{ padding: '20px 24px', background: '#fafafa', borderBottom: '1px solid #f2f2f7' }}>
                           <div style={{ display: 'grid', gap: 8 }}>
-                            {SURVEY_QUESTIONS.map((q) => (
-                              <div key={q.id} style={{ display: 'flex', gap: 12, fontSize: 13 }}>
-                                <span style={{ color: '#8e8e93', minWidth: 32, fontFamily: M, flexShrink: 0 }}>{q.id}</span>
-                                <span style={{ color: '#636366', flex: 1 }}>{q.title}</span>
-                                <span style={{ color: '#1d1d1f', fontWeight: 600, maxWidth: 320, textAlign: 'right' }}>
-                                  {formatAnswerLabel(q, r.answers)}
-                                </span>
-                              </div>
-                            ))}
+                            {SURVEY_QUESTIONS.map((q) => {
+                              const history = r.answerHistory?.[q.id] ?? [];
+                              return (
+                                <div key={q.id} style={{ display: 'flex', gap: 12, fontSize: 13 }}>
+                                  <span style={{ color: '#8e8e93', minWidth: 32, fontFamily: M, flexShrink: 0 }}>{q.id}</span>
+                                  <span style={{ color: '#636366', flex: 1 }}>{q.title}</span>
+                                  <span style={{ color: '#aeaeb2', fontFamily: M, fontSize: 12, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                    {fmtDuration(r.questionTimes?.[q.id])}
+                                  </span>
+                                  <div style={{ maxWidth: 320, textAlign: 'right' }}>
+                                    <div style={{ color: '#1d1d1f', fontWeight: 600, whiteSpace: 'pre-line' }}>
+                                      {formatAnswerLabel(q, r.answers)}
+                                    </div>
+                                    {history.length > 1 && (
+                                      <div style={{ color: '#ff9500', fontSize: 11, marginTop: 2 }}>
+                                        변경 {history.length - 1}회: {history.join(' → ')}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         </td>
                       </tr>

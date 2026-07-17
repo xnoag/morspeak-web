@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "모스픽 | Morspeak",
     description: "루게릭병 환우가 혼자서 할 수 있는 일을, 하나씩 늘려갑니다.",
-    images: ["https://framerusercontent.com/assets/vEqJBAUr0UkOLV86LmPdmsJeto.png"],
+    images: ["https://morspeak.com/og-image.png"],
   },
   icons: {
     icon: "https://framerusercontent.com/images/P9l2DEc8FwKtUKp8uBlFWioDZKU.png",

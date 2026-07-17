@@ -38,6 +38,19 @@ function statsOf(arr?: number[]) {
   const mean = arr.reduce((a,b)=>a+b,0) / arr.length
   return { count: arr.length, mean, min: Math.min(...arr), max: Math.max(...arr) }
 }
+// 성공/실패가 뒤섞인 시도 로그를 "목표 1개당 몇 번 시도했는지"로 묶음 — 성공이 나올 때까지의
+// 연속 시도(실패 여러 번 + 성공 1번)를 하나의 그룹으로 봄. 아직 성공 못 한 마지막 그룹도 포함
+function groupAttempts(attempts?: {duration:number, success:boolean}[]) {
+  if (!attempts || !attempts.length) return []
+  const reps: {duration:number, success:boolean}[][] = []
+  let current: {duration:number, success:boolean}[] = []
+  for (const a of attempts) {
+    current.push(a)
+    if (a.success) { reps.push(current); current = [] }
+  }
+  if (current.length) reps.push(current)
+  return reps
+}
 // activeStep(관리자가 보낸 의도)과 deviceStatus.renderedStep(기기가 실제로 그리고 있는 화면)을 비교해서
 // "명령을 보냈는데 화면이 안 바뀜"을 자동으로 감지 — 기기에 로그를 뽑으러 갈 필요 없이 여기서 바로 보여줌
 function reflectionStatus(
@@ -864,6 +877,10 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                           if (blink.dotDashBoundary != null && currentStep.n <= 3) cards.push({
                             label:'적용 중인 점·선 경계값', value:fmtS(blink.dotDashBoundary), color:'#ff3b30',
                           })
+                          // 시도별 breakdown — 짧게 단계(n=1)는 onboardingShortAttempts, 길게 단계(n=2)는
+                          // onboardingLongAttempts만 보여줌(위 카드들이 short/long을 나누는 것과 동일한 기준)
+                          const attemptsField = currentStep.n === 1 ? 'onboardingShortAttempts' : currentStep.n === 2 ? 'onboardingLongAttempts' : null
+                          const reps = attemptsField ? groupAttempts(blink[attemptsField]).slice(-5) : []
                           return (
                             <div style={{marginBottom:24}}>
                               <div style={{fontSize:14,fontWeight:700,color:'#34c759',marginBottom:cards.length?14:0}}>✓ 완료됨</div>
@@ -876,6 +893,26 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                                       {c.sub && <div style={{fontSize:11,color:'#aeaeb2',marginTop:6,fontFamily:M,lineHeight:1.5}}>{c.sub}</div>}
                                     </div>
                                   ))}
+                                </div>
+                              )}
+                              {reps.length > 0 && (
+                                <div style={{marginTop:14}}>
+                                  <div style={{fontSize:10,color:'#8e8e93',fontWeight:700,textTransform:'uppercase',letterSpacing:'.05em',marginBottom:8}}>최근 시도별 breakdown</div>
+                                  <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                                    {reps.map((tries, i) => (
+                                      <div key={i} style={{display:'flex',alignItems:'center',gap:10,fontSize:12,fontFamily:M,padding:'8px 12px',background:'#fff',border:'1px solid #e5e5ea',borderRadius:8,flexWrap:'wrap'}}>
+                                        <span style={{fontWeight:700,color:'#3a3a3c',flexShrink:0}}>{i+1}번째</span>
+                                        <span style={{color:'#8e8e93',flexShrink:0}}>{tries.length>1?`${tries.length}번 시도`:'1번에 성공'}</span>
+                                        <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+                                          {tries.map((t,j)=>(
+                                            <span key={j} style={{padding:'2px 6px',borderRadius:5,background:t.success?'rgba(52,199,89,0.12)':'rgba(255,59,48,0.1)',color:t.success?'#34c759':'#ff3b30'}}>
+                                              {fmtS(t.duration)}{t.success?' 성공':' 실패'}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
                               )}
                             </div>

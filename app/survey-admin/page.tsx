@@ -191,6 +191,43 @@ function DetailPanel({ r, onDelete }: { r: SurveyRow; onDelete: (r: SurveyRow) =
   );
 }
 
+// 응답자가 행, 문항이 열인 표 형태로 전체 응답을 한 화면에서 훑어볼 수 있게 한다 —
+// 엑셀 내보내기와 같은 데이터 구조를 화면에서 그대로 보여주는 버전.
+function TableView({ rows }: { rows: SurveyRow[] }) {
+  const cellStyle = { padding: '10px 14px', fontSize: 12.5, color: '#1d1d1f', whiteSpace: 'nowrap' as const, borderBottom: '1px solid #f2f2f7', verticalAlign: 'top' as const };
+  const headStyle = { padding: '10px 14px', fontSize: 11, fontWeight: 700, color: '#636366', textAlign: 'left' as const, whiteSpace: 'nowrap' as const, borderBottom: '2px solid #e5e5ea', position: 'sticky' as const, top: 0, background: '#fafafa' };
+  return (
+    <div style={{ overflow: 'auto', flex: 1, background: '#fff' }}>
+      <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+        <thead>
+          <tr>
+            <th style={headStyle}>제출일시</th>
+            <th style={headStyle}>보호자명</th>
+            <th style={headStyle}>연락처</th>
+            <th style={headStyle}>환자명</th>
+            {SURVEY_QUESTIONS.map((q) => (
+              <th key={q.id} style={headStyle} title={q.title}>{q.id}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.id}>
+              <td style={{ ...cellStyle, fontFamily: M, color: '#8e8e93', whiteSpace: 'nowrap' }}>{fmtDate(r.createdAt)}</td>
+              <td style={{ ...cellStyle, fontWeight: 600, whiteSpace: 'nowrap' }}>{r.caregiverName || '—'}</td>
+              <td style={{ ...cellStyle, fontFamily: M, whiteSpace: 'nowrap' }}>{r.caregiverContact || '—'}</td>
+              <td style={{ ...cellStyle, whiteSpace: 'nowrap' }}>{r.patientName || '—'}</td>
+              {SURVEY_QUESTIONS.map((q) => (
+                <td key={q.id} style={cellStyle}>{formatAnswerLabel(q, r.answers)}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function SurveyAdminPage() {
   const isMobile = useIsMobile();
   const [rows, setRows] = useState<SurveyRow[]>([]);
@@ -199,6 +236,7 @@ export default function SurveyAdminPage() {
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null); // 모바일: 펼친 카드 id
   const [selectedId, setSelectedId] = useState<string | null>(null); // PC: 선택된 응답 id
+  const [viewMode, setViewMode] = useState<'detail' | 'table'>('detail'); // PC: 목록+상세 / 전체 표 보기
 
   useEffect(() => {
     // surveyType은 클라이언트에서 필터링한다 — where+orderBy 조합은 Firestore 복합 인덱스가
@@ -314,6 +352,14 @@ export default function SurveyAdminPage() {
             onChange={(e) => setSearch(e.target.value)}
             style={{ paddingLeft: 12, paddingRight: 12, height: 32, borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.1)', fontSize: 13, outline: 'none', fontFamily: F, flex: isMobile ? 1 : undefined, width: isMobile ? undefined : 200, color: '#fff' }}
           />
+          {!isMobile && (
+            <button
+              onClick={() => setViewMode((m) => (m === 'detail' ? 'table' : 'detail'))}
+              style={{ ...iconBtn, flexShrink: 0 }}
+            >
+              {viewMode === 'detail' ? '표로 보기' : '상세 보기'}
+            </button>
+          )}
           <button onClick={exportExcel} style={{ ...iconBtn, flexShrink: 0 }}>
             엑셀 내보내기
           </button>
@@ -385,6 +431,9 @@ export default function SurveyAdminPage() {
             </div>
           )}
         </div>
+      ) : viewMode === 'table' ? (
+        // 응답자가 행, 문항이 열인 표로 전체 응답을 한 화면에서 훑어보는 모드.
+        <TableView rows={filtered} />
       ) : (
         // PC: 좌측 응답 목록 + 우측 선택된 응답의 상세(요약 바 + 섹션별 문항)를 같이 보여주는
         // 2단 레이아웃. 아코디언 방식(행 펼치기)보다 여러 응답을 빠르게 훑어보기에 낫다.

@@ -4,10 +4,10 @@ import ConditionalLayout from "@/components/ConditionalLayout";
 
 export const metadata: Metadata = {
   title: "모스픽 | Morspeak",
-  description: "문의: hello@morspeak.com",
+  description: "문의: 010-7641-1362 (모스픽 대표 한가온)",
   openGraph: {
     title: "모스픽 | Morspeak",
-    description: "문의: hello@morspeak.com",
+    description: "문의: 010-7641-1362 (모스픽 대표 한가온)",
     images: ["https://morspeak.com/og-image.png"],
   },
   icons: {

@@ -195,7 +195,8 @@ function DetailPanel({ r, onDelete }: { r: SurveyRow; onDelete: (r: SurveyRow) =
 // 엑셀 내보내기와 같은 데이터 구조를 화면에서 그대로 보여주는 버전.
 function TableView({ rows }: { rows: SurveyRow[] }) {
   const cellStyle = { padding: '10px 14px', fontSize: 12.5, color: '#1d1d1f', whiteSpace: 'nowrap' as const, borderBottom: '1px solid #f2f2f7', verticalAlign: 'top' as const };
-  const headStyle = { padding: '10px 14px', fontSize: 11, fontWeight: 700, color: '#636366', textAlign: 'left' as const, whiteSpace: 'nowrap' as const, borderBottom: '2px solid #e5e5ea', position: 'sticky' as const, top: 0, background: '#fafafa' };
+  const headStyle = { padding: '10px 14px', fontSize: 11, fontWeight: 700, color: '#636366', textAlign: 'left' as const, whiteSpace: 'nowrap' as const, borderBottom: '2px solid #e5e5ea', position: 'sticky' as const, top: 0, background: '#fafafa', verticalAlign: 'top' as const };
+  const questionHeadStyle = { ...headStyle, whiteSpace: 'normal' as const, minWidth: 180, maxWidth: 260, lineHeight: 1.4 };
   return (
     <div style={{ overflow: 'auto', flex: 1, background: '#fff' }}>
       <table style={{ borderCollapse: 'collapse', width: '100%' }}>
@@ -206,7 +207,10 @@ function TableView({ rows }: { rows: SurveyRow[] }) {
             <th style={headStyle}>연락처</th>
             <th style={headStyle}>환자명</th>
             {SURVEY_QUESTIONS.map((q) => (
-              <th key={q.id} style={headStyle} title={q.title}>{q.id}</th>
+              <th key={q.id} style={questionHeadStyle}>
+                <div style={{ color: '#007AFF', fontSize: 10, marginBottom: 3 }}>{q.id}</div>
+                <div style={{ fontWeight: 600, color: '#1d1d1f' }}>{q.title}</div>
+              </th>
             ))}
           </tr>
         </thead>

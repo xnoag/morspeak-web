@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { collection, getDocs, orderBy, query, Timestamp } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDocs, orderBy, query, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { SURVEY_QUESTIONS, SurveyAnswers, SurveyQuestion, formatAnswerLabel } from '@/lib/survey-questions';
 
@@ -140,7 +140,7 @@ function QuestionRow({ q, r, isMobile }: { q: SurveyQuestion; r: SurveyRow; isMo
 
 // PC 상세 패널: 요약 바 + [A]/[B]/[C] 섹션(B는 측면별 소그룹)으로 나눠서 보여준다 —
 // 28개 문항을 한 줄로 쭉 나열하는 대신 주제별로 묶어야 훑어보기 쉬워진다.
-function DetailPanel({ r }: { r: SurveyRow }) {
+function DetailPanel({ r, onDelete }: { r: SurveyRow; onDelete: (r: SurveyRow) => void }) {
   return (
     <div>
       <div style={{ background: '#fff', borderRadius: 14, border: '1px solid rgba(0,0,0,0.07)', padding: '20px 24px', marginBottom: 20 }}>
@@ -151,7 +151,13 @@ function DetailPanel({ r }: { r: SurveyRow }) {
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 11, color: '#8e8e93', marginBottom: 3 }}>제출일시</div>
-            <div style={{ fontSize: 13, color: '#1d1d1f', fontFamily: M }}>{fmtDate(r.createdAt)}</div>
+            <div style={{ fontSize: 13, color: '#1d1d1f', fontFamily: M, marginBottom: 10 }}>{fmtDate(r.createdAt)}</div>
+            <button
+              onClick={() => onDelete(r)}
+              style={{ fontSize: 12, fontWeight: 600, color: '#FF3B30', background: 'rgba(255,59,48,0.08)', border: '1px solid rgba(255,59,48,0.25)', borderRadius: 8, padding: '5px 10px', cursor: 'pointer', fontFamily: F }}
+            >
+              이 응답 삭제
+            </button>
           </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, paddingTop: 16, borderTop: '1px solid #f2f2f7' }}>
@@ -227,6 +233,14 @@ export default function SurveyAdminPage() {
     if (!selectedId && filtered.length > 0) setSelectedId(filtered[0].id);
   }, [filtered, selectedId]);
   const selectedRow = filtered.find((r) => r.id === selectedId) ?? null;
+
+  async function handleDelete(r: SurveyRow) {
+    if (!confirm(`${r.caregiverName || '이름 없음'}님의 응답을 삭제할까요? 이 작업은 되돌릴 수 없습니다.`)) return;
+    await deleteDoc(doc(db, 'survey_responses', r.id));
+    setRows((prev) => prev.filter((row) => row.id !== r.id));
+    setSelectedId((id) => (id === r.id ? null : id));
+    setExpandedId((id) => (id === r.id ? null : id));
+  }
 
   const today = new Date().toDateString();
   const todayCount = rows.filter((r) => r.createdAt?.toDate().toDateString() === today).length;
@@ -419,7 +433,7 @@ export default function SurveyAdminPage() {
           </div>
           <div style={{ flex: 1, overflow: 'auto', padding: '24px 28px' }}>
             {selectedRow ? (
-              <DetailPanel r={selectedRow} />
+              <DetailPanel r={selectedRow} onDelete={handleDelete} />
             ) : (
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8e8e93', fontSize: 13 }}>
                 왼쪽에서 응답을 선택해주세요.

@@ -106,6 +106,26 @@ type CallNote = {
   overallResult?: string; // '적합' | '일단보류' | '부적합'
 };
 
+// ── 장비 대여 관리대장 ────────────────────────────────────────
+type LoanUnit = { serial?: string; sent?: boolean; sentDate?: string };
+type EquipmentLoan = {
+  managementNumber?: string;
+  address?: string;
+  memo?: string;
+  units?: Record<string, LoanUnit>;
+  updatedAt?: string;
+};
+const PACKAGE_ITEMS: { id: string; label: string; qty: number }[] = [
+  { id: 'ipad', label: '아이패드', qty: 1 },
+  { id: 'bedMount', label: '침대용 거치대', qty: 1 },
+  { id: 'chairMount', label: '의자용 거치대', qty: 1 },
+  { id: 'iotPlug', label: 'IoT 플러그', qty: 3 },
+  { id: 'chargerHead', label: '충전기 헤드', qty: 1 },
+  { id: 'chargerCable', label: '충전기 선', qty: 1 },
+  { id: 'light', label: '조명', qty: 2 },
+];
+const TOTAL_UNITS = PACKAGE_ITEMS.reduce((s, it) => s + it.qty, 0);
+
 const ADMIN_PW = '0621';
 const QUAL_VIEW_PW = '1004';
 const F = "-apple-system,'SF Pro Display',BlinkMacSystemFont,'Helvetica Neue',sans-serif";
@@ -225,7 +245,7 @@ export default function AdminScreeningPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [sortField, setSortField] = useState<'date' | 'score'>('date');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
-  const [activeView, setActiveView] = useState<'screening' | 'applications' | 'ranking' | 'final' | 'schedule'>('screening');
+  const [activeView, setActiveView] = useState<'screening' | 'applications' | 'ranking' | 'final' | 'loan' | 'schedule'>('screening');
   const [scheduleBookings, setScheduleBookings] = useState<Record<string, {patientName:string;caregiverName?:string;contactPhone:string;meetingType?:string;bookedAt:string}>>({});
   const [callNotes, setCallNotes] = useState<Record<string, CallNote>>({});
   const [callScriptSlot, setCallScriptSlot] = useState<string | null>(null);
@@ -238,6 +258,8 @@ export default function AdminScreeningPage() {
   const [excludedKeys, setExcludedKeys] = useState<Set<string>>(new Set());
   const [finalUnlocked, setFinalUnlocked] = useState(false);
   const [finalPw, setFinalPw] = useState('');
+  const [equipmentLoans, setEquipmentLoans] = useState<Record<string, EquipmentLoan>>({});
+  const [expandedLoanKey, setExpandedLoanKey] = useState<string | null>(null);
   const [expandedRankKey, setExpandedRankKey] = useState<string | null>(null);
   const [selectedRankKeys, setSelectedRankKeys] = useState<Set<string>>(new Set());
   const [rankFilter, setRankFilter] = useState<'all'|'complete'|'no_screening'|'no_app'>('all');
@@ -318,7 +340,12 @@ export default function AdminScreeningPage() {
       const data = snap.data();
       setExcludedKeys(new Set((data?.excluded ?? []) as string[]));
     });
-    return () => { unsub1(); unsub2(); unsub3(); };
+    const unsub4 = onSnapshot(collection(db, 'equipment_loans'), snap => {
+      const m: Record<string, EquipmentLoan> = {};
+      snap.docs.forEach(d => { m[d.id] = d.data() as EquipmentLoan; });
+      setEquipmentLoans(m);
+    });
+    return () => { unsub1(); unsub2(); unsub3(); unsub4(); };
   }, [authed]);
 
   const loadQualScores = async () => {
@@ -348,6 +375,15 @@ export default function AdminScreeningPage() {
     await setDoc(doc(db, 'qualitative_scores', personKey.replace(/\//g,'_')), {
       evals: { [evalKey]: data }
     }, {merge: true});
+  };
+
+  const saveLoanField = async (docId: string, patch: Partial<EquipmentLoan>) => {
+    await ensureAuth();
+    await setDoc(doc(db, 'equipment_loans', docId), { ...patch, updatedAt: new Date().toISOString() }, { merge: true });
+  };
+  const saveLoanUnit = async (docId: string, unitKey: string, patch: Partial<LoanUnit>) => {
+    await ensureAuth();
+    await setDoc(doc(db, 'equipment_loans', docId), { units: { [unitKey]: patch }, updatedAt: new Date().toISOString() }, { merge: true });
   };
 
   const loadApplications = async () => {
@@ -642,6 +678,84 @@ export default function AdminScreeningPage() {
     '신청서 미작성': results.filter(r => !matchesApp(r)).length,
   };
 
+  // ── 최종 탭과 동일한 finalRanked (엑셀 export·대여관리 공용) ──
+  const _finalRanked = (() => {
+    if (!results.length && !applications.length) return [];
+    const hasExp2 = (s?: string) => { const v=(s??'').trim(); return v.length>0&&!/^(없음?|없습니다?|없다|없어요|아니[요오]?|아닙니다|해당\s*없음|X|x|-)$/i.test(v); };
+    const appScoreF2 = (a: Application) => {
+      const bs: Record<string,number> = {};
+      const trach=a.tracheotomy??''; bs.tracheotomy=trach?(/시행/.test(trach)&&!/안|않|미시행|하지/.test(trach)?10:8):0;
+      const bulbar=a.bulbarPalsyProgress??''; bs.bulbar=!bulbar?0:(/마비|진행/.test(bulbar)&&!/아님|아니|없음|않|미/.test(bulbar)?10:8);
+      const cg=a.caregiverCooperation??''; bs.caregiver=/가능|협조/.test(cg)?10:/불가|어렵|못/.test(cg)?5:0;
+      bs.device=hasExp2(a.electronicDeviceExperience)?10:0; bs.eyeMouse=hasExp2(a.eyeMouseExperience)?5:0; bs.duration=0;
+      if(a.onsetDate){const d=a.onsetDate.replace(/\D/g,'');if(d.length>=4){const yr=parseInt(d.slice(0,4)),mo=parseInt(d.slice(4,6)||'1')||1;if((Date.now()-new Date(yr,mo-1,1).getTime())/(1000*60*60*24*365.25)>=3)bs.duration=5;}}
+      return {bs, total:Object.values(bs).reduce((s,v)=>s+v,0)};
+    };
+    const findAppF2 = (r: Result) => {
+      const p=normalizePhone(r.caregiverContact??'');
+      if(p){const a=applications.find(a=>normalizePhone(a.contactPhone??'')===p);if(a)return a;}
+      const name=normalizeStr(r.patientName??''),region=normalizeStr(r.region??''),sub=normalizeStr(r.subRegion??'');
+      return applications.find(a=>{if(normalizeStr(a.patientName??'')!==name)return false;const addr=normalizeStr(a.address??'');return (region&&regionInAddr(addr,region))||(sub&&addr.includes(sub));});
+    };
+    const catOF = (e:{screening?:Result}) => (e.screening?.status==='실기기검증적합'||e.screening?.status==='적합예상')?1:e.screening?0:-1;
+    const seen=new Set<string>();
+    const ranked:{key:string;name:string;caregiver:string;phone:string;region:string;screening?:Result;hasApp:boolean;bs?:Record<string,number>;appTotal:number;qualTotal:number;finalTotal:number}[]=[];
+    const best=new Map<string,Result>();
+    results.forEach(r=>{const key=normalizePhone(r.caregiverContact??'')||normalizeStr(r.patientName??'');if(!key)return;const prev=best.get(key);const cv=(s?:Status)=>s==='실기기검증적합'?2:s==='적합예상'?1:0;if(!prev||cv(r.status)>cv(prev.status))best.set(key,r);});
+    best.forEach((r,key)=>{
+      seen.add(key); const app=findAppF2(r);
+      if(app){const ak=normalizePhone(app.contactPhone??'')||normalizeStr(app.patientName??'');if(ak)seen.add(ak);}
+      const aScore=app?appScoreF2(app):null;
+      const qk=key.replace(/\//g,'_'); const qa=computeEvalAvg(qualEvals.get(qk)??{}); const qualTotal=qa?Math.round(qa.total*10)/10:0;
+      ranked.push({key,name:r.patientName,caregiver:r.caregiverName??'',phone:r.caregiverContact??'',region:(r.region?r.region+' ':'')+r.subRegion,screening:r,hasApp:!!app,bs:aScore?.bs,appTotal:aScore?.total??0,qualTotal,finalTotal:(aScore?.total??0)+qualTotal});
+    });
+    applications.forEach(a=>{
+      const key=normalizePhone(a.contactPhone??'')||normalizeStr(a.patientName??'');
+      if(!key||seen.has(key))return; seen.add(key);
+      const aScore=appScoreF2(a); const qk=key.replace(/\//g,'_'); const qa=computeEvalAvg(qualEvals.get(qk)??{}); const qualTotal=qa?Math.round(qa.total*10)/10:0;
+      ranked.push({key,name:a.patientName,caregiver:'',phone:a.contactPhone??'',region:a.address?.slice(0,8)??'',screening:undefined,hasApp:true,bs:aScore.bs,appTotal:aScore.total,qualTotal,finalTotal:aScore.total+qualTotal});
+    });
+    ranked.sort((a,b)=>{const cd=catOF(b)-catOF(a);return cd!==0?cd:b.appTotal-a.appTotal;});
+    const top40=[...ranked.slice(0,40)].sort((a,b)=>{const cd=catOF(b)-catOF(a);return cd!==0?cd:b.finalTotal-a.finalTotal;});
+    return [...top40,...ranked.slice(40)];
+  })();
+
+  // ── 최종 인터뷰 '적합' 판정자 (대여 관리대장 대상) ───────────
+  const _getCallNoteByNamePhone = (name: string, phone: string) => {
+    const np = normalizePhone(phone); const nn = normalizeStr(name);
+    for (const [sid, bk] of Object.entries(scheduleBookings)) {
+      const bkPhone = normalizePhone(bk.contactPhone ?? ''); const bkName = normalizeStr(bk.patientName ?? '');
+      if ((np && bkPhone && bkPhone === np) || bkName === nn) return callNotes[sid] ?? null;
+    }
+    return null;
+  };
+  const _finalSelected = _finalRanked.filter(e => {
+    const note = _getCallNoteByNamePhone(e.name, e.phone);
+    const raw = note?.overallResult;
+    const result = raw === '애매함' ? '일단보류' : raw;
+    return result === '적합';
+  });
+
+  // 관리번호 자동 배정: 이미 배정된 사람은 건드리지 않고, 없는 사람만 빈 번호 채움
+  useEffect(() => {
+    if (!_finalSelected.length) return;
+    const used = new Set<number>();
+    Object.values(equipmentLoans).forEach(l => {
+      const m = l.managementNumber?.match(/^MS2026-(\d+)$/);
+      if (m) used.add(parseInt(m[1], 10));
+    });
+    let next = 1;
+    _finalSelected.forEach(e => {
+      const docId = e.key.replace(/\//g, '_');
+      if (equipmentLoans[docId]?.managementNumber) return;
+      while (used.has(next)) next++;
+      used.add(next);
+      const managementNumber = `MS2026-${String(next).padStart(3, '0')}`;
+      setDoc(doc(db, 'equipment_loans', docId), { managementNumber, updatedAt: new Date().toISOString() }, { merge: true }).catch(() => {});
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [_finalSelected.map(e => e.key).join('|'), Object.keys(equipmentLoans).length]);
+
   // ── 초기화 중 ─────────────────────────────────────────────────
   if (initializing) return <div style={{ minHeight:'100vh', background:'#fff' }} />;
 
@@ -722,48 +836,6 @@ export default function AdminScreeningPage() {
     rows.sort((a,b)=>{const cd=b.cat-a.cat;return cd!==0?cd:b.appTotal-a.appTotal;});
     const pool=[...rows.slice(0,40)].sort((a,b)=>{const cd=b.cat-a.cat;return cd!==0?cd:b.finalTotal-a.finalTotal;});
     return new Set(pool.filter(e=>!excludedKeys.has(e.key)).slice(0,20).map(e=>e.key));
-  })();
-
-  // ── 최종 탭과 동일한 finalRanked (엑셀 export용 공용) ─────────
-  const _finalRanked = (() => {
-    if (!results.length && !applications.length) return [];
-    const hasExp2 = (s?: string) => { const v=(s??'').trim(); return v.length>0&&!/^(없음?|없습니다?|없다|없어요|아니[요오]?|아닙니다|해당\s*없음|X|x|-)$/i.test(v); };
-    const appScoreF2 = (a: Application) => {
-      const bs: Record<string,number> = {};
-      const trach=a.tracheotomy??''; bs.tracheotomy=trach?(/시행/.test(trach)&&!/안|않|미시행|하지/.test(trach)?10:8):0;
-      const bulbar=a.bulbarPalsyProgress??''; bs.bulbar=!bulbar?0:(/마비|진행/.test(bulbar)&&!/아님|아니|없음|않|미/.test(bulbar)?10:8);
-      const cg=a.caregiverCooperation??''; bs.caregiver=/가능|협조/.test(cg)?10:/불가|어렵|못/.test(cg)?5:0;
-      bs.device=hasExp2(a.electronicDeviceExperience)?10:0; bs.eyeMouse=hasExp2(a.eyeMouseExperience)?5:0; bs.duration=0;
-      if(a.onsetDate){const d=a.onsetDate.replace(/\D/g,'');if(d.length>=4){const yr=parseInt(d.slice(0,4)),mo=parseInt(d.slice(4,6)||'1')||1;if((Date.now()-new Date(yr,mo-1,1).getTime())/(1000*60*60*24*365.25)>=3)bs.duration=5;}}
-      return {bs, total:Object.values(bs).reduce((s,v)=>s+v,0)};
-    };
-    const findAppF2 = (r: Result) => {
-      const p=normalizePhone(r.caregiverContact??'');
-      if(p){const a=applications.find(a=>normalizePhone(a.contactPhone??'')===p);if(a)return a;}
-      const name=normalizeStr(r.patientName??''),region=normalizeStr(r.region??''),sub=normalizeStr(r.subRegion??'');
-      return applications.find(a=>{if(normalizeStr(a.patientName??'')!==name)return false;const addr=normalizeStr(a.address??'');return (region&&regionInAddr(addr,region))||(sub&&addr.includes(sub));});
-    };
-    const catOF = (e:{screening?:Result}) => (e.screening?.status==='실기기검증적합'||e.screening?.status==='적합예상')?1:e.screening?0:-1;
-    const seen=new Set<string>();
-    const ranked:{key:string;name:string;caregiver:string;phone:string;region:string;screening?:Result;hasApp:boolean;bs?:Record<string,number>;appTotal:number;qualTotal:number;finalTotal:number}[]=[];
-    const best=new Map<string,Result>();
-    results.forEach(r=>{const key=normalizePhone(r.caregiverContact??'')||normalizeStr(r.patientName??'');if(!key)return;const prev=best.get(key);const cv=(s?:Status)=>s==='실기기검증적합'?2:s==='적합예상'?1:0;if(!prev||cv(r.status)>cv(prev.status))best.set(key,r);});
-    best.forEach((r,key)=>{
-      seen.add(key); const app=findAppF2(r);
-      if(app){const ak=normalizePhone(app.contactPhone??'')||normalizeStr(app.patientName??'');if(ak)seen.add(ak);}
-      const aScore=app?appScoreF2(app):null;
-      const qk=key.replace(/\//g,'_'); const qa=computeEvalAvg(qualEvals.get(qk)??{}); const qualTotal=qa?Math.round(qa.total*10)/10:0;
-      ranked.push({key,name:r.patientName,caregiver:r.caregiverName??'',phone:r.caregiverContact??'',region:(r.region?r.region+' ':'')+r.subRegion,screening:r,hasApp:!!app,bs:aScore?.bs,appTotal:aScore?.total??0,qualTotal,finalTotal:(aScore?.total??0)+qualTotal});
-    });
-    applications.forEach(a=>{
-      const key=normalizePhone(a.contactPhone??'')||normalizeStr(a.patientName??'');
-      if(!key||seen.has(key))return; seen.add(key);
-      const aScore=appScoreF2(a); const qk=key.replace(/\//g,'_'); const qa=computeEvalAvg(qualEvals.get(qk)??{}); const qualTotal=qa?Math.round(qa.total*10)/10:0;
-      ranked.push({key,name:a.patientName,caregiver:'',phone:a.contactPhone??'',region:a.address?.slice(0,8)??'',screening:undefined,hasApp:true,bs:aScore.bs,appTotal:aScore.total,qualTotal,finalTotal:aScore.total+qualTotal});
-    });
-    ranked.sort((a,b)=>{const cd=catOF(b)-catOF(a);return cd!==0?cd:b.appTotal-a.appTotal;});
-    const top40=[...ranked.slice(0,40)].sort((a,b)=>{const cd=catOF(b)-catOF(a);return cd!==0?cd:b.finalTotal-a.finalTotal;});
-    return [...top40,...ranked.slice(40)];
   })();
 
   // ── 전체 엑셀 추출 (단일 시트) ───────────────────────────────
@@ -886,9 +958,9 @@ export default function AdminScreeningPage() {
             <img src="/morspeak-logo-icon.png" alt="Morspeak" style={{ height:36, width:'auto', display:'block' }} />
             {/* 뷰 전환 */}
             <div style={{ display:'flex',gap:2,background:'#1C1C1E',borderRadius:10,padding:3 }}>
-              {(['screening','applications','ranking','final','schedule'] as const).map(v => (
+              {(['screening','applications','ranking','final','loan','schedule'] as const).map(v => (
                 <button key={v}
-                  onClick={() => { setActiveView(v); if ((v==='applications'||v==='ranking'||v==='final') && applications.length===0) loadApplications(); }}
+                  onClick={() => { setActiveView(v); if ((v==='applications'||v==='ranking'||v==='final'||v==='loan') && applications.length===0) loadApplications(); }}
                   style={{ padding:'5px 14px',borderRadius:8,border:'none',cursor:'pointer',fontFamily:F,
                     fontSize:12,fontWeight:activeView===v?600:400,
                     background:activeView===v?'#fff':'transparent',
@@ -901,6 +973,7 @@ export default function AdminScreeningPage() {
                     ? <>서비스 신청서 <span style={{ opacity:0.5, fontWeight:400 }}>{applications.length||''}</span></>
                     : v==='ranking' ? <>종합</>
                     : v==='final' ? <>🔒 최종</>
+                    : v==='loan' ? <>📦 대여관리</>
                     : <>📅 일정</>}
                 </button>
               ))}
@@ -2311,6 +2384,187 @@ export default function AdminScreeningPage() {
                     );
                   });
                   })()}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
+      {/* 대여 관리대장 탭 */}
+      {activeView === 'loan' && (() => {
+        if (!finalUnlocked) return (
+          <div style={{ flex:1,display:'flex',alignItems:'center',justifyContent:'center',background:'#F7F7F9' }}>
+            <div style={{ background:'#fff',borderRadius:16,padding:'40px 36px',boxShadow:'0 4px 24px rgba(0,0,0,0.08)',width:320,textAlign:'center' }}>
+              <p style={{ fontSize:20,fontWeight:700,color:'#1C1C1E',marginBottom:8 }}>📦 대여 관리대장</p>
+              <p style={{ fontSize:13,color:'#8E8E93',marginBottom:24 }}>관리자 비밀번호를 입력해주세요</p>
+              <input type="password" value={finalPw} onChange={e=>setFinalPw(e.target.value)}
+                onKeyDown={e=>{ if(e.key==='Enter'){ if(finalPw===QUAL_VIEW_PW){setFinalUnlocked(true);setFinalPw('');}else alert('비밀번호가 틀렸습니다.'); }}}
+                placeholder="비밀번호"
+                style={{ width:'100%',padding:'11px 14px',border:'1.5px solid #E5E5EA',borderRadius:10,fontSize:14,outline:'none',fontFamily:F,boxSizing:'border-box' as const,marginBottom:12,textAlign:'center' as const }} />
+              <button onClick={()=>{ if(finalPw===QUAL_VIEW_PW){setFinalUnlocked(true);setFinalPw('');}else alert('비밀번호가 틀렸습니다.');}}
+                style={{ width:'100%',padding:'11px',borderRadius:10,border:'none',background:'#1C1C1E',color:'#fff',fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:F }}>
+                확인
+              </button>
+            </div>
+          </div>
+        );
+
+        const rows = _finalSelected.map((e, i) => {
+          const docId = e.key.replace(/\//g,'_');
+          const loan = equipmentLoans[docId] ?? {};
+          const app = applications.find(a => {
+            const p = normalizePhone(a.contactPhone ?? '');
+            const ep = normalizePhone(e.phone);
+            if (p && ep && p === ep) return true;
+            return normalizeStr(a.patientName ?? '') === normalizeStr(e.name ?? '');
+          });
+          const address = loan.address || app?.address || '';
+          const units = loan.units ?? {};
+          let sentCount = 0;
+          PACKAGE_ITEMS.forEach(item => {
+            for (let idx=0; idx<item.qty; idx++) { if (units[`${item.id}_${idx}`]?.sent) sentCount++; }
+          });
+          return { key:e.key, docId, name:e.name, caregiver:e.caregiver, phone:e.phone, loan, address, units, sentCount, rank:i+1 };
+        });
+
+        const exportLoanExcel = async () => {
+          const ExcelJS = (await import('exceljs')).default;
+          const wb = new ExcelJS.Workbook();
+          const ws = wb.addWorksheet('대여 관리대장');
+          const unitCols = PACKAGE_ITEMS.flatMap(item => Array.from({length:item.qty}, (_,idx) => item.qty>1?`${item.label}${idx+1}`:item.label));
+          const headers = ['관리번호','환우명','보호자','연락처','주소',...unitCols,'발송현황','비고'];
+          ws.columns = [{width:14},{width:12},{width:10},{width:15},{width:26},...unitCols.map(()=>({width:14})),{width:12},{width:20}];
+          ws.views=[{state:'frozen',ySplit:1,activeCell:'A2'}];
+          const hRow = ws.addRow(headers);
+          hRow.height = 22;
+          hRow.eachCell({includeEmpty:true},(cell)=>{
+            cell.font={bold:true,color:{argb:'FFFFFFFF'},size:10};
+            cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1C1C1E'}};
+            cell.alignment={horizontal:'center',vertical:'middle',wrapText:true};
+          });
+          rows.forEach((r,i)=>{
+            const unitVals = PACKAGE_ITEMS.flatMap(item => Array.from({length:item.qty}, (_,idx) => {
+              const u = r.units[`${item.id}_${idx}`];
+              return u?.serial ? u.serial : (u?.sent ? '발송완료' : '');
+            }));
+            const rowData = [r.loan.managementNumber||'',r.name,r.caregiver||'',r.phone,r.address||'',...unitVals,`${r.sentCount}/${TOTAL_UNITS}`,r.loan.memo||''];
+            const row = ws.addRow(rowData);
+            row.height=19;
+            row.eachCell({includeEmpty:true},(cell)=>{
+              cell.font={size:10};
+              cell.alignment={horizontal:'center',vertical:'middle'};
+              if (i%2===1) cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF9FAFB'}};
+            });
+            row.getCell(2).alignment={horizontal:'left',vertical:'middle'};
+            row.getCell(5).alignment={horizontal:'left',vertical:'middle'};
+            if (r.sentCount===TOTAL_UNITS) row.getCell(headers.indexOf('발송현황')+1).font={bold:true,color:{argb:'FF1A8C3A'},size:10};
+          });
+          const buf = await wb.xlsx.writeBuffer();
+          const blob = new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+          const url = URL.createObjectURL(blob);
+          const a=document.createElement('a'); a.href=url; a.download='모스픽_대여관리대장.xlsx'; a.click();
+          URL.revokeObjectURL(url);
+        };
+
+        return (
+          <div style={{ flex:1,display:'flex',flexDirection:'column',overflow:'hidden' }}>
+            <div style={{ padding:'10px 20px',borderBottom:'1px solid #F2F2F7',background:'#fff',display:'flex',alignItems:'center',justifyContent:'space-between' }}>
+              <span style={{ fontSize:12,color:'#8E8E93' }}>최종 인터뷰 적합 판정자 {rows.length}명 · 아이패드·침대거치대·의자거치대·IoT플러그3·충전기헤드·충전기선·조명2 패키지 대여</span>
+              <div style={{ display:'flex',gap:8 }}>
+                <button onClick={exportLoanExcel}
+                  style={{ padding:'6px 14px',borderRadius:8,border:'none',background:'#1A8C3A',color:'#fff',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:F }}>
+                  📊 엑셀 추출
+                </button>
+                <button onClick={()=>setFinalUnlocked(false)} style={{ fontSize:11,color:'#8E8E93',background:'none',border:'none',cursor:'pointer',fontFamily:F }}>잠금</button>
+              </div>
+            </div>
+            <div style={{ flex:1,overflow:'auto',background:'#fff' }}>
+              <table style={{ width:'100%',minWidth:'max-content',borderCollapse:'collapse',fontSize:13 }}>
+                <thead>
+                  <tr style={{ borderBottom:'1.5px solid #F2F2F7',background:'#FAFAFA' }}>
+                    {['#','관리번호','환우명','보호자','연락처','주소','발송현황','비고',''].map(h=>(
+                      <th key={h} style={{ padding:'10px 14px',textAlign:'left',color:'#8E8E93',fontWeight:500,whiteSpace:'nowrap',fontSize:11,letterSpacing:'0.03em' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.length===0 && <tr><td colSpan={9} style={{ padding:60,textAlign:'center',color:'#C7C7CC' }}>최종 인터뷰 적합 판정자가 없습니다</td></tr>}
+                  {rows.flatMap(r => {
+                    const expanded = expandedLoanKey === r.key;
+                    const allSent = r.sentCount===TOTAL_UNITS;
+                    const mainRow = (
+                      <tr key={r.key} onClick={()=>setExpandedLoanKey(k=>k===r.key?null:r.key)}
+                        style={{ cursor:'pointer', borderTop:r.rank>1?'1px solid #F7F7F9':'none', background:expanded?'#FAFAFA':'transparent' }}>
+                        <td style={{ padding:'12px 14px',color:'#8E8E93',fontSize:12 }}>{r.rank}</td>
+                        <td style={{ padding:'12px 14px',fontWeight:700,color:'#1C1C1E',whiteSpace:'nowrap' }}>{r.loan.managementNumber || '배정 중…'}</td>
+                        <td style={{ padding:'12px 14px',fontWeight:600,color:'#000',whiteSpace:'nowrap' }}>{r.name}</td>
+                        <td style={{ padding:'12px 14px',color:'#3C3C43',fontSize:12,whiteSpace:'nowrap' }}>{r.caregiver||'-'}</td>
+                        <td style={{ padding:'12px 14px',color:'#8E8E93',fontSize:12,whiteSpace:'nowrap' }}>{r.phone}</td>
+                        <td style={{ padding:'12px 14px',color:'#3C3C43',fontSize:12,maxWidth:220,overflow:'hidden',textOverflow:'ellipsis' }}>{r.address||'-'}</td>
+                        <td style={{ padding:'8px 14px' }}>
+                          <span style={{ fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:20,background:allSent?'#D4F5DF':r.sentCount>0?'#FFF9D4':'#F2F2F7',color:allSent?'#1A8C3A':r.sentCount>0?'#B07800':'#8E8E93' }}>
+                            {r.sentCount}/{TOTAL_UNITS}{allSent?' 발송완료':''}
+                          </span>
+                        </td>
+                        <td style={{ padding:'12px 14px',color:'#8E8E93',fontSize:12,maxWidth:160,overflow:'hidden',textOverflow:'ellipsis' }}>{r.loan.memo||''}</td>
+                        <td style={{ padding:'12px 14px',color:'#C7C7CC',fontSize:11 }}>{expanded?'▲':'▼'}</td>
+                      </tr>
+                    );
+                    if (!expanded) return [mainRow];
+                    const detailRow = (
+                      <tr key={r.key+'-detail'}>
+                        <td colSpan={9} style={{ padding:0,background:'#FAFAFA',borderBottom:'1px solid #F2F2F7' }}>
+                          <div style={{ padding:'16px 24px' }}>
+                            <table style={{ width:'100%',borderCollapse:'collapse',fontSize:12,background:'#fff',borderRadius:10,overflow:'hidden' }}>
+                              <thead>
+                                <tr style={{ background:'#F2F2F7' }}>
+                                  {['품목','유닛','시리얼번호','발송여부','발송일'].map(h=>(
+                                    <th key={h} style={{ padding:'8px 12px',textAlign:'left',color:'#8E8E93',fontWeight:500,fontSize:11 }}>{h}</th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {PACKAGE_ITEMS.flatMap(item => Array.from({length:item.qty}, (_,idx) => {
+                                  const unitKey = `${item.id}_${idx}`;
+                                  const u = r.units[unitKey] ?? {};
+                                  return (
+                                    <tr key={unitKey} style={{ borderTop:'1px solid #F2F2F7' }}>
+                                      <td style={{ padding:'7px 12px',fontWeight:500,color:'#1C1C1E' }}>{item.label}</td>
+                                      <td style={{ padding:'7px 12px',color:'#8E8E93' }}>{item.qty>1?`#${idx+1}`:'-'}</td>
+                                      <td style={{ padding:'7px 12px' }}>
+                                        <input defaultValue={u.serial||''} placeholder="시리얼번호"
+                                          onBlur={ev=>saveLoanUnit(r.docId, unitKey, {serial:ev.target.value})}
+                                          style={{ width:140,padding:'5px 8px',border:'1.5px solid #E5E5EA',borderRadius:6,fontSize:12,outline:'none',fontFamily:F }} />
+                                      </td>
+                                      <td style={{ padding:'7px 12px' }}>
+                                        <input type="checkbox" checked={!!u.sent}
+                                          onChange={ev=>saveLoanUnit(r.docId, unitKey, { sent: ev.target.checked, sentDate: ev.target.checked ? (u.sentDate || new Date().toISOString().slice(0,10)) : u.sentDate })}
+                                          style={{ width:14,height:14,cursor:'pointer' }} />
+                                      </td>
+                                      <td style={{ padding:'7px 12px' }}>
+                                        <input type="date" defaultValue={u.sentDate||''}
+                                          onBlur={ev=>saveLoanUnit(r.docId, unitKey, {sentDate:ev.target.value})}
+                                          style={{ padding:'5px 8px',border:'1.5px solid #E5E5EA',borderRadius:6,fontSize:12,outline:'none',fontFamily:F }} />
+                                      </td>
+                                    </tr>
+                                  );
+                                }))}
+                              </tbody>
+                            </table>
+                            <div style={{ marginTop:12,display:'flex',gap:12 }}>
+                              <input placeholder="주소" defaultValue={r.address}
+                                onBlur={ev=>saveLoanField(r.docId, {address:ev.target.value})}
+                                style={{ flex:1,padding:'8px 12px',border:'1.5px solid #E5E5EA',borderRadius:8,fontSize:12,outline:'none',fontFamily:F }} />
+                              <input placeholder="비고" defaultValue={r.loan.memo||''}
+                                onBlur={ev=>saveLoanField(r.docId, {memo:ev.target.value})}
+                                style={{ flex:1,padding:'8px 12px',border:'1.5px solid #E5E5EA',borderRadius:8,fontSize:12,outline:'none',fontFamily:F }} />
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                    return [mainRow, detailRow];
+                  })}
                 </tbody>
               </table>
             </div>

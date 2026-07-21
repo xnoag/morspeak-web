@@ -730,6 +730,7 @@ export default function AdminScreeningPage() {
     return null;
   };
   const _finalSelected = _finalRanked.filter(e => {
+    if (excludedKeys.has(e.key)) return false;
     const note = _getCallNoteByNamePhone(e.name, e.phone);
     const raw = note?.overallResult;
     const result = raw === '애매함' ? '일단보류' : raw;
@@ -2326,12 +2327,17 @@ export default function AdminScreeningPage() {
                     const hasQual=e.qualTotal>0;
                     const note=getCallNote(e);
                     const hasInterview=!!note;
-                    const result=note?.overallResult==='애매함'?'일단보류':note?.overallResult;
-                    const rowBg = result==='적합' ? '#D4F5DF' : result==='일단보류' ? '#FFF9D4' : result==='부적합' ? '#FFE0DE' : isTop20 ? 'rgba(0,0,0,0.015)' : 'transparent';
+                    const isExcludedFinal = excludedKeys.has(e.key);
+                    const rawResult=note?.overallResult==='애매함'?'일단보류':note?.overallResult;
+                    const result = isExcludedFinal ? undefined : rawResult;
+                    const rowBg = isExcludedFinal ? 'rgba(255,59,48,0.04)' : result==='적합' ? '#D4F5DF' : result==='일단보류' ? '#FFF9D4' : result==='부적합' ? '#FFE0DE' : isTop20 ? 'rgba(0,0,0,0.015)' : 'transparent';
                     return (
                       <tr key={e.key} style={{ borderTop:i>0?'1px solid #F7F7F9':'none', background:rowBg }}>
                         <td style={{ padding:'12px 14px',textAlign:'center',fontWeight:isTop20?700:400,color:isTop20?'#1C1C1E':'#8E8E93',fontSize:isTop20?14:13 }}>{i+1}</td>
                         <td style={{ padding:'12px 14px',fontWeight:600,color:'#000',whiteSpace:'nowrap' }}>
+                          {isExcludedFinal && (
+                            <span style={{ marginRight:5,fontSize:10,padding:'2px 7px',borderRadius:20,background:'#FFE0DE',color:'#CC2200',fontWeight:700,verticalAlign:'middle' }}>✕ 제외</span>
+                          )}
                           {isTop20 && !hasInterview && (
                             <span style={{ marginRight:5,fontSize:10,padding:'2px 7px',borderRadius:20,background:'#FFF0D4',color:'#CC7000',fontWeight:700,verticalAlign:'middle' }}>인터뷰 미완료</span>
                           )}

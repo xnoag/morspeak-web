@@ -884,7 +884,9 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                           // 시도별 breakdown — 짧게 단계(n=1)는 onboardingShortAttempts, 길게 단계(n=2)는
                           // onboardingLongAttempts만 보여줌(위 카드들이 short/long을 나누는 것과 동일한 기준)
                           const attemptsField = currentStep.n === 1 ? 'onboardingShortAttempts' : currentStep.n === 2 ? 'onboardingLongAttempts' : null
-                          const reps = attemptsField ? groupAttempts(blink[attemptsField]).slice(-5) : []
+                          const allReps = attemptsField ? groupAttempts(blink[attemptsField]) : []
+                          const reps = allReps.slice(-10)
+                          const repsStartIndex = allReps.length - reps.length
                           return (
                             <div style={{marginBottom:24}}>
                               <div style={{fontSize:14,fontWeight:700,color:'#34c759',marginBottom:cards.length?14:0}}>✓ 완료됨</div>
@@ -905,7 +907,7 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                                   <div style={{display:'flex',flexDirection:'column',gap:6}}>
                                     {reps.map((tries, i) => (
                                       <div key={i} style={{display:'flex',alignItems:'center',gap:10,fontSize:12,fontFamily:M,padding:'8px 12px',background:'#fff',border:'1px solid #e5e5ea',borderRadius:8,flexWrap:'wrap'}}>
-                                        <span style={{fontWeight:700,color:'#3a3a3c',flexShrink:0}}>{i+1}번째</span>
+                                        <span style={{fontWeight:700,color:'#3a3a3c',flexShrink:0}}>{repsStartIndex+i+1}번째</span>
                                         <span style={{color:'#8e8e93',flexShrink:0}}>{tries.length>1?`${tries.length}번 시도`:'1번에 성공'}</span>
                                         <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
                                           {tries.map((t,j)=>(

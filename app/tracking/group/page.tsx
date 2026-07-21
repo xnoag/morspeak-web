@@ -22,8 +22,8 @@ function getDb() {
 const STORAGE_KEY = 'morspeak_tracking_group_codes'
 
 const tutorialStepsList = [
-  { n: 1, short: '짧게', label: '짧게 깜빡이기', desc: '캘리브레이션 · 짧게 ×5' },
-  { n: 2, short: '길게', label: '길게 깜빡이기', desc: '캘리브레이션 · 길게 ×5' },
+  { n: 1, short: '짧게', label: '짧게 깜빡이기', desc: '캘리브레이션 · 짧게 ×10' },
+  { n: 2, short: '길게', label: '길게 깜빡이기', desc: '캘리브레이션 · 길게 ×10' },
   { n: 3, short: '혼합', label: '혼합 깜빡이기', desc: '캘리브레이션 · 짧게/길게 혼합 ×5' },
   { n: 4, short: 'ㄱ', label: 'ㄱ 입력하기', desc: '짧게·짧게·길게 깜빡임' },
   { n: 5, short: 'ㅏ', label: 'ㅏ 입력하기', desc: '길게·짧게 깜빡임' },

@@ -33,9 +33,9 @@ const tutorialStepsList = [
   { n: 9, short: 'AI추천', label: 'AI 추천', desc: '짧게·길게 (12)' },
   // 10은 "대기 해제" 명령과 겹쳐서 건너뜀
   { n: 11, short: 'AI선택', label: 'AI 추천 선택하기', desc: '길게·짧게 (21)' },
-  { n: 12, short: '초기화', label: '초기화', desc: '짧게·짧게·길게·짧게·짧게 (11211)' },
-  { n: 13, short: '커맨드', label: '커맨드 버튼', desc: '길게 (2)' },
-  { n: 14, short: '지우기', label: '지우기', desc: '짧게 (1)' },
+  { n: 12, short: '더보기', label: '더보기', desc: '길게 (2)' },
+  { n: 13, short: '지우기', label: '지우기', desc: '짧게 (1)' },
+  { n: 14, short: '초기화', label: '초기화', desc: '짧게·짧게·길게·짧게·짧게 (11211)' },
   { n: 15, short: '단축어전환', label: '단축어 모드 전환', desc: '길게·짧게·짧게·짧게·짧게 (21111)' },
   { n: 16, short: '표현선택', label: '표현 선택하기', desc: '길게·짧게 (21)' },
   { n: 17, short: '기능전환', label: '기능 모드 전환', desc: '짧게·짧게·짧게·짧게·길게 (11112)' },

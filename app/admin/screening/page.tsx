@@ -2577,9 +2577,10 @@ export default function AdminScreeningPage() {
           '2026-06-30': ['09:45','10:00','10:15','10:30','10:45','11:00','11:15','13:30','13:45','14:00','14:15','14:30','14:45','15:00','15:15','15:30','15:45'],
           '2026-07-01': ['10:00','10:15'],
           '2026-07-02': ['11:00','13:15','13:30','14:00'],
+          '2026-07-21': ['15:00','15:10'],
         };
         const BLOCKED_ADMIN = new Set(['20260629-1530','20260629-1630']);
-        const DATE_LABELS: Record<string, string> = { '2026-06-29': '6/29 (월)', '2026-06-30': '6/30 (화)', '2026-07-01': '7/1 (수)', '2026-07-02': '7/2 (목)' };
+        const DATE_LABELS: Record<string, string> = { '2026-06-29': '6/29 (월)', '2026-06-30': '6/30 (화)', '2026-07-01': '7/1 (수)', '2026-07-02': '7/2 (목)', '2026-07-21': '7/21 (화)' };
         const slotKey = (date: string, time: string) => `${date.replace(/-/g,'')}-${time.replace(':','')}`;
         const totalBooked = Object.values(scheduleBookings).length;
         const totalSlots = Object.values(SLOTS).reduce((s,v)=>s+v.length,0);

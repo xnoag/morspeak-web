@@ -218,6 +218,16 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
     return () => unsub()
   }, [code])
 
+  // 눈 깜빡임 캘리브레이션 데이터(시도별 breakdown, 경계값 등) 실시간 리스너 — 예전엔 페이지
+  // 로드 시 한 번만(getDoc) 읽어서, 환자가 "직접 해보기"로 캘리브레이션을 하는 동안 옆에서
+  // 화면 공유로 지켜봐도 새로고침 전까진 몇 초짜리 시도인지 바로 안 보였음
+  useEffect(() => {
+    const unsub = onSnapshot(doc(getDb(),'blinkProfiles',code), snap => {
+      if (snap.exists()) setBlink(snap.data())
+    })
+    return () => unsub()
+  }, [code])
+
   // 기기가 지금 실제로 뭘 보여주고 있는지(반영 확인용) — activeStep은 앱이 전환하기로 "결정한" 의도일
   // 뿐이라, 화면이 실제로 그걸 그리는지는 별도로 확인해야 함. 명령을 보냈는데 화면이 안 바뀌는 걸
   // 로그를 뽑지 않고도 여기서 바로 알 수 있게 하기 위한 리스너

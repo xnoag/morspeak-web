@@ -964,22 +964,35 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                     <div style={{fontSize:11,color:'#8e8e93',marginTop:16,marginBottom:6}}>
                       번호를 누르면 위 카드에 미리보기만 되고, 실제로 환자 화면에 보내려면 위의 "지금 실행"/"이 단계 열기"를 눌러야 합니다.
                     </div>
-                    <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-                      {tutorialStepsList.map(s => {
-                        const isDone = completedSteps.includes(s.n)
-                        const isCurrent = s.n === currentStep?.n
+                    <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                      {CHAPTERS.map(ch => {
+                        const chSteps = tutorialStepsList.filter(s => ch.steps.includes(s.n))
+                        if (!chSteps.length) return null
                         return (
-                          <button key={s.n} type="button"
-                            onClick={() => setPreviewStep(s.n === previewStep ? null : s.n)}
-                            title={s.label}
-                            style={{
-                              width:32,height:32,borderRadius:8,fontSize:11,fontFamily:M,fontWeight:700,cursor:'pointer',
-                              border: isCurrent ? '2px solid #007AFF' : '1px solid #d2d2d7',
-                              background: isDone ? '#34c759' : isCurrent ? '#f0f7ff' : '#fff',
-                              color: isDone ? '#fff' : isCurrent ? '#007AFF' : '#8e8e93',
-                            }}>
-                            {s.n}
-                          </button>
+                          <div key={ch.title}>
+                            <div style={{fontSize:10,color:'#aeaeb2',fontWeight:700,textTransform:'uppercase',letterSpacing:'.03em',marginBottom:5}}>
+                              {ch.title}
+                            </div>
+                            <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                              {chSteps.map(s => {
+                                const isDone = completedSteps.includes(s.n)
+                                const isCurrent = s.n === currentStep?.n
+                                return (
+                                  <button key={s.n} type="button"
+                                    onClick={() => setPreviewStep(s.n === previewStep ? null : s.n)}
+                                    title={s.label}
+                                    style={{
+                                      width:32,height:32,borderRadius:8,fontSize:11,fontFamily:M,fontWeight:700,cursor:'pointer',
+                                      border: isCurrent ? '2px solid #007AFF' : '1px solid #d2d2d7',
+                                      background: isDone ? '#34c759' : isCurrent ? '#f0f7ff' : '#fff',
+                                      color: isDone ? '#fff' : isCurrent ? '#007AFF' : '#8e8e93',
+                                    }}>
+                                    {s.n}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          </div>
                         )
                       })}
                     </div>

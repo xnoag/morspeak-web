@@ -893,9 +893,10 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                           })
                           // 시도별 breakdown — 짧게 단계(n=1)는 onboardingShortAttempts, 길게 단계(n=2)는
                           // onboardingLongAttempts만 보여줌(위 카드들이 short/long을 나누는 것과 동일한 기준)
-                          // 다시 하기를 누르면 새로 기록되고, 이전 데이터는 지우지 않고 계속 누적됨 —
-                          // 화면에는 항상 가장 최근 10개(=이번 회차의 1~10번째)만 보여주면 되고,
-                          // 그 전에 쌓인 기록까지 다 보여줄 필요는 없음
+                          // 앱 쪽에서 "직접 해보기"/"다시 하기"를 누르는 순간 이전 회차 기록을 지우고
+                          // 새로 시작하므로(BlinkProfileStore.clearOnboardingShort/LongAttempts), 여기
+                          // slice(-10)은 사실상 항상 이번 회차의 최대 10개만 남기는 안전장치 역할
+
                           const attemptsField = currentStep.n === 1 ? 'onboardingShortAttempts' : currentStep.n === 2 ? 'onboardingLongAttempts' : null
                           const reps = attemptsField ? groupAttempts(blink[attemptsField]).slice(-10) : []
                           return (

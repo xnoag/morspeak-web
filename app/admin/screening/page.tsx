@@ -736,25 +736,18 @@ export default function AdminScreeningPage() {
     return result === '적합';
   });
 
-  // 관리번호 자동 배정: 이미 배정된 사람은 건드리지 않고, 없는 사람만 빈 번호 채움
+  // 관리번호 자동 배정: 최종 순위(_finalSelected 순서) 그대로 001부터 순번 부여.
+  // 데이터가 비동기로 순차 로딩되며 순위가 바뀔 수 있으므로, 저장된 값이 현재 순위와
+  // 다르면 다시 맞춰써서 항상 순서대로 유지한다(로딩이 끝나면 안정적으로 고정됨).
   useEffect(() => {
-    if (!_finalSelected.length) return;
-    const used = new Set<number>();
-    Object.values(equipmentLoans).forEach(l => {
-      const m = l.managementNumber?.match(/^MS2026-(\d+)$/);
-      if (m) used.add(parseInt(m[1], 10));
-    });
-    let next = 1;
-    _finalSelected.forEach(e => {
+    _finalSelected.forEach((e, i) => {
       const docId = e.key.replace(/\//g, '_');
-      if (equipmentLoans[docId]?.managementNumber) return;
-      while (used.has(next)) next++;
-      used.add(next);
-      const managementNumber = `MS2026-${String(next).padStart(3, '0')}`;
+      const managementNumber = `MS2026-${String(i + 1).padStart(3, '0')}`;
+      if (equipmentLoans[docId]?.managementNumber === managementNumber) return;
       setDoc(doc(db, 'equipment_loans', docId), { managementNumber, updatedAt: new Date().toISOString() }, { merge: true }).catch(() => {});
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [_finalSelected.map(e => e.key).join('|'), Object.keys(equipmentLoans).length]);
+  }, [_finalSelected.map(e => e.key).join('|'), equipmentLoans]);
 
   // ── 초기화 중 ─────────────────────────────────────────────────
   if (initializing) return <div style={{ minHeight:'100vh', background:'#fff' }} />;

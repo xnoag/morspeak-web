@@ -1634,9 +1634,17 @@ function SpeakLogSection({ speaks }: { speaks: any[] }) {
     <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:48}}>
       {/* 왼쪽: 날짜별 목록 */}
       <div>
-        <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:20}}>
+        <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:8}}>
           <ColTitle>날짜별 발화 내역</ColTitle>
           <span style={{fontSize:12,color:'#6e6e73'}}>총 {speaks.length}회</span>
+        </div>
+        {/* 읽는 법 안내 — 문장은 이전 발화에 이어 누적되고, 아래 배지는 "이번 회차에 새로 추가된 입력"만 나타냄 */}
+        <div style={{display:'flex',alignItems:'center',gap:14,flexWrap:'wrap',fontSize:11,color:'#8e8e93',marginBottom:20,padding:'10px 14px',background:'#f9f9fb',borderRadius:10}}>
+          <span style={{fontWeight:600,color:'#6e6e73'}}>읽는 법</span>
+          <span style={{display:'flex',alignItems:'center',gap:5}}><span style={{width:8,height:8,borderRadius:4,background:'#007AFF',display:'inline-block'}}/>키보드 직접 입력</span>
+          <span style={{display:'flex',alignItems:'center',gap:5}}><span style={{width:8,height:8,borderRadius:4,background:'#5856d6',display:'inline-block'}}/>AI 추천 선택</span>
+          <span style={{display:'flex',alignItems:'center',gap:5}}><span style={{width:8,height:8,borderRadius:4,background:'#34c759',display:'inline-block'}}/>단축어 선택</span>
+          <span>· 문장은 이전 발화에 이어 계속 누적되며, 아래 배지는 이번 회차에 새로 추가된 입력량만 나타냅니다</span>
         </div>
         {/* 날짜 탭 */}
         <div style={{display:'flex',gap:4,flexWrap:'wrap',marginBottom:16}}>
@@ -1660,17 +1668,18 @@ function SpeakLogSection({ speaks }: { speaks: any[] }) {
             const timeStr = ts ? ts.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '—'
             const aiW: string[] = s.aiWords||[], scW: string[] = s.shortcutWords||[]
             const tokens = buildTokens(s.text||'', aiW, scW)
+            const hasNewInput = (s.keyboardCount||0) > 0 || (s.aiCount||0) > 0 || (s.shortcutCount||0) > 0
             return (
-              <div key={i} style={{display:'flex',gap:12,alignItems:'flex-start',padding:'12px 0',borderBottom:'1px solid #f5f5f7'}}>
+              <div key={i} style={{display:'flex',gap:12,alignItems:'flex-start',padding:'14px 0',borderBottom:'1px solid #f5f5f7'}}>
                 <span style={{fontFamily:M,fontSize:11,color:'#aeaeb2',whiteSpace:'nowrap',paddingTop:3,minWidth:56}}>{timeStr}</span>
                 <div style={{flex:1}}>
-                  {/* 전체 문장 */}
-                  <div style={{fontSize:15,fontWeight:500,color:'#1d1d1f',marginBottom:6,lineHeight:1.5}}>
+                  {/* 전체 문장 (이전 발화에 이어 누적된 최종 문장) */}
+                  <div style={{fontSize:16,fontWeight:600,color:'#1d1d1f',marginBottom:8,lineHeight:1.5}}>
                     {s.text||'—'}
                   </div>
-                  {/* 입력 방법 색상 분류 */}
+                  {/* 입력 방법 색상 분류 — 문장 전체 중 어느 부분이 어떤 방법으로 만들어졌는지 */}
                   {tokens.length > 0 && (
-                    <div style={{display:'flex',flexWrap:'wrap',gap:3,marginBottom:4}}>
+                    <div style={{display:'flex',flexWrap:'wrap',gap:3,marginBottom:6}}>
                       {tokens.map((t,j) => (
                         <span key={j} style={{fontSize:11,padding:'1px 6px',borderRadius:4,
                           background:t.source==='ai'?'#f0efff':t.source==='shortcut'?'#edfaee':'#eef4ff',
@@ -1680,11 +1689,31 @@ function SpeakLogSection({ speaks }: { speaks: any[] }) {
                       ))}
                     </div>
                   )}
-                  <div style={{display:'flex',gap:8}}>
-                    {s.keyboardCount>0 && <span style={{fontSize:10,color:'#aeaeb2'}}>⌨️ 키보드 {s.keyboardCount}자</span>}
-                    {s.aiCount>0 && <span style={{fontSize:10,color:'#5856d6'}}>✨ AI {aiW.join(', ')}</span>}
-                    {s.shortcutCount>0 && <span style={{fontSize:10,color:'#34c759'}}>⭐ 단축어 {scW.join(', ')}</span>}
-                  </div>
+                  {/* 이번 회차에 새로 추가된 입력량 — 문장 전체 길이가 아니라 "직전 발화 이후" 증분 */}
+                  {hasNewInput ? (
+                    <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+                      {s.keyboardCount>0 && (
+                        <span style={{fontSize:11,color:'#007AFF',display:'flex',alignItems:'center',gap:4}}>
+                          <span style={{width:6,height:6,borderRadius:3,background:'#007AFF',display:'inline-block'}}/>
+                          키보드 {s.keyboardCount}자 새로 입력
+                        </span>
+                      )}
+                      {s.aiCount>0 && (
+                        <span style={{fontSize:11,color:'#5856d6',display:'flex',alignItems:'center',gap:4}}>
+                          <span style={{width:6,height:6,borderRadius:3,background:'#5856d6',display:'inline-block'}}/>
+                          AI 추천 {s.aiCount}회{aiW.length>0?` (${aiW.join(', ')})`:''}
+                        </span>
+                      )}
+                      {s.shortcutCount>0 && (
+                        <span style={{fontSize:11,color:'#34c759',display:'flex',alignItems:'center',gap:4}}>
+                          <span style={{width:6,height:6,borderRadius:3,background:'#34c759',display:'inline-block'}}/>
+                          단축어 {s.shortcutCount}회{scW.length>0?` (${scW.join(', ')})`:''}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <span style={{fontSize:11,color:'#c7c7cc'}}>새 입력 없이 다시 말하기</span>
+                  )}
                 </div>
               </div>
             )

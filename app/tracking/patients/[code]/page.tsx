@@ -954,7 +954,7 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                           )}
                           {isTutorialStep && (
                             <>
-                              {currentStep.n <= 14 && (
+                              {currentStep.n <= 18 && (
                                 <button type="button" disabled={!!runningAction} style={{...smallBtn,padding:'12px 22px',fontSize:15,background:'#34c759'}}
                                   onClick={async()=>{ setRunningAction({step:currentStep.n,type:'practice'}); await setDoc(doc(getDb(),'tutorialConfig',code),{remoteActionType:'practice',remoteActionStep:currentStep.n,requestedAt:new Date()},{merge:true}); setRunningAction(null); setPreviewStep(null) }}>
                                   {runningPractice?'실행 중...':'해보기'}
@@ -1100,7 +1100,7 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                       )}
                       {isTutorialStep && (
                         <>
-                          {s.n <= 14 && (
+                          {s.n <= 18 && (
                             <button
                               type="button"
                               onClick={async (e) => {

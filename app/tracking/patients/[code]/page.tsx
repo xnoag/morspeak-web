@@ -755,22 +755,20 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
               script:'"짧게 한 번 깜빡이면 마지막 글자가 지워져요. 잘못 입력했을 때 하나씩 지울 수 있어요."'},
             {n:14, label:'초기화',          desc:'짧게·짧게·길게·짧게·짧게 (11211)',
               script:'"이 동작을 하면 지금까지 입력한 내용이 전부 지워져요. 잘못 입력했을 때 사용해요."'},
-            {n:15, label:'잘못 입력했을 때 취소하기', desc:'눈을 2초 이상 감고 있기',
-              script:'"입력하다가 실수했을 때는 그냥 눈을 2초 이상 감고 계세요. 삑 소리가 나면서 지금까지 입력하던 게 취소되고 처음부터 다시 시작할 수 있어요."'},
-            {n:16, label:'단축어 모드 전환', desc:'길게·짧게·짧게·짧게·짧게 (21111)',
+            {n:15, label:'단축어 모드 전환', desc:'길게·짧게·짧게·짧게·짧게 (21111)',
               script:'"이 동작으로 자주 쓰는 표현들이 모여있는 화면으로 넘어가요."'},
-            {n:17, label:'표현 선택하기',    desc:'길게·짧게 (21)',
+            {n:16, label:'표현 선택하기',    desc:'길게·짧게 (21)',
               script:'"단축어 모드에서 길게·짧게로 첫 번째 표현을 바로 말할 수 있어요."'},
-            {n:18, label:'기능 모드 전환',   desc:'짧게·짧게·짧게·짧게·길게 (11112)',
+            {n:17, label:'기능 모드 전환',   desc:'짧게·짧게·짧게·짧게·길게 (11112)',
               script:'"이 동작으로 여러 기능이 모여있는 화면으로 넘어가요."'},
-            {n:19, label:'호출',            desc:'짧게·길게 (12, 기능모드)',
+            {n:18, label:'호출',            desc:'짧게·길게 (12, 기능모드)',
               script:'"기능 모드에서 짧게·길게로 보호자를 호출할 수 있어요. 잠금 상태에서도 항상 작동해요."'},
           ]
           const CHAPTERS = [
             {title:'1장 · 캘리브레이션', desc:'눈 깜빡임 길이를 학습시켜요', steps:[1,2,3]},
-            {title:'2장 · 키보드 모드',   desc:'자모 입력부터 커맨드·지우기·취소까지', steps:[4,5,6,7,8,9,11,12,13,14,15]},
-            {title:'3장 · 단축어 모드',   desc:'자주 쓰는 표현으로 빠르게 말하기', steps:[16,17]},
-            {title:'4장 · 기능 모드',     desc:'여러 기능과 보호자 호출', steps:[18,19]},
+            {title:'2장 · 키보드 모드',   desc:'자모 입력부터 커맨드·지우기까지', steps:[4,5,6,7,8,9,11,12,13,14]},
+            {title:'3장 · 단축어 모드',   desc:'자주 쓰는 표현으로 빠르게 말하기', steps:[15,16]},
+            {title:'4장 · 기능 모드',     desc:'여러 기능과 보호자 호출', steps:[17,18]},
           ]
           return (
           <div style={{maxWidth:920}}>
@@ -956,7 +954,7 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                           )}
                           {isTutorialStep && (
                             <>
-                              {currentStep.n <= 15 && (
+                              {currentStep.n <= 14 && (
                                 <button type="button" disabled={!!runningAction} style={{...smallBtn,padding:'12px 22px',fontSize:15,background:'#34c759'}}
                                   onClick={async()=>{ setRunningAction({step:currentStep.n,type:'practice'}); await setDoc(doc(getDb(),'tutorialConfig',code),{remoteActionType:'practice',remoteActionStep:currentStep.n,requestedAt:new Date()},{merge:true}); setRunningAction(null); setPreviewStep(null) }}>
                                   {runningPractice?'실행 중...':'해보기'}
@@ -1102,7 +1100,7 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                       )}
                       {isTutorialStep && (
                         <>
-                          {s.n <= 15 && (
+                          {s.n <= 14 && (
                             <button
                               type="button"
                               onClick={async (e) => {

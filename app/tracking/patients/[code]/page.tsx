@@ -954,6 +954,12 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                           )}
                           {isTutorialStep && (
                             <>
+                              {currentStep.n <= 14 && (
+                                <button type="button" disabled={!!runningAction} style={{...smallBtn,padding:'12px 22px',fontSize:15,background:'#34c759'}}
+                                  onClick={async()=>{ setRunningAction({step:currentStep.n,type:'practice'}); await setDoc(doc(getDb(),'tutorialConfig',code),{remoteActionType:'practice',remoteActionStep:currentStep.n,requestedAt:new Date()},{merge:true}); setRunningAction(null); setPreviewStep(null) }}>
+                                  {runningPractice?'실행 중...':'해보기'}
+                                </button>
+                              )}
                               <button type="button" disabled={!!runningAction} style={{...smallBtn,padding:'12px 22px',fontSize:15,background:'#ff3b30'}}
                                 onClick={async()=>{ setRunningAction({step:currentStep.n,type:'retry'}); await setDoc(doc(getDb(),'tutorialConfig',code),{remoteActionType:'retry',remoteActionStep:currentStep.n,requestedAt:new Date()},{merge:true}); setRunningAction(null); setPreviewStep(null) }}>
                                 {runningRetry?'실행 중...':'다시 해보기'}
@@ -1094,6 +1100,22 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                       )}
                       {isTutorialStep && (
                         <>
+                          {s.n <= 14 && (
+                            <button
+                              type="button"
+                              onClick={async (e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                setRunningAction({step:s.n, type:'practice'})
+                                await setDoc(doc(getDb(),'tutorialConfig',code), { remoteActionType: 'practice', remoteActionStep: s.n, requestedAt: new Date() }, {merge:true})
+                                setRunningAction(null)
+                              }}
+                              disabled={!!runningAction}
+                              style={{...smallBtn,padding:'6px 12px',fontSize:11,flexShrink:0,background:'#34c759'}}
+                            >
+                              {runningPractice ? '실행 중...' : '해보기'}
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={async (e) => {

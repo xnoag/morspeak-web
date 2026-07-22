@@ -267,6 +267,12 @@ export default function GroupTracking() {
                       )}
                       {isTutorialStep && (
                         <>
+                          {s.n <= 14 && (
+                            <button type="button" onClick={() => sendActionToAll(s.n, 'practice')} disabled={busy}
+                              style={{ ...smallBtn, padding: '6px 12px', fontSize: 11, flexShrink: 0, background: '#34c759' }}>
+                              {actionSending('practice') ? '전송 중...' : '해보기'}
+                            </button>
+                          )}
                           <button type="button" onClick={() => sendActionToAll(s.n, 'retry')} disabled={busy}
                             style={{ ...smallBtn, padding: '6px 12px', fontSize: 11, flexShrink: 0, background: '#ff3b30' }}>
                             {actionSending('retry') ? '전송 중...' : '다시 해보기'}
@@ -418,6 +424,12 @@ export default function GroupTracking() {
                                       )}
                                       {isTutorialStep && (
                                         <>
+                                          {s.n <= 14 && (
+                                            <button type="button" onClick={() => runAction(code, s.n, 'practice')} disabled={anyBusy}
+                                              style={{ ...smallBtn, padding: '6px 12px', fontSize: 11, flexShrink: 0, background: '#34c759' }}>
+                                              {actionRunning('practice') ? '실행 중...' : '해보기'}
+                                            </button>
+                                          )}
                                           <button type="button" onClick={() => runAction(code, s.n, 'retry')} disabled={anyBusy}
                                             style={{ ...smallBtn, padding: '6px 12px', fontSize: 11, flexShrink: 0, background: '#ff3b30' }}>
                                             {actionRunning('retry') ? '실행 중...' : '다시 해보기'}

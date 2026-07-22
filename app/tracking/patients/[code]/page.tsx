@@ -452,6 +452,7 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                   ))}
                 </div>
               ) : <p style={{color:'#aeaeb2',fontSize:13}}>발화 기록 없음</p>}
+              <p style={{fontSize:11,color:'#c7c7cc',marginTop:10}}>키보드 횟수는 실제로 누른 자모 키 횟수로, 오타를 지우고 다시 누른 것도 포함됩니다</p>
             </div>
           </div>
         )}
@@ -576,6 +577,7 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
                   </div>
                 </div>
               )) : <p style={{fontSize:13,color:'#aeaeb2'}}>발화 기록 없음</p>}
+              {totalIn > 0 && <p style={{fontSize:11,color:'#c7c7cc',marginTop:6}}>키보드 횟수는 실제로 누른 자모 키 횟수로, 오타를 지우고 다시 누른 것도 포함됩니다</p>}
             </div>
 
             <div>
@@ -1639,12 +1641,19 @@ function SpeakLogSection({ speaks }: { speaks: any[] }) {
           <span style={{fontSize:12,color:'#6e6e73'}}>총 {speaks.length}회</span>
         </div>
         {/* 읽는 법 안내 — 각 발화 맨 앞의 배지 하나로 입력 방식을 바로 구분할 수 있음 */}
-        <div style={{display:'flex',alignItems:'center',gap:14,flexWrap:'wrap',fontSize:11,color:'#8e8e93',marginBottom:20,padding:'10px 14px',background:'#f9f9fb',borderRadius:10}}>
-          <span style={{fontWeight:600,color:'#6e6e73'}}>읽는 법</span>
-          <span style={{display:'flex',alignItems:'center',gap:5}}><span style={{width:8,height:8,borderRadius:4,background:'#007AFF',display:'inline-block'}}/>키보드로 직접 입력</span>
-          <span style={{display:'flex',alignItems:'center',gap:5}}><span style={{width:8,height:8,borderRadius:4,background:'#5856d6',display:'inline-block'}}/>AI 추천 선택</span>
-          <span style={{display:'flex',alignItems:'center',gap:5}}><span style={{width:8,height:8,borderRadius:4,background:'#34c759',display:'inline-block'}}/>단축어 선택</span>
-          <span>· 배지에 여러 방법이 같이 뜨면 이번 발화에서 그 방법들을 섞어서 썼다는 뜻입니다 (문장은 이전 발화에 이어 계속 누적됩니다)</span>
+        <div style={{display:'flex',flexDirection:'column',gap:6,fontSize:11,color:'#8e8e93',marginBottom:20,padding:'10px 14px',background:'#f9f9fb',borderRadius:10}}>
+          <div style={{display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}>
+            <span style={{fontWeight:600,color:'#6e6e73'}}>읽는 법</span>
+            <span style={{display:'flex',alignItems:'center',gap:5}}><span style={{width:8,height:8,borderRadius:4,background:'#007AFF',display:'inline-block'}}/>키보드로 직접 입력</span>
+            <span style={{display:'flex',alignItems:'center',gap:5}}><span style={{width:8,height:8,borderRadius:4,background:'#5856d6',display:'inline-block'}}/>AI 추천 선택</span>
+            <span style={{display:'flex',alignItems:'center',gap:5}}><span style={{width:8,height:8,borderRadius:4,background:'#34c759',display:'inline-block'}}/>단축어 선택</span>
+            <span>· 배지에 여러 방법이 같이 뜨면 이번 발화에서 그 방법들을 섞어서 썼다는 뜻 (문장은 이전 발화에 이어 계속 누적됨)</span>
+          </div>
+          <div>
+            · "키보드 입력 N회"는 결과 글자 수가 아니라 <b>실제로 누른 자모 키 횟수</b>입니다. 오타가 나서 지우고
+            다시 누른 것도 전부 포함되기 때문에, 완성된 문장의 글자 수보다 훨씬 크게 나올 수 있습니다
+            (예: "디즈니" 3글자를 완성하는 데 자모 키를 10번 누른 경우 등)
+          </div>
         </div>
         {/* 날짜 탭 */}
         <div style={{display:'flex',gap:4,flexWrap:'wrap',marginBottom:16}}>
@@ -1727,10 +1736,13 @@ function SpeakLogSection({ speaks }: { speaks: any[] }) {
 
 // 발화 한 번(=말하기 버튼 클릭 한 번)에 실제로 어떤 입력 방식을 썼는지 한눈에 보여주는 배지.
 // 이전 발화 이후 새로 추가된 양(keyboardCount/aiCount/shortcutCount)을 기준으로 판단하며,
-// 여러 방식이 동시에 뜨면 이번 발화에서 그 방식들을 섞어 썼다는 뜻
+// 여러 방식이 동시에 뜨면 이번 발화에서 그 방식들을 섞어 썼다는 뜻.
+// 키보드 숫자는 "누른 자모 키 횟수"라서, 오타 나서 지우고 다시 누른 것까지 포함됨 —
+// 그래서 최종 글자 수(예: "디즈니"=3자)보다 훨씬 크게(예: 10) 나올 수 있음. 자모 하나하나를
+// 세는 거라 완성된 글자 수와도 다름(짧은 단어도 자모는 여러 개)
 function MethodBadge({ kbd, ai, sc }: { kbd: number; ai: number; sc: number }) {
   const parts: { label: string; color: string }[] = []
-  if (kbd > 0) parts.push({ label: `⌨️ 키보드 ${kbd}자`, color: '#007AFF' })
+  if (kbd > 0) parts.push({ label: `⌨️ 키보드 입력 ${kbd}회`, color: '#007AFF' })
   if (ai > 0) parts.push({ label: `✨ AI ${ai}회`, color: '#5856d6' })
   if (sc > 0) parts.push({ label: `⭐ 단축어 ${sc}회`, color: '#34c759' })
   if (parts.length === 0) {

@@ -36,10 +36,11 @@ const tutorialStepsList = [
   { n: 12, short: '더보기', label: '더보기', desc: '길게 (2)' },
   { n: 13, short: '지우기', label: '지우기', desc: '짧게 (1)' },
   { n: 14, short: '초기화', label: '초기화', desc: '짧게·짧게·길게·짧게·짧게 (11211)' },
-  { n: 15, short: '단축어전환', label: '단축어 모드 전환', desc: '길게·짧게·짧게·짧게·짧게 (21111)' },
-  { n: 16, short: '표현선택', label: '표현 선택하기', desc: '길게·짧게 (21)' },
-  { n: 17, short: '기능전환', label: '기능 모드 전환', desc: '짧게·짧게·짧게·짧게·길게 (11112)' },
-  { n: 18, short: '호출', label: '호출', desc: '짧게·길게 (12, 기능모드)' },
+  { n: 15, short: '취소하기', label: '잘못 입력했을 때 취소하기', desc: '눈을 2초 이상 감고 있기' },
+  { n: 16, short: '단축어전환', label: '단축어 모드 전환', desc: '길게·짧게·짧게·짧게·짧게 (21111)' },
+  { n: 17, short: '표현선택', label: '표현 선택하기', desc: '길게·짧게 (21)' },
+  { n: 18, short: '기능전환', label: '기능 모드 전환', desc: '짧게·짧게·짧게·짧게·길게 (11112)' },
+  { n: 19, short: '호출', label: '호출', desc: '짧게·길게 (12, 기능모드)' },
 ]
 
 const smallBtn: React.CSSProperties = { padding: '6px 12px', borderRadius: 7, border: '1px solid #d2d2d7', background: '#1d1d1f', color: '#fff', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: F }
@@ -267,7 +268,7 @@ export default function GroupTracking() {
                       )}
                       {isTutorialStep && (
                         <>
-                          {s.n <= 14 && (
+                          {s.n <= 15 && (
                             <button type="button" onClick={() => sendActionToAll(s.n, 'practice')} disabled={busy}
                               style={{ ...smallBtn, padding: '6px 12px', fontSize: 11, flexShrink: 0, background: '#34c759' }}>
                               {actionSending('practice') ? '전송 중...' : '해보기'}
@@ -424,7 +425,7 @@ export default function GroupTracking() {
                                       )}
                                       {isTutorialStep && (
                                         <>
-                                          {s.n <= 14 && (
+                                          {s.n <= 15 && (
                                             <button type="button" onClick={() => runAction(code, s.n, 'practice')} disabled={anyBusy}
                                               style={{ ...smallBtn, padding: '6px 12px', fontSize: 11, flexShrink: 0, background: '#34c759' }}>
                                               {actionRunning('practice') ? '실행 중...' : '해보기'}

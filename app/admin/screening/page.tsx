@@ -107,7 +107,7 @@ type CallNote = {
 };
 
 // ── 장비 대여 관리대장 ────────────────────────────────────────
-type LoanUnit = { serial?: string; sent?: boolean; sentDate?: string };
+type LoanUnit = { serial?: string; sent?: boolean; sentDate?: string; locked?: boolean };
 type EquipmentLoan = {
   managementNumber?: string;
   address?: string;
@@ -2531,9 +2531,20 @@ export default function AdminScreeningPage() {
                                       <td style={{ padding:'7px 12px',fontWeight:500,color:'#1C1C1E' }}>{item.label}</td>
                                       <td style={{ padding:'7px 12px',color:'#8E8E93' }}>{item.qty>1?`#${idx+1}`:'-'}</td>
                                       <td style={{ padding:'7px 12px' }}>
-                                        <input defaultValue={u.serial||''} placeholder="시리얼번호"
-                                          onBlur={ev=>saveLoanUnit(r.docId, unitKey, {serial:ev.target.value})}
-                                          style={{ width:140,padding:'5px 8px',border:'1.5px solid #E5E5EA',borderRadius:6,fontSize:12,outline:'none',fontFamily:F }} />
+                                        {u.locked ? (
+                                          <span style={{ display:'inline-flex',alignItems:'center',gap:6 }}>
+                                            <span style={{ fontSize:12,color:'#1C1C1E',fontWeight:600 }}>🔒 {u.serial}</span>
+                                            <button type="button"
+                                              onClick={()=>{ if(confirm('시리얼번호 잠금을 해제하고 수정하시겠습니까?')) saveLoanUnit(r.docId, unitKey, {locked:false}); }}
+                                              style={{ fontSize:11,color:'#8E8E93',background:'none',border:'none',cursor:'pointer',fontFamily:F,textDecoration:'underline' }}>
+                                              수정
+                                            </button>
+                                          </span>
+                                        ) : (
+                                          <input defaultValue={u.serial||''} placeholder="시리얼번호"
+                                            onBlur={ev=>{ const v=ev.target.value; saveLoanUnit(r.docId, unitKey, v.trim() ? {serial:v, locked:true} : {serial:v}); }}
+                                            style={{ width:140,padding:'5px 8px',border:'1.5px solid #E5E5EA',borderRadius:6,fontSize:12,outline:'none',fontFamily:F }} />
+                                        )}
                                       </td>
                                       <td style={{ padding:'7px 12px' }}>
                                         <input type="checkbox" checked={!!u.sent}

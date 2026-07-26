@@ -3159,20 +3159,20 @@ export default function AdminScreeningPage() {
           <div style={{ display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:14 }}>
             {_printLabels.map((l,i)=>(
               <div key={i} ref={el=>{labelCardRefs.current[i]=el;}} className="label-card" style={{ border:'1px solid #E5E5EA',borderRadius:0,padding:14,display:'flex',flexDirection:'column',fontFamily:F,background:'#fff',aspectRatio:'630 / 380' }}>
-                <div style={{ borderRadius:0,overflow:'hidden',border:'1px solid #ECECEC',flex:1 }}>
-                  <table style={{ width:'100%',height:'100%',borderCollapse:'collapse',fontSize:15 }}>
+                <div style={{ borderRadius:0,overflow:'hidden',border:'1px solid #C7C7C7',flex:1 }}>
+                  <table style={{ width:'100%',height:'100%',borderCollapse:'collapse',tableLayout:'fixed',fontSize:15 }}>
                     <tbody>
                       {[['소유회사','모스픽'],['연락정보','hello@morspeak.com'],['품목명칭',l.item],['관리번호',l.code]].map(([k,v],ri)=>(
-                        <tr key={k} style={{ background:'#F5F5F5',borderTop: ri>0?'1px solid #ECECEC':'none' }}>
-                          <td style={{ padding:'10px 12px',color:'#6E6E73',fontWeight:600,whiteSpace:'nowrap',width:100 }}>{k}</td>
-                          <td style={{ padding:'10px 12px',color:'#1C1C1E',fontWeight:700 }}>{v}</td>
+                        <tr key={k} style={{ background:'#F6F6F6',borderTop: ri>0?'1px solid #C7C7C7':'none' }}>
+                          <td style={{ padding:'10px 12px',color:'#444',fontWeight:600,whiteSpace:'nowrap',width:'23%',borderRight:'1px solid #C7C7C7' }}>{k}</td>
+                          <td style={{ padding:'10px 12px',color:'#444',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{v}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
                 <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginTop:10,height:'20%',flexShrink:0 }}>
-                  <div style={{ height:'100%',aspectRatio:'292 / 76',border:'1px solid #E5E5EA',borderRadius:0,overflow:'hidden',background:'#fff' }}>
+                  <div style={{ height:'100%',aspectRatio:'292 / 76',border:'1px solid #C7C7C7',borderRadius:0,overflow:'hidden',background:'#fff' }}>
                     <canvas ref={el=>{labelCanvasRefs.current[i]=el;}} style={{ width:'100%',height:'100%',display:'block' }} />
                   </div>
                   {/* eslint-disable-next-line @next/next/no-img-element */}

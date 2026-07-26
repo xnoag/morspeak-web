@@ -3122,12 +3122,20 @@ export default function AdminScreeningPage() {
           </div>
           <div style={{ display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:10 }}>
             {_printLabels.map((l,i)=>(
-              <div key={i} className="label-card" style={{ border:'1px solid #1C1C1E',borderRadius:4,padding:'10px 8px',display:'flex',flexDirection:'column',alignItems:'center',fontFamily:F }}>
-                <div style={{ fontSize:11,fontWeight:800,letterSpacing:'0.03em',color:'#1C1C1E' }}>MORSPEAK 모스픽 대여품</div>
-                <div style={{ fontSize:10,color:'#555',margin:'2px 0 4px' }}>{l.item}</div>
-                <canvas ref={el=>{labelCanvasRefs.current[i]=el;}} />
-                <div style={{ fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:'#1C1C1E',marginTop:2 }}>{l.code}</div>
-                <div style={{ fontSize:9,color:'#8E8E93',marginTop:2 }}>분실 시 연락주세요 010-7641-1362</div>
+              <div key={i} className="label-card" style={{ border:'1px solid #1C1C1E',borderRadius:4,padding:'8px 10px',display:'flex',flexDirection:'column',fontFamily:F }}>
+                <table style={{ width:'100%',borderCollapse:'collapse',fontSize:10 }}>
+                  <tbody>
+                    {[['소유자','모스픽'],['연락처','hello@morspeak.com'],['품명',l.item],['관리번호',l.code]].map(([k,v])=>(
+                      <tr key={k} style={{ borderBottom:'1px solid #E5E5EA' }}>
+                        <td style={{ padding:'2px 4px',color:'#8E8E93',whiteSpace:'nowrap' }}>{k}</td>
+                        <td style={{ padding:'2px 4px',fontWeight:600,color:'#1C1C1E' }}>{v}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div style={{ display:'flex',justifyContent:'center',marginTop:6 }}>
+                  <canvas ref={el=>{labelCanvasRefs.current[i]=el;}} />
+                </div>
               </div>
             ))}
           </div>

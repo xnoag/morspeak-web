@@ -261,7 +261,9 @@ export default function AdminScreeningPage() {
   const [equipmentLoans, setEquipmentLoans] = useState<Record<string, EquipmentLoan>>({});
   const [expandedLoanKey, setExpandedLoanKey] = useState<string | null>(null);
   const [showLabels, setShowLabels] = useState(false);
+  const [exportingLabelsPng, setExportingLabelsPng] = useState(false);
   const labelCanvasRefs = useRef<Record<number, HTMLCanvasElement | null>>({});
+  const labelCardRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const [expandedRankKey, setExpandedRankKey] = useState<string | null>(null);
   const [selectedRankKeys, setSelectedRankKeys] = useState<Set<string>>(new Set());
   const [rankFilter, setRankFilter] = useState<'all'|'complete'|'no_screening'|'no_app'>('all');
@@ -760,7 +762,7 @@ export default function AdminScreeningPage() {
     return PACKAGE_ITEMS.flatMap(item => Array.from({ length: item.qty }, (_, idx) => {
       const u = units[`${item.id}_${idx}`];
       if (!u?.serial) return null;
-      return { item: item.qty > 1 ? `${item.label} #${idx + 1}` : item.label, code: u.serial };
+      return { item: item.label, code: u.serial };
     }).filter((v): v is { item: string; code: string } => v !== null));
   });
 
@@ -768,12 +770,42 @@ export default function AdminScreeningPage() {
     if (!showLabels || !_printLabels.length) return;
     (async () => {
       const JsBarcode = (await import('jsbarcode')).default;
+      const TARGET_W = 292, TARGET_H = 76;
       _printLabels.forEach((l, i) => {
         const el = labelCanvasRefs.current[i];
-        if (el) JsBarcode(el, l.code, { format: 'CODE128', displayValue: false, width: 1.6, height: 36, margin: 0 });
+        if (!el) return;
+        // 코드 길이에 따라 총 너비가 달라지므로, 1차 렌더로 실제 너비를 재고
+        // 목표 292:76 비율에 맞게 module 너비를 다시 계산해 2차 렌더한다.
+        JsBarcode(el, l.code, { format: 'CODE128', displayValue: false, width: 2, height: TARGET_H, margin: 0 });
+        const scale = TARGET_W / el.width;
+        JsBarcode(el, l.code, { format: 'CODE128', displayValue: false, width: Math.max(0.5, 2 * scale), height: TARGET_H, margin: 0 });
       });
     })();
   }, [showLabels, _printLabels.map(l => l.code).join('|')]);
+
+  // 라벨 카드를 각각 PNG로 캡처해 zip으로 묶어 다운로드
+  const exportLabelsPng = async () => {
+    if (!_printLabels.length || exportingLabelsPng) return;
+    setExportingLabelsPng(true);
+    try {
+      const { toBlob } = await import('html-to-image');
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+      for (let i = 0; i < _printLabels.length; i++) {
+        const el = labelCardRefs.current[i];
+        if (!el) continue;
+        const blob = await toBlob(el, { pixelRatio: 3, backgroundColor: '#ffffff' });
+        if (blob) zip.file(`${_printLabels[i].code}.png`, blob);
+      }
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url; a.download = '모스픽_라벨_PNG.zip'; a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExportingLabelsPng(false);
+    }
+  };
 
   // ── 초기화 중 ─────────────────────────────────────────────────
   if (initializing) return <div style={{ minHeight:'100vh', background:'#fff' }} />;
@@ -3110,6 +3142,10 @@ export default function AdminScreeningPage() {
           <div className="no-print" style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16 }}>
             <span style={{ fontSize:14,fontWeight:700,color:'#1C1C1E',fontFamily:F }}>라벨 인쇄 미리보기 ({_printLabels.length}개)</span>
             <div style={{ display:'flex',gap:8 }}>
+              <button onClick={exportLabelsPng} disabled={exportingLabelsPng}
+                style={{ padding:'7px 16px',borderRadius:8,border:'none',background:'#1C1C1E',color:'#fff',fontSize:13,fontWeight:600,cursor:exportingLabelsPng?'not-allowed':'pointer',fontFamily:F,opacity:exportingLabelsPng?0.6:1 }}>
+                {exportingLabelsPng ? '생성 중…' : 'PNG 다운로드 (zip)'}
+              </button>
               <button onClick={()=>window.print()}
                 style={{ padding:'7px 16px',borderRadius:8,border:'none',background:'#1A8C3A',color:'#fff',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:F }}>
                 인쇄
@@ -3120,21 +3156,27 @@ export default function AdminScreeningPage() {
               </button>
             </div>
           </div>
-          <div style={{ display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:10 }}>
+          <div style={{ display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:14 }}>
             {_printLabels.map((l,i)=>(
-              <div key={i} className="label-card" style={{ border:'1px solid #1C1C1E',borderRadius:4,padding:'8px 10px',display:'flex',flexDirection:'column',fontFamily:F }}>
-                <table style={{ width:'100%',borderCollapse:'collapse',fontSize:10 }}>
-                  <tbody>
-                    {[['소유자','모스픽'],['연락처','hello@morspeak.com'],['품목명칭',l.item],['관리번호',l.code]].map(([k,v])=>(
-                      <tr key={k} style={{ borderBottom:'1px solid #E5E5EA' }}>
-                        <td style={{ padding:'2px 4px',color:'#8E8E93',whiteSpace:'nowrap' }}>{k}</td>
-                        <td style={{ padding:'2px 4px',fontWeight:600,color:'#1C1C1E' }}>{v}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <div style={{ display:'flex',justifyContent:'center',marginTop:6 }}>
-                  <canvas ref={el=>{labelCanvasRefs.current[i]=el;}} />
+              <div key={i} ref={el=>{labelCardRefs.current[i]=el;}} className="label-card" style={{ border:'1px solid #E5E5EA',borderRadius:20,padding:14,display:'flex',flexDirection:'column',fontFamily:F,background:'#fff' }}>
+                <div style={{ borderRadius:12,overflow:'hidden',border:'1px solid #ECECEC' }}>
+                  <table style={{ width:'100%',borderCollapse:'collapse',fontSize:12 }}>
+                    <tbody>
+                      {[['소유회사','모스픽'],['연락정보','hello@morspeak.com'],['품목명칭',l.item],['관리번호',l.code]].map(([k,v],ri)=>(
+                        <tr key={k} style={{ background:'#F5F5F5',borderTop: ri>0?'1px solid #ECECEC':'none' }}>
+                          <td style={{ padding:'10px 12px',color:'#6E6E73',fontWeight:600,whiteSpace:'nowrap',width:88 }}>{k}</td>
+                          <td style={{ padding:'10px 12px',color:'#1C1C1E',fontWeight:700 }}>{v}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginTop:10 }}>
+                  <div style={{ flex:1,aspectRatio:'292 / 76',border:'1px solid #E5E5EA',borderRadius:10,overflow:'hidden',background:'#fff' }}>
+                    <canvas ref={el=>{labelCanvasRefs.current[i]=el;}} style={{ width:'100%',height:'100%',display:'block' }} />
+                  </div>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/morspeak-logo2.svg" alt="Morspeak" style={{ height:56,width:'auto',flexShrink:0 }} />
                 </div>
               </div>
             ))}

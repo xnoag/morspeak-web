@@ -260,6 +260,8 @@ export default function AdminScreeningPage() {
   const [finalPw, setFinalPw] = useState('');
   const [equipmentLoans, setEquipmentLoans] = useState<Record<string, EquipmentLoan>>({});
   const [expandedLoanKey, setExpandedLoanKey] = useState<string | null>(null);
+  const [showLabels, setShowLabels] = useState(false);
+  const labelCanvasRefs = useRef<Record<number, HTMLCanvasElement | null>>({});
   const [expandedRankKey, setExpandedRankKey] = useState<string | null>(null);
   const [selectedRankKeys, setSelectedRankKeys] = useState<Set<string>>(new Set());
   const [rankFilter, setRankFilter] = useState<'all'|'complete'|'no_screening'|'no_app'>('all');
@@ -749,6 +751,29 @@ export default function AdminScreeningPage() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [_finalSelected.map(e => e.key).join('|'), equipmentLoans]);
+
+  // ── 라벨 인쇄용: 시리얼이 입력된 모든 유닛 목록 ────────────────
+  const _printLabels = _finalSelected.flatMap(e => {
+    const docId = e.key.replace(/\//g, '_');
+    const loan = equipmentLoans[docId] ?? {};
+    const units = loan.units ?? {};
+    return PACKAGE_ITEMS.flatMap(item => Array.from({ length: item.qty }, (_, idx) => {
+      const u = units[`${item.id}_${idx}`];
+      if (!u?.serial) return null;
+      return { item: item.qty > 1 ? `${item.label} #${idx + 1}` : item.label, code: u.serial };
+    }).filter((v): v is { item: string; code: string } => v !== null));
+  });
+
+  useEffect(() => {
+    if (!showLabels || !_printLabels.length) return;
+    (async () => {
+      const JsBarcode = (await import('jsbarcode')).default;
+      _printLabels.forEach((l, i) => {
+        const el = labelCanvasRefs.current[i];
+        if (el) JsBarcode(el, l.code, { format: 'CODE128', displayValue: false, width: 1.6, height: 36, margin: 0 });
+      });
+    })();
+  }, [showLabels, _printLabels.map(l => l.code).join('|')]);
 
   // ── 초기화 중 ─────────────────────────────────────────────────
   if (initializing) return <div style={{ minHeight:'100vh', background:'#fff' }} />;
@@ -2470,6 +2495,10 @@ export default function AdminScreeningPage() {
             <div style={{ padding:'10px 20px',borderBottom:'1px solid #F2F2F7',background:'#fff',display:'flex',alignItems:'center',justifyContent:'space-between' }}>
               <span style={{ fontSize:12,color:'#8E8E93' }}>최종 인터뷰 적합 판정자 {rows.length}명 · 아이패드·침대거치대·의자거치대·IoT플러그3·충전기헤드·충전기선·조명2 패키지 대여</span>
               <div style={{ display:'flex',gap:8 }}>
+                <button onClick={()=>setShowLabels(true)}
+                  style={{ padding:'6px 14px',borderRadius:8,border:'none',background:'#1C1C1E',color:'#fff',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:F }}>
+                  🏷️ 라벨 인쇄 ({_printLabels.length})
+                </button>
                 <button onClick={exportLoanExcel}
                   style={{ padding:'6px 14px',borderRadius:8,border:'none',background:'#1A8C3A',color:'#fff',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:F }}>
                   📊 엑셀 추출
@@ -3074,6 +3103,45 @@ export default function AdminScreeningPage() {
           </div>
         );
       })()}
+
+      {/* 라벨 인쇄 오버레이 */}
+      {showLabels && (
+        <div className="label-print-overlay" style={{ position:'fixed',inset:0,background:'#fff',zIndex:1000,overflow:'auto',padding:24 }}>
+          <div className="no-print" style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16 }}>
+            <span style={{ fontSize:14,fontWeight:700,color:'#1C1C1E',fontFamily:F }}>라벨 인쇄 미리보기 ({_printLabels.length}개)</span>
+            <div style={{ display:'flex',gap:8 }}>
+              <button onClick={()=>window.print()}
+                style={{ padding:'7px 16px',borderRadius:8,border:'none',background:'#1A8C3A',color:'#fff',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:F }}>
+                인쇄
+              </button>
+              <button onClick={()=>setShowLabels(false)}
+                style={{ padding:'7px 16px',borderRadius:8,border:'1.5px solid #E5E5EA',background:'#fff',color:'#3C3C43',fontSize:13,cursor:'pointer',fontFamily:F }}>
+                닫기
+              </button>
+            </div>
+          </div>
+          <div style={{ display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:10 }}>
+            {_printLabels.map((l,i)=>(
+              <div key={i} className="label-card" style={{ border:'1px solid #1C1C1E',borderRadius:4,padding:'10px 8px',display:'flex',flexDirection:'column',alignItems:'center',fontFamily:F }}>
+                <div style={{ fontSize:11,fontWeight:800,letterSpacing:'0.03em',color:'#1C1C1E' }}>MORSPEAK 모스픽 대여품</div>
+                <div style={{ fontSize:10,color:'#555',margin:'2px 0 4px' }}>{l.item}</div>
+                <canvas ref={el=>{labelCanvasRefs.current[i]=el;}} />
+                <div style={{ fontSize:11,fontWeight:700,letterSpacing:'0.04em',color:'#1C1C1E',marginTop:2 }}>{l.code}</div>
+                <div style={{ fontSize:9,color:'#8E8E93',marginTop:2 }}>분실 시 연락주세요 010-7641-1362</div>
+              </div>
+            ))}
+          </div>
+          <style>{`
+            @media print {
+              .no-print { display: none !important; }
+              body * { visibility: hidden; }
+              .label-print-overlay, .label-print-overlay * { visibility: visible; }
+              .label-print-overlay { position: absolute; inset: 0; padding: 8px; }
+              .label-card { break-inside: avoid; }
+            }
+          `}</style>
+        </div>
+      )}
     </div>
   );
 }

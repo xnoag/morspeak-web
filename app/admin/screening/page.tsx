@@ -129,6 +129,8 @@ const TOTAL_UNITS = PACKAGE_ITEMS.reduce((s, it) => s + it.qty, 0);
 const ADMIN_PW = '0621';
 const QUAL_VIEW_PW = '1004';
 const F = "-apple-system,'SF Pro Display',BlinkMacSystemFont,'Helvetica Neue',sans-serif";
+// Figma 라벨지 디자인 지정 폰트(Pretendard Variable) — app/layout.tsx에서 전역 로드됨
+const LABEL_FONT = "'Pretendard Variable',-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif";
 const STATUS: Record<Status, { bg: string; color: string }> = {
   '미검토':       { bg: '#F2F2F7', color: '#8E8E93' },
   '적합':         { bg: '#D4F5DF', color: '#1A8C3A' },
@@ -3159,20 +3161,20 @@ export default function AdminScreeningPage() {
           </div>
           <div style={{ display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:14 }}>
             {_printLabels.map((l,i)=>(
-              <div key={i} ref={el=>{labelCardRefs.current[i]=el;}} className="label-card" style={{ border:'1px solid #E5E5EA',borderRadius:0,padding:14,display:'flex',flexDirection:'column',fontFamily:F,background:'#fff',aspectRatio:'5 / 3' }}>
+              <div key={i} ref={el=>{labelCardRefs.current[i]=el;}} className="label-card" style={{ containerType:'inline-size', border:'1px solid #E5E5EA',borderRadius:0,padding:'3.81cqw',display:'flex',flexDirection:'column',fontFamily:LABEL_FONT,background:'#fff',aspectRatio:'5 / 3' } as React.CSSProperties}>
                 <div style={{ borderRadius:0,overflow:'hidden',border:'1px solid #C7C7C7',flex:1 }}>
-                  <table style={{ width:'100%',height:'100%',borderCollapse:'collapse',tableLayout:'fixed',fontSize:15 }}>
+                  <table style={{ width:'100%',height:'100%',borderCollapse:'collapse',tableLayout:'fixed',fontSize:'4.34cqw' } as React.CSSProperties}>
                     <tbody>
                       {[['소유회사','모스픽'],['연락정보','hello@morspeak.com'],['품목명칭',l.item],['관리번호',l.code]].map(([k,v],ri)=>(
                         <tr key={k} style={{ background:'#F6F6F6',borderTop: ri>0?'1px solid #C7C7C7':'none' }}>
-                          <td style={{ padding:'10px 12px',color:'#444',fontWeight:600,whiteSpace:'nowrap',width:'23%',borderRight:'1px solid #C7C7C7' }}>{k}</td>
-                          <td style={{ padding:'10px 12px',color:'#444',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{v}</td>
+                          <td style={{ padding:'2.1cqw 1.9cqw',color:'#444',fontWeight:600,whiteSpace:'nowrap',width:'23%',borderRight:'1px solid #C7C7C7' } as React.CSSProperties}>{k}</td>
+                          <td style={{ padding:'2.1cqw 1.9cqw',color:'#444',fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' } as React.CSSProperties}>{v}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-                <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,marginTop:10,height:'20%',flexShrink:0 }}>
+                <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:'1.59cqw',marginTop:'2.86cqw',height:'12.06cqw',flexShrink:0 } as React.CSSProperties}>
                   <div style={{ height:'100%',aspectRatio:'292 / 76',border:'1px solid #C7C7C7',borderRadius:0,overflow:'hidden',background:'#fff' }}>
                     <canvas ref={el=>{labelCanvasRefs.current[i]=el;}} style={{ width:'100%',height:'100%',display:'block' }} />
                   </div>

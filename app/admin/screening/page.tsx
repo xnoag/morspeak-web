@@ -794,7 +794,8 @@ export default function AdminScreeningPage() {
       for (let i = 0; i < _printLabels.length; i++) {
         const el = labelCardRefs.current[i];
         if (!el) continue;
-        const blob = await toBlob(el, { pixelRatio: 3, backgroundColor: '#ffffff' });
+        // Printec V3330 라벨 실측(63.5×38.1mm)에 맞춰 300dpi 고정 해상도로 캡처 (화면 크기와 무관하게 비율 왜곡 방지)
+        const blob = await toBlob(el, { canvasWidth: 750, canvasHeight: 450, backgroundColor: '#ffffff' });
         if (blob) zip.file(`${_printLabels[i].code}.png`, blob);
       }
       const zipBlob = await zip.generateAsync({ type: 'blob' });
@@ -3158,7 +3159,7 @@ export default function AdminScreeningPage() {
           </div>
           <div style={{ display:'grid',gridTemplateColumns:'repeat(3, 1fr)',gap:14 }}>
             {_printLabels.map((l,i)=>(
-              <div key={i} ref={el=>{labelCardRefs.current[i]=el;}} className="label-card" style={{ border:'1px solid #E5E5EA',borderRadius:0,padding:14,display:'flex',flexDirection:'column',fontFamily:F,background:'#fff',aspectRatio:'630 / 380' }}>
+              <div key={i} ref={el=>{labelCardRefs.current[i]=el;}} className="label-card" style={{ border:'1px solid #E5E5EA',borderRadius:0,padding:14,display:'flex',flexDirection:'column',fontFamily:F,background:'#fff',aspectRatio:'5 / 3' }}>
                 <div style={{ borderRadius:0,overflow:'hidden',border:'1px solid #C7C7C7',flex:1 }}>
                   <table style={{ width:'100%',height:'100%',borderCollapse:'collapse',tableLayout:'fixed',fontSize:15 }}>
                     <tbody>

@@ -264,7 +264,6 @@ export default function AdminScreeningPage() {
   const [expandedLoanKey, setExpandedLoanKey] = useState<string | null>(null);
   const [showLabels, setShowLabels] = useState(false);
   const [exportingLabelsPng, setExportingLabelsPng] = useState(false);
-  const labelCanvasRefs = useRef<Record<number, HTMLCanvasElement | null>>({});
   const labelCardRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const [expandedRankKey, setExpandedRankKey] = useState<string | null>(null);
   const [selectedRankKeys, setSelectedRankKeys] = useState<Set<string>>(new Set());
@@ -767,23 +766,6 @@ export default function AdminScreeningPage() {
       return { item: item.label, code: u.serial };
     }).filter((v): v is { item: string; code: string } => v !== null));
   });
-
-  useEffect(() => {
-    if (!showLabels || !_printLabels.length) return;
-    (async () => {
-      const JsBarcode = (await import('jsbarcode')).default;
-      const TARGET_W = 292, TARGET_H = 76;
-      _printLabels.forEach((l, i) => {
-        const el = labelCanvasRefs.current[i];
-        if (!el) return;
-        // 코드 길이에 따라 총 너비가 달라지므로, 1차 렌더로 실제 너비를 재고
-        // 목표 292:76 비율에 맞게 module 너비를 다시 계산해 2차 렌더한다.
-        JsBarcode(el, l.code, { format: 'CODE128', displayValue: false, width: 2, height: TARGET_H, margin: 0 });
-        const scale = TARGET_W / el.width;
-        JsBarcode(el, l.code, { format: 'CODE128', displayValue: false, width: Math.max(0.5, 2 * scale), height: TARGET_H, margin: 0 });
-      });
-    })();
-  }, [showLabels, _printLabels.map(l => l.code).join('|')]);
 
   // 라벨 카드를 각각 PNG로 캡처해 zip으로 묶어 다운로드
   const exportLabelsPng = async () => {
@@ -3176,7 +3158,8 @@ export default function AdminScreeningPage() {
                 </div>
                 <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:'1.59cqw',marginTop:'2.86cqw',height:'12.06cqw',flexShrink:0 } as React.CSSProperties}>
                   <div style={{ height:'100%',aspectRatio:'292 / 76',border:'1px solid #C7C7C7',borderRadius:0,overflow:'hidden',background:'#fff' }}>
-                    <canvas ref={el=>{labelCanvasRefs.current[i]=el;}} style={{ width:'100%',height:'100%',display:'block' }} />
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/label-barcode.png" alt="" style={{ width:'100%',height:'100%',display:'block',objectFit:'cover' }} />
                   </div>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="/morspeak-logo2.svg" alt="Morspeak" style={{ height:'100%',width:'auto',flexShrink:0 }} />

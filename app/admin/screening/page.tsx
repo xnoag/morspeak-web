@@ -3125,7 +3125,7 @@ export default function AdminScreeningPage() {
               <div key={i} className="label-card" style={{ border:'1px solid #1C1C1E',borderRadius:4,padding:'8px 10px',display:'flex',flexDirection:'column',fontFamily:F }}>
                 <table style={{ width:'100%',borderCollapse:'collapse',fontSize:10 }}>
                   <tbody>
-                    {[['소유자','모스픽'],['연락처','hello@morspeak.com'],['품명',l.item],['관리번호',l.code]].map(([k,v])=>(
+                    {[['소유자','모스픽'],['연락처','hello@morspeak.com'],['품목명칭',l.item],['관리번호',l.code]].map(([k,v])=>(
                       <tr key={k} style={{ borderBottom:'1px solid #E5E5EA' }}>
                         <td style={{ padding:'2px 4px',color:'#8E8E93',whiteSpace:'nowrap' }}>{k}</td>
                         <td style={{ padding:'2px 4px',fontWeight:600,color:'#1C1C1E' }}>{v}</td>

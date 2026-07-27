@@ -272,7 +272,7 @@ export default function BudgetItemDetailPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#F7F7F8', fontFamily: F, padding: '32px 24px' }}>
       <div style={{ maxWidth: 800, margin: '0 auto' }}>
-        <Link href="/receipts/asannanumfoundation/budget-items" style={{ fontSize: 13, color: '#8E8E93', textDecoration: 'none' }}>← 예산 세목 목록</Link>
+        <Link href="/receipts/asannanumfoundation" style={{ fontSize: 13, color: '#8E8E93', textDecoration: 'none' }}>← 메인으로</Link>
 
         <div style={{ background: '#fff', borderRadius: 14, padding: 20, marginTop: 8 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>

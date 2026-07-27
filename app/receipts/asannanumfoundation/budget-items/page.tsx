@@ -203,7 +203,23 @@ export default function BudgetItemsPage() {
                     return (
                       <tr key={it.id} style={{ borderTop: '1px solid #F2F2F7' }}>
                         <td style={td}>{it.목}</td>
-                        <td style={td}><Link href={`/receipts/asannanumfoundation/budget-items/${it.id}`} style={{ color: '#1C1C1E', fontWeight: 500 }}>{it.세목}</Link></td>
+                        <td style={td}>
+                          <Link href={`/receipts/asannanumfoundation/budget-items/${it.id}`} style={{ color: '#1C1C1E', fontWeight: 500 }}>{it.세목}</Link>
+                          {it.항 === '외주용역비' && (
+                            <select value={it.계약형태 ?? '업체'}
+                              onChange={e => updateBudgetItem(org.id, it.id, { 계약형태: e.target.value as ContractType })}
+                              style={miniSel}>
+                              <option value="업체">업체 계약</option><option value="개인">개인 계약</option>
+                            </select>
+                          )}
+                          {it.항 === '운영비' && (
+                            <select value={it.지출유형 ?? '일반'}
+                              onChange={e => updateBudgetItem(org.id, it.id, { 지출유형: e.target.value as OpsExpenseType })}
+                              style={miniSel}>
+                              <option value="일반">일반 지출</option><option value="행사성">행사성 지출</option>
+                            </select>
+                          )}
+                        </td>
                         <td style={td}>{it.금액.toLocaleString()}원</td>
                         <td style={td}>
                           <select
@@ -248,3 +264,4 @@ export default function BudgetItemsPage() {
 
 const th: React.CSSProperties = { padding: '10px 20px', fontWeight: 600, fontSize: 12 };
 const td: React.CSSProperties = { padding: '12px 20px', color: '#1C1C1E' };
+const miniSel: React.CSSProperties = { display: 'block', marginTop: 4, padding: '2px 6px', borderRadius: 6, border: '1px solid #E5E5EA', background: '#fff', color: '#8E8E93', fontSize: 11, fontFamily: F, cursor: 'pointer' };

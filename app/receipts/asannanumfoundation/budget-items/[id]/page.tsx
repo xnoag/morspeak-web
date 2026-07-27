@@ -148,6 +148,32 @@ const psval: React.CSSProperties = { border: '1px solid #E5E5EA', padding: '7px 
 const psth: React.CSSProperties = { border: '1px solid #E5E5EA', padding: '7px 10px', background: '#F7F7F8', color: '#8E8E93', fontWeight: 600, fontSize: 12 };
 const miniBtn: React.CSSProperties = { padding: '5px 10px', borderRadius: 7, border: '1px solid #E5E5EA', background: '#fff', color: '#1C1C1E', fontSize: 12, cursor: 'pointer' };
 
+function isImageFile(name: string) {
+  return /\.(png|jpe?g|gif|webp|heic)$/i.test(name);
+}
+
+function FileThumb({ file, onDelete }: { file: EvidenceFileDoc; onDelete: () => void }) {
+  const isImg = isImageFile(file.fileName);
+  return (
+    <a href={file.downloadUrl} target="_blank" rel="noreferrer" title={file.fileName}
+      style={{ position: 'relative', display: 'block', width: 84, height: 84, borderRadius: 8, overflow: 'hidden', border: '1px solid #E5E5EA', background: '#F7F7F8', flexShrink: 0 }}>
+      {isImg ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={file.downloadUrl} alt={file.fileName} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+      ) : (
+        <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, padding: 4, boxSizing: 'border-box' }}>
+          <span style={{ fontSize: 22 }}>📄</span>
+          <span style={{ fontSize: 9, color: '#8E8E93', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>{file.fileName}</span>
+        </div>
+      )}
+      <button onClick={e => { e.preventDefault(); e.stopPropagation(); onDelete(); }}
+        style={{ position: 'absolute', top: 3, right: 3, width: 18, height: 18, borderRadius: 9, border: 'none', background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 11, lineHeight: '18px', cursor: 'pointer', padding: 0 }}>
+        ×
+      </button>
+    </a>
+  );
+}
+
 function ChecklistRow({ orgId, itemId, doc, files, uploadedBy, onDelete }: {
   orgId: string; itemId: string; doc: RequiredDoc; files: EvidenceFileDoc[]; uploadedBy: string; onDelete: (f: EvidenceFileDoc) => void;
 }) {
@@ -176,12 +202,9 @@ function ChecklistRow({ orgId, itemId, doc, files, uploadedBy, onDelete }: {
         </button>
       </div>
       {attached.length > 0 && (
-        <div style={{ marginTop: 6, marginLeft: 24, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={{ marginTop: 8, marginLeft: 24, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           {attached.map(f => (
-            <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
-              <a href={f.downloadUrl} target="_blank" rel="noreferrer" style={{ color: '#1A73E8' }}>{f.fileName}</a>
-              <button onClick={() => onDelete(f)} style={{ background: 'none', border: 'none', color: '#CC2200', cursor: 'pointer' }}>삭제</button>
-            </div>
+            <FileThumb key={f.id} file={f} onDelete={() => onDelete(f)} />
           ))}
         </div>
       )}
@@ -288,14 +311,9 @@ export default function BudgetItemDetailPage() {
           <div style={{ fontSize: 14, fontWeight: 700, color: '#1C1C1E', marginBottom: 4 }}>기타 서류</div>
           <div style={{ fontSize: 12, color: '#8E8E93', marginBottom: 10 }}>위 체크리스트에 없는 참고 서류를 추가로 첨부할 때 사용하세요.</div>
           <UploadForm orgId={org.id} itemId={item.id} uploadedBy={user?.email ?? user?.uid ?? ''} />
-          <div style={{ marginTop: 12 }}>
+          <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {otherFiles.map(f => (
-              <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: '1px solid #F2F2F7', fontSize: 13 }}>
-                <a href={f.downloadUrl} target="_blank" rel="noreferrer" style={{ color: '#1A73E8', flex: 1 }}>{f.fileName}</a>
-                <span style={{ color: '#8E8E93', fontSize: 12 }}>{EVIDENCE_DOC_TYPES.find(d => d.key === f.docType)?.label ?? f.docType}</span>
-                {f.memo && <span style={{ color: '#8E8E93', fontSize: 12 }}>· {f.memo}</span>}
-                <button onClick={() => deleteEvidenceFile(org.id, item.id, f)} style={{ background: 'none', border: 'none', color: '#CC2200', fontSize: 12, cursor: 'pointer' }}>삭제</button>
-              </div>
+              <FileThumb key={f.id} file={f} onDelete={() => deleteEvidenceFile(org.id, item.id, f)} />
             ))}
             {otherFiles.length === 0 && <div style={{ fontSize: 13, color: '#8E8E93', padding: '8px 0' }}>추가 첨부된 기타 서류가 없습니다.</div>}
           </div>

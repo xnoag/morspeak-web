@@ -13,6 +13,7 @@ export type Org = {
   id: string;
   name: string;
   businessName?: string;
+  totalBudget?: number;
   programId: string;
   createdAt: string;
   createdBy: string;
@@ -49,16 +50,20 @@ function membershipId(uid: string, orgId: string) {
 }
 
 // ── 조직 ────────────────────────────────────────────────
-export async function createOrg(uid: string, email: string, name: string, businessName?: string): Promise<string> {
+export async function createOrg(uid: string, email: string, name: string, businessName?: string, totalBudget?: number): Promise<string> {
   const orgRef = doc(collection(db, 'orgs'));
   const now = new Date().toISOString();
   await setDoc(orgRef, {
-    name, businessName: businessName ?? '', programId: PROGRAM_ID, createdAt: now, createdBy: uid,
+    name, businessName: businessName ?? '', totalBudget: totalBudget ?? 0, programId: PROGRAM_ID, createdAt: now, createdBy: uid,
   });
   await setDoc(doc(db, 'memberships', membershipId(uid, orgRef.id)), {
     uid, orgId: orgRef.id, email, role: 'member', joinedAt: now,
   });
   return orgRef.id;
+}
+
+export async function updateOrgTotalBudget(orgId: string, totalBudget: number): Promise<void> {
+  await setDoc(doc(db, 'orgs', orgId), { totalBudget }, { merge: true });
 }
 
 export function watchUserMemberships(uid: string, cb: (orgs: Org[]) => void) {

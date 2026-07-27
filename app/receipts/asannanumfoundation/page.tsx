@@ -327,7 +327,7 @@ function MainPage({ org }: { org: Org }) {
                   {catItems.map(it => {
                     const st = statusByItem[it.id];
                     return (
-                      <tr key={it.id} style={{ borderTop: '1px solid #F2F2F7' }}>
+                      <tr key={it.id} style={{ borderTop: '1px solid #F2F2F7', background: it.집행상태 === '집행완료' ? '#EAF2FF' : 'transparent' }}>
                         <td style={td}>{it.목}</td>
                         <td style={td}>
                           <Link href={`/receipts/asannanumfoundation/budget-items/${it.id}`} style={{ color: '#1C1C1E', fontWeight: 500 }}>{it.세목}</Link>

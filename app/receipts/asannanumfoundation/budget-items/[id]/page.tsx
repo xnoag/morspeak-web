@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useReceiptSession } from '@/lib/useReceiptSession';
 import { watchBudgetItems, watchEvidenceFiles, uploadEvidenceFile, deleteEvidenceFile, type BudgetItemDoc, type EvidenceFileDoc } from '@/lib/receipts';
-import { getRequiredDocs, computeItemStatus, needsReclassifyNote, EVIDENCE_DOC_TYPES } from '@/lib/receiptRules';
+import { getRequiredDocs, computeItemStatus, needsReclassifyNote, EVIDENCE_DOC_TYPES, type RequiredDoc } from '@/lib/receiptRules';
 
 const F = "-apple-system,'SF Pro Display',BlinkMacSystemFont,'Helvetica Neue',sans-serif";
 
@@ -148,6 +148,47 @@ const psval: React.CSSProperties = { border: '1px solid #E5E5EA', padding: '7px 
 const psth: React.CSSProperties = { border: '1px solid #E5E5EA', padding: '7px 10px', background: '#F7F7F8', color: '#8E8E93', fontWeight: 600, fontSize: 12 };
 const miniBtn: React.CSSProperties = { padding: '5px 10px', borderRadius: 7, border: '1px solid #E5E5EA', background: '#fff', color: '#1C1C1E', fontSize: 12, cursor: 'pointer' };
 
+function ChecklistRow({ orgId, itemId, doc, files, uploadedBy, onDelete }: {
+  orgId: string; itemId: string; doc: RequiredDoc; files: EvidenceFileDoc[]; uploadedBy: string; onDelete: (f: EvidenceFileDoc) => void;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const attached = files.filter(f => f.docType === doc.key);
+  const done = attached.length > 0;
+
+  const onPick = async (file: File) => {
+    setBusy(true);
+    await uploadEvidenceFile(orgId, itemId, file, doc.key, uploadedBy);
+    if (fileRef.current) fileRef.current.value = '';
+    setBusy(false);
+  };
+
+  return (
+    <div style={{ padding: '10px 0', borderTop: '1px solid #F2F2F7' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span>{done ? '✅' : '⬜️'}</span>
+        <span style={{ flex: 1, fontSize: 13, color: done ? '#1C1C1E' : '#8E8E93' }}>{doc.label}</span>
+        <input ref={fileRef} type="file" accept="image/*,.pdf" style={{ display: 'none' }}
+          onChange={e => { const f = e.target.files?.[0]; if (f) onPick(f); }} />
+        <button onClick={() => fileRef.current?.click()} disabled={busy}
+          style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid #E5E5EA', background: '#fff', color: '#1C1C1E', fontSize: 12, cursor: busy ? 'not-allowed' : 'pointer' }}>
+          {busy ? '업로드 중…' : attached.length > 0 ? '+ 추가 첨부' : '+ 파일 첨부'}
+        </button>
+      </div>
+      {attached.length > 0 && (
+        <div style={{ marginTop: 6, marginLeft: 24, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {attached.map(f => (
+            <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+              <a href={f.downloadUrl} target="_blank" rel="noreferrer" style={{ color: '#1A73E8' }}>{f.fileName}</a>
+              <button onClick={() => onDelete(f)} style={{ background: 'none', border: 'none', color: '#CC2200', cursor: 'pointer' }}>삭제</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function UploadForm({ orgId, itemId, uploadedBy }: { orgId: string; itemId: string; uploadedBy: string }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [docType, setDocType] = useState(EVIDENCE_DOC_TYPES[0].key);
@@ -199,7 +240,9 @@ export default function BudgetItemDetailPage() {
   if (item === null) return <div style={{ padding: 40, fontFamily: F, color: '#8E8E93', fontSize: 13 }}>세목을 찾을 수 없습니다.</div>;
 
   const required = getRequiredDocs(item);
+  const requiredKeys = new Set(required.map(d => d.key));
   const attachedKeys = files.map(f => f.docType);
+  const otherFiles = files.filter(f => !requiredKeys.has(f.docType));
   const status = computeItemStatus(item, attachedKeys);
   const reclassifyNote = needsReclassifyNote(item);
 
@@ -226,17 +269,13 @@ export default function BudgetItemDetailPage() {
         </div>
 
         <div style={{ background: '#fff', borderRadius: 14, padding: 20, marginTop: 16 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#1C1C1E', marginBottom: 10 }}>필요서류 체크리스트</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#1C1C1E', marginBottom: 4 }}>필요서류 체크리스트</div>
+          <div style={{ fontSize: 12, color: '#8E8E93', marginBottom: 10 }}>항목별로 바로 파일을 첨부하면 자동으로 체크됩니다.</div>
           {required.length === 0 && <div style={{ fontSize: 13, color: '#8E8E93' }}>필수 서류 규정이 없는 항목입니다.</div>}
-          {required.map(d => {
-            const done = attachedKeys.includes(d.key);
-            return (
-              <div key={d.key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', fontSize: 13 }}>
-                <span>{done ? '✅' : '⬜️'}</span>
-                <span style={{ color: done ? '#1C1C1E' : '#8E8E93' }}>{d.label}</span>
-              </div>
-            );
-          })}
+          {required.map(d => (
+            <ChecklistRow key={d.key} orgId={org.id} itemId={item.id} doc={d} files={files}
+              uploadedBy={user?.email ?? user?.uid ?? ''} onDelete={f => deleteEvidenceFile(org.id, item.id, f)} />
+          ))}
         </div>
 
         {item.항 === '인건비' && (
@@ -246,10 +285,11 @@ export default function BudgetItemDetailPage() {
         )}
 
         <div style={{ background: '#fff', borderRadius: 14, padding: 20, marginTop: 16 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#1C1C1E', marginBottom: 10 }}>첨부파일</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#1C1C1E', marginBottom: 4 }}>기타 서류</div>
+          <div style={{ fontSize: 12, color: '#8E8E93', marginBottom: 10 }}>위 체크리스트에 없는 참고 서류를 추가로 첨부할 때 사용하세요.</div>
           <UploadForm orgId={org.id} itemId={item.id} uploadedBy={user?.email ?? user?.uid ?? ''} />
           <div style={{ marginTop: 12 }}>
-            {files.map(f => (
+            {otherFiles.map(f => (
               <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: '1px solid #F2F2F7', fontSize: 13 }}>
                 <a href={f.downloadUrl} target="_blank" rel="noreferrer" style={{ color: '#1A73E8', flex: 1 }}>{f.fileName}</a>
                 <span style={{ color: '#8E8E93', fontSize: 12 }}>{EVIDENCE_DOC_TYPES.find(d => d.key === f.docType)?.label ?? f.docType}</span>
@@ -257,7 +297,7 @@ export default function BudgetItemDetailPage() {
                 <button onClick={() => deleteEvidenceFile(org.id, item.id, f)} style={{ background: 'none', border: 'none', color: '#CC2200', fontSize: 12, cursor: 'pointer' }}>삭제</button>
               </div>
             ))}
-            {files.length === 0 && <div style={{ fontSize: 13, color: '#8E8E93', padding: '8px 0' }}>첨부된 파일이 없습니다.</div>}
+            {otherFiles.length === 0 && <div style={{ fontSize: 13, color: '#8E8E93', padding: '8px 0' }}>추가 첨부된 기타 서류가 없습니다.</div>}
           </div>
         </div>
       </div>

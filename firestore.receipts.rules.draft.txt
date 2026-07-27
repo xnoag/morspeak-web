@@ -1,0 +1,37 @@
+// DRAFT — 아직 배포 안 됨. 기존 Firestore 규칙(Console에 있는 현재 내용)과 합쳐서
+// firestore.rules로 만든 다음 `firebase deploy --only firestore:rules`로 배포할 예정.
+// 아래는 새로 추가되는 orgs/memberships/budgetItems/evidenceFiles 컬렉션에 대한 규칙만 발췌.
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isMember(orgId) {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/memberships/$(request.auth.uid + '_' + orgId));
+    }
+
+    match /orgs/{orgId} {
+      allow read: if isMember(orgId);
+      allow create: if request.auth != null && request.resource.data.createdBy == request.auth.uid;
+      allow update, delete: if false; // P0: 조직 정보 수정/삭제 없음
+
+      match /budgetItems/{itemId} {
+        allow read, write: if isMember(orgId);
+
+        match /evidenceFiles/{fileId} {
+          allow read, write: if isMember(orgId);
+        }
+      }
+    }
+
+    match /memberships/{membershipId} {
+      allow read: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // ↓↓↓ 기존 컬렉션(screening_results, applications, equipment_loans 등) 규칙은
+    //     Console에서 그대로 유지 — 여기 합쳐 넣어야 함.
+  }
+}

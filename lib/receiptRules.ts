@@ -3,6 +3,7 @@
 
 export type ContractType = '업체' | '개인';
 export type OpsExpenseType = '행사성' | '일반';
+export type ExecutionStatus = '집행완료' | '집행중' | '미집행';
 
 export type BudgetItem = {
   항: string;
@@ -11,6 +12,7 @@ export type BudgetItem = {
   금액: number;
   계약형태?: ContractType;   // 외주용역비에서만 사용
   지출유형?: OpsExpenseType; // 운영비에서만 사용
+  집행상태?: ExecutionStatus; // 기본값 '미집행'으로 취급
 };
 
 export const COMPARATIVE_QUOTE_THRESHOLD = 3_000_000;

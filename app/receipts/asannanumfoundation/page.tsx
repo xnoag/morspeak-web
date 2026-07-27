@@ -95,13 +95,18 @@ function Dashboard({ org }: { org: Org }) {
   const rate = total ? Math.round((done / total) * 100) : 0;
   const missingItems = items?.filter(it => statusByItem[it.id] && statusByItem[it.id].status !== '완료') ?? [];
 
-  const spent = (items ?? []).reduce((s, it) => s + it.금액, 0);
+  const registered = (items ?? []).reduce((s, it) => s + it.금액, 0);
+  const executed = (items ?? []).filter(it => it.집행상태 === '집행완료').reduce((s, it) => s + it.금액, 0);
+  const inProgress = (items ?? []).filter(it => it.집행상태 === '집행중').reduce((s, it) => s + it.금액, 0);
   const totalBudget = org.totalBudget ?? 0;
-  const spentRate = totalBudget ? Math.min(100, Math.round((spent / totalBudget) * 100)) : 0;
-  const remaining = totalBudget - spent;
+  const spentRate = totalBudget ? Math.min(100, Math.round((executed / totalBudget) * 100)) : 0;
+  const remaining = totalBudget - executed;
 
   const byCategory = CATEGORY_ORDER
-    .map(cat => ({ cat, amount: (items ?? []).filter(it => it.항 === cat).reduce((s, it) => s + it.금액, 0) }))
+    .map(cat => ({
+      cat,
+      amount: (items ?? []).filter(it => it.항 === cat && it.집행상태 === '집행완료').reduce((s, it) => s + it.금액, 0),
+    }))
     .filter(c => c.amount > 0);
 
   return (
@@ -123,11 +128,11 @@ function Dashboard({ org }: { org: Org }) {
 
           <div style={{ background: '#fff', borderRadius: 14, padding: 24 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#1C1C1E' }}>{spent.toLocaleString()}원</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#1C1C1E' }}>{executed.toLocaleString()}원</div>
               <TotalBudgetEditor orgId={org.id} totalBudget={totalBudget} />
             </div>
             <div style={{ fontSize: 12, color: '#8E8E93', marginTop: 2 }}>
-              {totalBudget ? `총 예산 ${totalBudget.toLocaleString()}원 중 집행 (${spentRate}%)` : '등록된 세목 금액 합계'}
+              {totalBudget ? `총 예산 ${totalBudget.toLocaleString()}원 중 집행완료 (${spentRate}%)` : '집행완료 세목 금액 합계'}
             </div>
             {totalBudget > 0 && (
               <>
@@ -138,6 +143,11 @@ function Dashboard({ org }: { org: Org }) {
                   {remaining < 0 ? `예산 초과 ${Math.abs(remaining).toLocaleString()}원` : `잔여 ${remaining.toLocaleString()}원`}
                 </div>
               </>
+            )}
+            {(inProgress > 0 || registered !== executed) && (
+              <div style={{ fontSize: 11, color: '#B07800', marginTop: 4 }}>
+                집행중 {inProgress.toLocaleString()}원 별도 · 전체 등록액 {registered.toLocaleString()}원
+              </div>
             )}
           </div>
         </div>
@@ -156,7 +166,7 @@ function Dashboard({ org }: { org: Org }) {
               <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '6px 0' }}>
                 <span style={{ fontSize: 13, color: '#1C1C1E', width: 100 }}>{cat}</span>
                 <div style={{ flex: 1, height: 8, borderRadius: 4, background: '#F2F2F7', overflow: 'hidden' }}>
-                  <div style={{ width: `${spent ? Math.round((amount / spent) * 100) : 0}%`, height: '100%', background: '#1C1C1E' }} />
+                  <div style={{ width: `${executed ? Math.round((amount / executed) * 100) : 0}%`, height: '100%', background: '#1C1C1E' }} />
                 </div>
                 <span style={{ fontSize: 12, color: '#8E8E93', width: 110, textAlign: 'right' }}>{amount.toLocaleString()}원</span>
               </div>

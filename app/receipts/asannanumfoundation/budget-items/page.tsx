@@ -4,16 +4,23 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import * as XLSX from 'xlsx';
 import { useReceiptSession } from '@/lib/useReceiptSession';
-import { watchBudgetItems, addBudgetItem, addBudgetItemsBulk, deleteBudgetItem, getAllEvidenceDocTypes, type BudgetItemDoc } from '@/lib/receipts';
-import { getRequiredDocs, computeItemStatus, type ContractType, type OpsExpenseType, type ItemStatus } from '@/lib/receiptRules';
+import { watchBudgetItems, addBudgetItem, addBudgetItemsBulk, updateBudgetItem, deleteBudgetItem, getAllEvidenceDocTypes, type BudgetItemDoc } from '@/lib/receipts';
+import { getRequiredDocs, computeItemStatus, type ContractType, type OpsExpenseType, type ExecutionStatus, type ItemStatus } from '@/lib/receiptRules';
 
 const F = "-apple-system,'SF Pro Display',BlinkMacSystemFont,'Helvetica Neue',sans-serif";
 const CATEGORIES = ['외주용역비', '물품구매비', 'SW 구독료', '운영비', '인건비', '예비비'];
+const EXECUTION_STATUSES: ExecutionStatus[] = ['미집행', '집행중', '집행완료'];
 
 const STATUS_STYLE: Record<ItemStatus, { bg: string; color: string }> = {
   '완료':   { bg: '#D4F5DF', color: '#1A8C3A' },
   '부분완료': { bg: '#FFF9D4', color: '#B07800' },
   '미비':   { bg: '#FFE0DE', color: '#CC2200' },
+};
+
+const EXEC_STYLE: Record<ExecutionStatus, { bg: string; color: string }> = {
+  '집행완료': { bg: '#E3F0FF', color: '#1A73E8' },
+  '집행중':   { bg: '#FFF3DA', color: '#B07800' },
+  '미집행':   { bg: '#F2F2F7', color: '#8E8E93' },
 };
 
 function AddPanel({ orgId, onDone }: { orgId: string; onDone: () => void }) {
@@ -23,6 +30,7 @@ function AddPanel({ orgId, onDone }: { orgId: string; onDone: () => void }) {
   const [금액, set금액] = useState('');
   const [계약형태, set계약형태] = useState<ContractType>('업체');
   const [지출유형, set지출유형] = useState<OpsExpenseType>('일반');
+  const [집행상태, set집행상태] = useState<ExecutionStatus>('미집행');
   const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const [csvStatus, setCsvStatus] = useState('');
@@ -33,7 +41,7 @@ function AddPanel({ orgId, onDone }: { orgId: string; onDone: () => void }) {
     if (!목.trim() || !세목.trim() || !amount) return;
     setSaving(true);
     await addBudgetItem(orgId, {
-      항, 목: 목.trim(), 세목: 세목.trim(), 금액: amount,
+      항, 목: 목.trim(), 세목: 세목.trim(), 금액: amount, 집행상태,
       ...(항 === '외주용역비' ? { 계약형태 } : {}),
       ...(항 === '운영비' ? { 지출유형 } : {}),
     });
@@ -52,6 +60,7 @@ function AddPanel({ orgId, onDone }: { orgId: string; onDone: () => void }) {
       목: String(r['목'] ?? '').trim(),
       세목: String(r['세목'] ?? '').trim(),
       금액: Number(String(r['금액'] ?? '0').replace(/[^0-9]/g, '')) || 0,
+      집행상태: (EXECUTION_STATUSES.includes(String(r['집행상태'] ?? '') as ExecutionStatus) ? String(r['집행상태']) : '미집행') as ExecutionStatus,
     })).filter(it => it.항 && it.세목 && it.금액);
     if (!items.length) { setCsvStatus('유효한 행이 없습니다 (항/목/세목/금액 컬럼 확인)'); return; }
     await addBudgetItemsBulk(orgId, items);
@@ -62,7 +71,7 @@ function AddPanel({ orgId, onDone }: { orgId: string; onDone: () => void }) {
 
   return (
     <div style={{ background: '#fff', borderRadius: 14, padding: 20, marginBottom: 20 }}>
-      <form onSubmit={submit} style={{ display: 'grid', gridTemplateColumns: '140px 1fr 1.4fr 140px 100px', gap: 10, alignItems: 'end' }}>
+      <form onSubmit={submit} style={{ display: 'grid', gridTemplateColumns: '130px 1fr 1.3fr 120px 110px 100px', gap: 10, alignItems: 'end' }}>
         <label style={lbl}>항
           <select value={항} onChange={e => set항(e.target.value)} style={sel}>
             {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -76,6 +85,11 @@ function AddPanel({ orgId, onDone }: { orgId: string; onDone: () => void }) {
         </label>
         <label style={lbl}>금액
           <input value={금액} onChange={e => set금액(e.target.value)} placeholder="숫자만" style={inp} />
+        </label>
+        <label style={lbl}>집행상태
+          <select value={집행상태} onChange={e => set집행상태(e.target.value as ExecutionStatus)} style={sel}>
+            {EXECUTION_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
         </label>
         <button type="submit" disabled={saving} style={{ padding: '9px 0', borderRadius: 9, border: 'none', background: '#1C1C1E', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>추가</button>
 
@@ -97,7 +111,7 @@ function AddPanel({ orgId, onDone }: { orgId: string; onDone: () => void }) {
 
       <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #F2F2F7', display: 'flex', alignItems: 'center', gap: 12 }}>
         <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f); }} style={{ fontSize: 13 }} />
-        <span style={{ fontSize: 12, color: '#8E8E93' }}>{csvStatus || 'CSV/Excel 일괄 업로드: 항, 목, 세목, 금액 컬럼 필요'}</span>
+        <span style={{ fontSize: 12, color: '#8E8E93' }}>{csvStatus || 'CSV/Excel 일괄 업로드: 항, 목, 세목, 금액 컬럼 필요 (집행상태 컬럼 선택, 없으면 미집행)'}</span>
       </div>
     </div>
   );
@@ -174,11 +188,12 @@ export default function BudgetItemsPage() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
                   <tr style={{ color: '#8E8E93', textAlign: 'left' }}>
-                    <th style={{ ...th, width: '22%' }}>목</th>
-                    <th style={{ ...th, width: '32%' }}>세목</th>
-                    <th style={{ ...th, width: '14%' }}>금액</th>
-                    <th style={{ ...th, width: '12%' }}>상태</th>
-                    <th style={{ ...th, width: '12%' }}>필요서류</th>
+                    <th style={{ ...th, width: '18%' }}>목</th>
+                    <th style={{ ...th, width: '26%' }}>세목</th>
+                    <th style={{ ...th, width: '13%' }}>금액</th>
+                    <th style={{ ...th, width: '13%' }}>집행상태</th>
+                    <th style={{ ...th, width: '11%' }}>증빙상태</th>
+                    <th style={{ ...th, width: '11%' }}>필요서류</th>
                     <th style={{ ...th, width: '8%' }}></th>
                   </tr>
                 </thead>
@@ -190,6 +205,17 @@ export default function BudgetItemsPage() {
                         <td style={td}>{it.목}</td>
                         <td style={td}><Link href={`/receipts/asannanumfoundation/budget-items/${it.id}`} style={{ color: '#1C1C1E', fontWeight: 500 }}>{it.세목}</Link></td>
                         <td style={td}>{it.금액.toLocaleString()}원</td>
+                        <td style={td}>
+                          <select
+                            value={it.집행상태 ?? '미집행'}
+                            onChange={e => updateBudgetItem(org.id, it.id, { 집행상태: e.target.value as ExecutionStatus })}
+                            style={{
+                              padding: '3px 8px', borderRadius: 7, fontSize: 11, fontWeight: 700, border: 'none', cursor: 'pointer',
+                              background: EXEC_STYLE[it.집행상태 ?? '미집행'].bg, color: EXEC_STYLE[it.집행상태 ?? '미집행'].color,
+                            }}>
+                            {EXECUTION_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                          </select>
+                        </td>
                         <td style={td}>
                           {st && (
                             <span style={{ padding: '3px 9px', borderRadius: 7, fontSize: 11, fontWeight: 700, background: STATUS_STYLE[st.status].bg, color: STATUS_STYLE[st.status].color }}>

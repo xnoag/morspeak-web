@@ -8,6 +8,146 @@ import { getRequiredDocs, computeItemStatus, needsReclassifyNote, EVIDENCE_DOC_T
 
 const F = "-apple-system,'SF Pro Display',BlinkMacSystemFont,'Helvetica Neue',sans-serif";
 
+type PayLine = { label: string; amount: string };
+
+function PayslipGenerator({ orgId, itemId, orgName, defaultTotal, uploadedBy }: {
+  orgId: string; itemId: string; orgName: string; defaultTotal: number; uploadedBy: string;
+}) {
+  const previewRef = useRef<HTMLDivElement>(null);
+  const [name, setName] = useState('');
+  const [title, setTitle] = useState('사업책임자');
+  const [periodStart, setPeriodStart] = useState('');
+  const [periodEnd, setPeriodEnd] = useState('');
+  const [payDate, setPayDate] = useState('');
+  const [pays, setPays] = useState<PayLine[]>([{ label: '기본급', amount: String(defaultTotal || '') }]);
+  const [deductions, setDeductions] = useState<PayLine[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  const num = (s: string) => Number(s.replace(/[^0-9]/g, '')) || 0;
+  const payTotal = pays.reduce((s, p) => s + num(p.amount), 0);
+  const deductionTotal = deductions.reduce((s, p) => s + num(p.amount), 0);
+  const netPay = payTotal - deductionTotal;
+
+  const updateLine = (list: PayLine[], set: (v: PayLine[]) => void, i: number, patch: Partial<PayLine>) => {
+    set(list.map((l, idx) => idx === i ? { ...l, ...patch } : l));
+  };
+
+  const generate = async () => {
+    if (!previewRef.current || !name.trim()) return;
+    setBusy(true);
+    try {
+      const { toBlob } = await import('html-to-image');
+      const blob = await toBlob(previewRef.current, { pixelRatio: 2, backgroundColor: '#ffffff' });
+      if (!blob) return;
+      const file = new File([blob], `급여명세서_${name.trim()}_${payDate || periodEnd || ''}.png`, { type: 'image/png' });
+      await uploadEvidenceFile(orgId, itemId, file, 'payslip', uploadedBy, `${name.trim()} 급여명세서 자동생성`);
+      setOpen(false);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)}
+        style={{ padding: '9px 16px', borderRadius: 9, border: '1.5px solid #1C1C1E', background: '#fff', color: '#1C1C1E', fontSize: 13, fontWeight: 600, cursor: 'pointer', marginBottom: 16 }}>
+        📄 급여명세서 생성
+      </button>
+    );
+  }
+
+  return (
+    <div style={{ background: '#fff', borderRadius: 14, padding: 20, marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#1C1C1E' }}>급여명세서 생성</div>
+        <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', color: '#8E8E93', fontSize: 12, cursor: 'pointer' }}>닫기</button>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+        {/* 입력 폼 */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <label style={lbl}>담당자 성명<input value={name} onChange={e => setName(e.target.value)} style={inp} /></label>
+            <label style={lbl}>직위<input value={title} onChange={e => setTitle(e.target.value)} style={inp} /></label>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+            <label style={lbl}>사업기간 시작<input type="date" value={periodStart} onChange={e => setPeriodStart(e.target.value)} style={inp} /></label>
+            <label style={lbl}>사업기간 종료<input type="date" value={periodEnd} onChange={e => setPeriodEnd(e.target.value)} style={inp} /></label>
+            <label style={lbl}>지급일<input type="date" value={payDate} onChange={e => setPayDate(e.target.value)} style={inp} /></label>
+          </div>
+
+          <div style={{ fontSize: 12, color: '#8E8E93', marginTop: 6 }}>지급 내역</div>
+          {pays.map((p, i) => (
+            <div key={i} style={{ display: 'flex', gap: 8 }}>
+              <input value={p.label} onChange={e => updateLine(pays, setPays, i, { label: e.target.value })} placeholder="항목명" style={{ ...inp, flex: 1 }} />
+              <input value={p.amount} onChange={e => updateLine(pays, setPays, i, { amount: e.target.value })} placeholder="금액" style={{ ...inp, width: 120 }} />
+              <button onClick={() => setPays(pays.filter((_, idx) => idx !== i))} style={{ background: 'none', border: 'none', color: '#CC2200', cursor: 'pointer' }}>✕</button>
+            </div>
+          ))}
+          <button onClick={() => setPays([...pays, { label: '', amount: '' }])} style={{ ...miniBtn, alignSelf: 'flex-start' }}>+ 지급 항목</button>
+
+          <div style={{ fontSize: 12, color: '#8E8E93', marginTop: 6 }}>공제 내역 (선택)</div>
+          {deductions.map((p, i) => (
+            <div key={i} style={{ display: 'flex', gap: 8 }}>
+              <input value={p.label} onChange={e => updateLine(deductions, setDeductions, i, { label: e.target.value })} placeholder="항목명 (예: 소득세)" style={{ ...inp, flex: 1 }} />
+              <input value={p.amount} onChange={e => updateLine(deductions, setDeductions, i, { amount: e.target.value })} placeholder="금액" style={{ ...inp, width: 120 }} />
+              <button onClick={() => setDeductions(deductions.filter((_, idx) => idx !== i))} style={{ background: 'none', border: 'none', color: '#CC2200', cursor: 'pointer' }}>✕</button>
+            </div>
+          ))}
+          <button onClick={() => setDeductions([...deductions, { label: '', amount: '' }])} style={{ ...miniBtn, alignSelf: 'flex-start' }}>+ 공제 항목</button>
+
+          <button onClick={generate} disabled={busy || !name.trim()}
+            style={{ marginTop: 10, padding: '10px 0', borderRadius: 9, border: 'none', background: '#1C1C1E', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: busy || !name.trim() ? 0.6 : 1 }}>
+            {busy ? '생성 중…' : '생성해서 증빙파일로 첨부'}
+          </button>
+        </div>
+
+        {/* 미리보기 */}
+        <div>
+          <div ref={previewRef} style={{ background: '#fff', border: '1px solid #E5E5EA', padding: 28, fontFamily: F }}>
+            <div style={{ textAlign: 'center', fontSize: 18, fontWeight: 700, color: '#1C1C1E', marginBottom: 20 }}>급 여 명 세 서</div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginBottom: 16 }}>
+              <tbody>
+                <tr><td style={pslabel}>소속</td><td style={psval}>{orgName}</td><td style={pslabel}>성명</td><td style={psval}>{name || '-'}</td></tr>
+                <tr><td style={pslabel}>직위</td><td style={psval}>{title || '-'}</td><td style={pslabel}>지급일</td><td style={psval}>{payDate || '-'}</td></tr>
+                <tr><td style={pslabel}>사업기간</td><td style={psval} colSpan={3}>{periodStart || '-'} ~ {periodEnd || '-'}</td></tr>
+              </tbody>
+            </table>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr><th style={psth}>지급 항목</th><th style={psth}>금액</th><th style={psth}>공제 항목</th><th style={psth}>금액</th></tr>
+              </thead>
+              <tbody>
+                {Array.from({ length: Math.max(pays.length, deductions.length, 1) }).map((_, i) => (
+                  <tr key={i}>
+                    <td style={psval}>{pays[i]?.label || ''}</td>
+                    <td style={{ ...psval, textAlign: 'right' }}>{pays[i] ? num(pays[i].amount).toLocaleString() : ''}</td>
+                    <td style={psval}>{deductions[i]?.label || ''}</td>
+                    <td style={{ ...psval, textAlign: 'right' }}>{deductions[i] ? num(deductions[i].amount).toLocaleString() : ''}</td>
+                  </tr>
+                ))}
+                <tr><td style={{ ...psval, fontWeight: 700 }}>지급 합계</td><td style={{ ...psval, textAlign: 'right', fontWeight: 700 }}>{payTotal.toLocaleString()}</td>
+                    <td style={{ ...psval, fontWeight: 700 }}>공제 합계</td><td style={{ ...psval, textAlign: 'right', fontWeight: 700 }}>{deductionTotal.toLocaleString()}</td></tr>
+              </tbody>
+            </table>
+            <div style={{ marginTop: 16, textAlign: 'right', fontSize: 15, fontWeight: 800, color: '#1C1C1E' }}>
+              실지급액 {netPay.toLocaleString()}원
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const lbl: React.CSSProperties = { fontSize: 12, color: '#8E8E93', display: 'block' };
+const inp: React.CSSProperties = { display: 'block', width: '100%', marginTop: 4, padding: '8px 10px', borderRadius: 8, border: '1.5px solid #E5E5EA', fontSize: 13, fontFamily: F, boxSizing: 'border-box' };
+const pslabel: React.CSSProperties = { border: '1px solid #E5E5EA', padding: '7px 10px', background: '#F7F7F8', color: '#8E8E93', width: '15%' };
+const psval: React.CSSProperties = { border: '1px solid #E5E5EA', padding: '7px 10px', color: '#1C1C1E' };
+const psth: React.CSSProperties = { border: '1px solid #E5E5EA', padding: '7px 10px', background: '#F7F7F8', color: '#8E8E93', fontWeight: 600, fontSize: 12 };
+const miniBtn: React.CSSProperties = { padding: '5px 10px', borderRadius: 7, border: '1px solid #E5E5EA', background: '#fff', color: '#1C1C1E', fontSize: 12, cursor: 'pointer' };
+
 function UploadForm({ orgId, itemId, uploadedBy }: { orgId: string; itemId: string; uploadedBy: string }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [docType, setDocType] = useState(EVIDENCE_DOC_TYPES[0].key);
@@ -98,6 +238,12 @@ export default function BudgetItemDetailPage() {
             );
           })}
         </div>
+
+        {item.항 === '인건비' && (
+          <div style={{ marginTop: 16 }}>
+            <PayslipGenerator orgId={org.id} itemId={item.id} orgName={org.name} defaultTotal={item.금액} uploadedBy={user?.email ?? user?.uid ?? ''} />
+          </div>
+        )}
 
         <div style={{ background: '#fff', borderRadius: 14, padding: 20, marginTop: 16 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#1C1C1E', marginBottom: 10 }}>첨부파일</div>

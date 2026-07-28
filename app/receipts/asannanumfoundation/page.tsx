@@ -360,9 +360,12 @@ function MainPage({ org }: { org: Org }) {
                         </td>
                         <td style={td}>
                           {st && (
-                            <span style={{ padding: '3px 9px', borderRadius: 7, fontSize: 11, fontWeight: 700, background: STATUS_STYLE[st.status].bg, color: STATUS_STYLE[st.status].color }}>
-                              {st.status}{st.warning ? ' ⚠️' : ''}
-                            </span>
+                            <button
+                              onClick={() => updateBudgetItem(org.id, it.id, { 수동완료: !it.수동완료 })}
+                              title={it.수동완료 ? '클릭하면 자동 판정으로 되돌립니다' : '필요서류 없어도 완료로 강제 처리'}
+                              style={{ padding: '3px 9px', borderRadius: 7, fontSize: 11, fontWeight: 700, border: 'none', cursor: 'pointer', background: STATUS_STYLE[st.status].bg, color: STATUS_STYLE[st.status].color }}>
+                              {st.status}{st.manual ? ' 📌' : ''}{st.warning ? ' ⚠️' : ''}
+                            </button>
                           )}
                         </td>
                         <td style={td}>{getRequiredDocs(it).length}종</td>

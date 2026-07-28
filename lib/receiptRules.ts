@@ -13,6 +13,7 @@ export type BudgetItem = {
   계약형태?: ContractType;   // 외주용역비에서만 사용
   지출유형?: OpsExpenseType; // 운영비에서만 사용
   집행상태?: ExecutionStatus; // 기본값 '미집행'으로 취급
+  수동완료?: boolean; // true면 필요서류 미비와 무관하게 증빙상태를 '완료'로 강제 처리
 };
 
 export const COMPARATIVE_QUOTE_THRESHOLD = 3_000_000;
@@ -111,10 +112,14 @@ export type ItemStatus = '완료' | '부분완료' | '미비';
 export function computeItemStatus(
   item: BudgetItem,
   attachedDocKeys: string[],
-): { status: ItemStatus; missing: RequiredDoc[]; warning?: string } {
+): { status: ItemStatus; missing: RequiredDoc[]; warning?: string; manual?: boolean } {
   const required = getRequiredDocs(item);
   const attached = new Set(attachedDocKeys);
   const missing = required.filter(d => !attached.has(d.key));
+
+  if (item.수동완료) {
+    return { status: '완료', missing: [], manual: true };
+  }
 
   let warning: string | undefined;
   if (item.금액 > COMPARATIVE_QUOTE_THRESHOLD && !attached.has('comparative_quote')) {

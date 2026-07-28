@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useReceiptSession } from '@/lib/useReceiptSession';
-import { watchBudgetItems, watchEvidenceFiles, uploadEvidenceFile, deleteEvidenceFile, type BudgetItemDoc, type EvidenceFileDoc } from '@/lib/receipts';
+import { watchBudgetItems, watchEvidenceFiles, uploadEvidenceFile, deleteEvidenceFile, updateBudgetItem, type BudgetItemDoc, type EvidenceFileDoc } from '@/lib/receipts';
 import { getRequiredDocs, computeItemStatus, needsReclassifyNote, EVIDENCE_DOC_TYPES, type RequiredDoc } from '@/lib/receiptRules';
 
 const F = "-apple-system,'SF Pro Display',BlinkMacSystemFont,'Helvetica Neue',sans-serif";
@@ -281,11 +281,14 @@ export default function BudgetItemDetailPage() {
               <h1 style={{ fontSize: 18, fontWeight: 700, color: '#1C1C1E', margin: '4px 0' }}>{item.세목}</h1>
               <div style={{ fontSize: 14, color: '#1C1C1E' }}>{item.금액.toLocaleString()}원</div>
             </div>
-            <span style={{ padding: '4px 10px', borderRadius: 8, fontSize: 12, fontWeight: 700,
+            <button
+              onClick={() => updateBudgetItem(org.id, item.id, { 수동완료: !item.수동완료 })}
+              title={item.수동완료 ? '클릭하면 자동 판정으로 되돌립니다' : '필요서류 없어도 완료로 강제 처리'}
+              style={{ padding: '4px 10px', borderRadius: 8, fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer',
               background: status.status === '완료' ? '#D4F5DF' : status.status === '부분완료' ? '#FFF9D4' : '#FFE0DE',
               color: status.status === '완료' ? '#1A8C3A' : status.status === '부분완료' ? '#B07800' : '#CC2200' }}>
-              {status.status}
-            </span>
+              {status.status}{status.manual ? ' 📌' : ''}
+            </button>
           </div>
           {status.warning && <div style={{ marginTop: 10, fontSize: 12, color: '#CC2200' }}>⚠️ {status.warning}</div>}
           {reclassifyNote && <div style={{ marginTop: 10, fontSize: 12, color: '#B07800' }}>ℹ️ {reclassifyNote}</div>}

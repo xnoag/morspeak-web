@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "www.apple.com" },
     ],
   },
+  async rewrites() {
+    return [
+      { source: "/교육", destination: "/training" },
+    ];
+  },
 };
 
 export default nextConfig;

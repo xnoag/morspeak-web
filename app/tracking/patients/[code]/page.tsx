@@ -263,7 +263,7 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
         <div style={{display:'flex',alignItems:'center',gap:4}}>
           <input value={careEmailInput} onChange={e=>setCareEmailInput(e.target.value)}
             onBlur={async()=>{ await setDoc(doc(getDb(),'featureFlags',code),{careEmail:careEmailInput},{merge:true}) }}
-            placeholder="unit01" style={{width:70,padding:'4px 8px',borderRadius:8,border:'1px solid rgba(255,255,255,0.15)',background:'rgba(255,255,255,0.1)',fontSize:11,fontFamily:M,outline:'none',color:'#fff'}}/>
+            placeholder="unit__" style={{width:70,padding:'4px 8px',borderRadius:8,border:'1px solid rgba(255,255,255,0.15)',background:'rgba(255,255,255,0.1)',fontSize:11,fontFamily:M,outline:'none',color:'#fff'}}/>
           <span style={{fontSize:11,color:'rgba(255,255,255,0.45)',fontFamily:M}}>@morspeak.com</span>
         </div>
         <div style={{flex:1}}/>

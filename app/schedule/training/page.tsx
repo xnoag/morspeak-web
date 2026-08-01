@@ -35,7 +35,7 @@ const fmtRange = (t: string) => {
   return `${t}~${end}`;
 };
 
-type Booking = { name: string; contactPhone: string; meetingType: string; bookedAt: string };
+type Booking = { name: string; contactPhone: string; bookedAt: string };
 const slotId = (date: string, time: string) => `${date.replace(/-/g, '')}-${time.replace(':', '')}`;
 
 const inputStyle: React.CSSProperties = {
@@ -50,7 +50,6 @@ export default function TrainingSchedulePage() {
   const [selected, setSelected] = useState<{ date: string; time: string } | null>(null);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [meetingType, setMeetingType] = useState<'kakao' | 'zoom' | ''>('');
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<{ date: string; time: string; dateLabel: string } | null>(null);
   const [slotsReady, setSlotsReady] = useState(false);
@@ -69,7 +68,7 @@ export default function TrainingSchedulePage() {
   }, []);
 
   const handleBook = async () => {
-    if (!selected || !name.trim() || !phone.trim() || !meetingType) return;
+    if (!selected || !name.trim() || !phone.trim()) return;
     const id = slotId(selected.date, selected.time);
     const savedSelected = { ...selected };
     setSubmitting(true);
@@ -80,13 +79,13 @@ export default function TrainingSchedulePage() {
         if (snap.exists() && (snap.data() as Booking).name) throw new Error('ALREADY_BOOKED');
         tx.set(slotDoc, {
           date: savedSelected.date, time: savedSelected.time,
-          name: name.trim(), contactPhone: phone.trim(), meetingType,
+          name: name.trim(), contactPhone: phone.trim(),
           bookedAt: new Date().toISOString(),
         });
       });
       const dateLabel = DATES.find(d => d.date === savedSelected.date)?.label ?? savedSelected.date;
       setDone({ ...savedSelected, dateLabel });
-      setSelected(null); setName(''); setPhone(''); setMeetingType('');
+      setSelected(null); setName(''); setPhone('');
     } catch (e) {
       if ((e as Error).message === 'ALREADY_BOOKED') {
         alert('방금 다른 분이 이 시간을 예약하셨습니다.\n페이지를 새로고침 후 다른 시간을 선택해주세요.');
@@ -106,8 +105,11 @@ export default function TrainingSchedulePage() {
         <p style={{ fontSize: 18, color: '#3C3C43', lineHeight: 1.7, marginBottom: 8 }}>
           <strong>{done.dateLabel}</strong><br />{fmtRange(done.time)}
         </p>
-        <p style={{ fontSize: 16, color: '#8E8E93', lineHeight: 1.7 }}>
+        <p style={{ fontSize: 16, color: '#8E8E93', lineHeight: 1.7, marginBottom: 16 }}>
           확인 후 담당자가 연락드릴 예정입니다.<br />감사합니다 🙏
+        </p>
+        <p style={{ fontSize: 15, color: '#1C1C1E', lineHeight: 1.7, background: '#F5F5F7', borderRadius: 12, padding: '14px 16px' }}>
+          📱 예약하신 시간에 맞춰 환자분이 모스픽 앱 화면을 보고 계실 수 있도록 준비해주세요.
         </p>
       </div>
     </div>
@@ -119,10 +121,17 @@ export default function TrainingSchedulePage() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/morspeak-logo-icon.png" alt="Morspeak" style={{ height: 36, display: 'block', margin: '0 auto 12px' }} />
         <h1 style={{ fontSize: 22, fontWeight: 700, color: '#1C1C1E', marginBottom: 6 }}>원격 교육 신청</h1>
-        <p style={{ fontSize: 16, color: '#6E6E73', lineHeight: 1.6 }}>카카오톡 영상통화 또는 ZOOM으로 진행됩니다</p>
+        <p style={{ fontSize: 16, color: '#6E6E73', lineHeight: 1.6 }}>모스픽 앱을 통해 원격으로 진행됩니다</p>
       </div>
 
       <div style={{ maxWidth: 540, margin: '0 auto', padding: '24px 16px 48px' }}>
+
+        <div style={{ background: '#FFF6E5', border: '1px solid #F5D98E', borderRadius: 16, padding: '14px 16px', marginBottom: 16, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+          <span style={{ fontSize: 20 }}>📱</span>
+          <p style={{ fontSize: 14, color: '#7A5B00', lineHeight: 1.6, margin: 0 }}>
+            예약하신 시간에 맞춰 환자분이 모스픽 앱 화면을 보고 계실 수 있도록 미리 준비해주세요.
+          </p>
+        </div>
 
         {/* SECTION 1: 날짜·시간 선택 */}
         <div style={{ background: '#fff', borderRadius: 20, padding: '22px 20px', marginBottom: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.07)' }}>
@@ -201,28 +210,11 @@ export default function TrainingSchedulePage() {
               <label style={{ display: 'block', fontSize: 15, fontWeight: 600, color: '#3C3C43', marginBottom: 8 }}>연락처</label>
               <input value={phone} onChange={e => setPhone(formatPhone(e.target.value))} placeholder="010-0000-0000" inputMode="numeric" style={inputStyle} />
             </div>
-            <div style={{ marginBottom: 22 }}>
-              <label style={{ display: 'block', fontSize: 15, fontWeight: 600, color: '#3C3C43', marginBottom: 10 }}>교육 방식</label>
-              <div style={{ display: 'flex', gap: 10 }}>
-                {[{ val: 'kakao', label: '카카오톡 영상통화' }, { val: 'zoom', label: '온라인 ZOOM' }].map(({ val, label }) => (
-                  <button key={val} type="button" onClick={() => setMeetingType(val as 'kakao' | 'zoom')}
-                    style={{
-                      flex: 1, padding: '14px 0', borderRadius: 12,
-                      border: `2px solid ${meetingType === val ? '#1C1C1E' : '#D1D1D6'}`,
-                      background: meetingType === val ? '#1C1C1E' : '#fff',
-                      color: meetingType === val ? '#fff' : '#3C3C43',
-                      fontFamily: F, fontSize: 16, fontWeight: meetingType === val ? 700 : 400, cursor: 'pointer',
-                    }}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
             <button onClick={handleBook}
-              disabled={submitting || !name.trim() || !phone.trim() || !meetingType}
+              disabled={submitting || !name.trim() || !phone.trim()}
               style={{
                 width: '100%', padding: '16px', borderRadius: 14, border: 'none',
-                background: (!name.trim() || !phone.trim() || !meetingType || submitting) ? '#C7C7CC' : '#1C1C1E',
+                background: (!name.trim() || !phone.trim() || submitting) ? '#C7C7CC' : '#1C1C1E',
                 color: '#fff', fontSize: 18, fontWeight: 700, cursor: 'pointer', fontFamily: F,
               }}>
               {submitting ? '신청 중…' : '신청하기'}

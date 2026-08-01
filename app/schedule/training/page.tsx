@@ -26,19 +26,13 @@ const formatPhone = (v: string) => {
   return `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}`;
 };
 
-const fmtTime = (t: string) => {
-  const [h, m] = t.split(':').map(Number);
-  const period = h < 12 ? '오전' : '오후';
-  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  return m === 0 ? `${period} ${h12}시` : `${period} ${h12}시 ${m}분`;
-};
 const fmtRange = (t: string) => {
   const [h, m] = t.split(':').map(Number);
   const endM = m + 30;
   const endH = endM >= 60 ? h + 1 : h;
   const endMin = endM >= 60 ? endM - 60 : endM;
   const end = `${String(endH).padStart(2, '0')}:${String(endMin).padStart(2, '0')}`;
-  return `${fmtTime(t)} ~ ${fmtTime(end)}`;
+  return `${t}~${end}`;
 };
 
 type Booking = { name: string; contactPhone: string; meetingType: string; bookedAt: string };
@@ -140,13 +134,11 @@ export default function TrainingSchedulePage() {
             const morning = slots.filter(t => parseInt(t) < 12);
             const afternoon = slots.filter(t => parseInt(t) >= 12);
             const renderSlots = (list: string[]) => (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 8 }}>
                 {list.map(time => {
                   const id = slotId(date, time);
                   const booked = !!bookings[id];
                   const isSelected = selected?.date === date && selected?.time === time;
-                  const [hh, mm] = time.split(':').map(Number);
-                  const label12 = `${hh > 12 ? hh - 12 : hh}시${mm > 0 ? ` ${mm}분` : ''}`;
                   return (
                     <button key={time} disabled={booked || !slotsReady}
                       onClick={() => {
@@ -159,14 +151,15 @@ export default function TrainingSchedulePage() {
                         border: `2px solid ${isSelected ? '#1C1C1E' : booked ? '#E5E5EA' : '#D1D1D6'}`,
                         background: isSelected ? '#1C1C1E' : booked ? '#F5F5F7' : '#fff',
                         color: isSelected ? '#fff' : booked ? '#C7C7CC' : '#1C1C1E',
-                        fontFamily: F, fontSize: 17, fontWeight: 600,
+                        fontFamily: F, fontSize: 14, fontWeight: 600,
                         cursor: booked ? 'not-allowed' : 'pointer',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        textAlign: 'center', lineHeight: 1.3,
                         transition: 'all 0.12s',
                         textDecoration: booked ? 'line-through' : 'none',
                         opacity: slotsReady ? 1 : 0.4,
                       }}>
-                      {label12}
+                      {fmtRange(time)}
                     </button>
                   );
                 })}

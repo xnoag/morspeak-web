@@ -11,9 +11,9 @@ export function proxy(req: NextRequest) {
   } catch {
     // leave as-is if malformed
   }
-  if (decodedPathname === '/교육' || decodedPathname === '/교육/') {
+  if (decodedPathname === '/사전검증' || decodedPathname === '/사전검증/') {
     const url = req.nextUrl.clone()
-    url.pathname = '/training'
+    url.pathname = '/schedule'
     return NextResponse.rewrite(url)
   }
 

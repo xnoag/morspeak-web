@@ -5,6 +5,18 @@ const PROTECTED_PREFIXES = ['/tracking', '/survey-admin']
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
 
+  let decodedPathname = pathname
+  try {
+    decodedPathname = decodeURIComponent(pathname)
+  } catch {
+    // leave as-is if malformed
+  }
+  if (decodedPathname === '/교육' || decodedPathname === '/교육/') {
+    const url = req.nextUrl.clone()
+    url.pathname = '/training'
+    return NextResponse.rewrite(url)
+  }
+
   const isProtected =
     PROTECTED_PREFIXES.some(p => pathname.startsWith(p)) && !pathname.startsWith('/tracking/login')
 
@@ -21,5 +33,5 @@ export function proxy(req: NextRequest) {
 }
 
 export const proxyConfig = {
-  matcher: ['/tracking/:path*', '/survey-admin/:path*'],
+  matcher: ['/((?!_next|api|favicon.ico).*)'],
 }

@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     return [
-      { source: "/교육", destination: "/training" },
+      { source: "/%EA%B5%90%EC%9C%A1", destination: "/training" },
     ];
   },
 };

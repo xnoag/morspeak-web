@@ -109,7 +109,7 @@ export default function TrainingSchedulePage() {
           확인 후 담당자가 연락드릴 예정입니다.<br />감사합니다 🙏
         </p>
         <p style={{ fontSize: 15, color: '#1C1C1E', lineHeight: 1.7, background: '#F5F5F7', borderRadius: 12, padding: '14px 16px' }}>
-          📱 예약하신 시간에 맞춰 환자분이 모스픽 앱 화면을 보고 계실 수 있도록 준비해주세요.
+          📱 예약하신 시간에 맞춰 환자분이 모스픽 앱 화면을 보고 계실 수 있도록 거치대에 아이패드를 끼운 후에 미리 준비해주세요.
         </p>
       </div>
     </div>
@@ -129,7 +129,7 @@ export default function TrainingSchedulePage() {
         <div style={{ background: '#FFF6E5', border: '1px solid #F5D98E', borderRadius: 16, padding: '14px 16px', marginBottom: 16, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
           <span style={{ fontSize: 20 }}>📱</span>
           <p style={{ fontSize: 14, color: '#7A5B00', lineHeight: 1.6, margin: 0 }}>
-            예약하신 시간에 맞춰 환자분이 모스픽 앱 화면을 보고 계실 수 있도록 미리 준비해주세요.
+            예약하신 시간에 맞춰 환자분이 모스픽 앱 화면을 보고 계실 수 있도록 거치대에 아이패드를 끼운 후에 미리 준비해주세요.
           </p>
         </div>
 

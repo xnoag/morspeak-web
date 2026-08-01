@@ -2671,7 +2671,7 @@ export default function AdminScreeningPage() {
                 <span style={{ fontSize:12,color:'#8E8E93' }}>{totalBooked}/{totalSlots} 예약</span>
                 <span style={{ fontSize:12,color:'#1A8C3A',fontWeight:600 }}>통화완료 {completedCount}/{totalBooked}</span>
               </div>
-              <a href="/사전검증" target="_blank"
+              <a href="/schedule/screening" target="_blank"
                 style={{ fontSize:12,fontWeight:600,padding:'6px 12px',borderRadius:8,background:'#1C1C1E',color:'#fff',textDecoration:'none' }}>
                 신청 링크 열기 ↗
               </a>

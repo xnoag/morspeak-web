@@ -112,6 +112,10 @@ const MODE_FLAGS: { key: string; label: string; morse: string; defaultOn: boolea
   { key: 'keyboardMode', label: '키보드 모드 진입', morse: '●●●●━ (11112)', defaultOn: true },
   { key: 'shortcut',     label: '단축어 모드 진입', morse: '━●●●● (21111)', defaultOn: false },
   { key: 'functionMode', label: '기능 모드 진입',   morse: '(기능 버튼)',    defaultOn: false },
+  // 켜면 관리자가 매 단계 "다음 단계"를 눌러주지 않아도, 환자 기기에서 로컬 "다음 단계" 버튼과
+  // 5초 자동 진행으로 튜토리얼을 스스로 끝까지 진행할 수 있음. 아래 교육온보딩 탭에서 여러 단계를
+  // 한 번에 체크해서 "단계 열기"로 큐에 넣어주면, 그 뒤로는 관리자 개입 없이 계속 진행됨
+  { key: 'selfGuidedTutorial', label: '자율 온보딩 (관리자 개입 없이 진행)', morse: '(설정 화면)', defaultOn: false },
 ]
 
 export default function PatientDetail({ params }: { params: Promise<{ code: string }> }) {

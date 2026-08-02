@@ -221,6 +221,13 @@ export default function AdminScreeningPage() {
   const screeningUnsubRef = useRef<(() => void) | null>(null);
   const qualUnsubRef = useRef<(() => void) | null>(null);
   const appsUnsubRef = useRef<(() => void) | null>(null);
+  useEffect(() => {
+    return () => {
+      screeningUnsubRef.current?.();
+      qualUnsubRef.current?.();
+      appsUnsubRef.current?.();
+    };
+  }, []);
   const [applications, setApplications] = useState<Application[]>([]);
   const [appLoading, setAppLoading] = useState(false);
   const [expandedAppId, setExpandedAppId] = useState<string | null>(null);

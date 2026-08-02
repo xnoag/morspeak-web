@@ -15,6 +15,7 @@ type Booking = {
   contactPhone: string;
   bookedAt: string;
   patientCode?: string;
+  memo?: string;
 };
 
 const fmtRange = (t: string) => {
@@ -37,6 +38,7 @@ export default function TrainingAdminPage() {
   const [authed, setAuthed] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [codeDrafts, setCodeDrafts] = useState<Record<string, string>>({});
+  const [memoDrafts, setMemoDrafts] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!authed) return;
@@ -53,6 +55,11 @@ export default function TrainingAdminPage() {
   const saveCode = async (id: string) => {
     const code = (codeDrafts[id] ?? '').trim();
     await updateDoc(doc(db, 'training_slots', id), { patientCode: code });
+  };
+
+  const saveMemo = async (id: string) => {
+    const memo = (memoDrafts[id] ?? '').trim();
+    await updateDoc(doc(db, 'training_slots', id), { memo });
   };
 
   const remove = async (id: string) => {
@@ -100,24 +107,34 @@ export default function TrainingAdminPage() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {rows.map(b => (
-                <div key={b.id} style={{ background: '#fff', borderRadius: 14, padding: '14px 16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
-                  <div style={{ minWidth: 100, fontSize: 15, fontWeight: 700, color: '#1C1C1E' }}>{fmtRange(b.time)}</div>
-                  <div style={{ flex: 1, minWidth: 140 }}>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: '#1C1C1E' }}>{b.name}</div>
-                    <div style={{ fontSize: 13, color: '#8E8E93' }}>{b.contactPhone}</div>
+                <div key={b.id} style={{ background: '#fff', borderRadius: 14, padding: '14px 16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                    <div style={{ minWidth: 100, fontSize: 15, fontWeight: 700, color: '#1C1C1E' }}>{fmtRange(b.time)}</div>
+                    <div style={{ flex: 1, minWidth: 140 }}>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: '#1C1C1E' }}>{b.name}</div>
+                      <div style={{ fontSize: 13, color: '#8E8E93' }}>{b.contactPhone}</div>
+                    </div>
+                    <input
+                      value={codeDrafts[b.id] ?? b.patientCode ?? ''}
+                      onChange={e => setCodeDrafts(p => ({ ...p, [b.id]: e.target.value }))}
+                      onBlur={() => saveCode(b.id)}
+                      onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+                      placeholder="환자 코드 매칭"
+                      style={{ width: 130, padding: '8px 10px', border: '1.5px solid #E5E5EA', borderRadius: 8, fontSize: 13, fontFamily: F, outline: 'none' }}
+                    />
+                    <button onClick={() => remove(b.id)}
+                      style={{ padding: '8px 12px', borderRadius: 8, border: 'none', background: '#FDEBEC', color: '#D92D20', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: F }}>
+                      삭제
+                    </button>
                   </div>
-                  <input
-                    value={codeDrafts[b.id] ?? b.patientCode ?? ''}
-                    onChange={e => setCodeDrafts(p => ({ ...p, [b.id]: e.target.value }))}
-                    onBlur={() => saveCode(b.id)}
-                    onKeyDown={e => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
-                    placeholder="환자 코드 매칭"
-                    style={{ width: 130, padding: '8px 10px', border: '1.5px solid #E5E5EA', borderRadius: 8, fontSize: 13, fontFamily: F, outline: 'none' }}
+                  <textarea
+                    value={memoDrafts[b.id] ?? b.memo ?? ''}
+                    onChange={e => setMemoDrafts(p => ({ ...p, [b.id]: e.target.value }))}
+                    onBlur={() => saveMemo(b.id)}
+                    placeholder="교육 내용 메모 (진행 상황, 특이사항 등)"
+                    rows={2}
+                    style={{ width: '100%', padding: '8px 10px', border: '1.5px solid #E5E5EA', borderRadius: 8, fontSize: 13, fontFamily: F, outline: 'none', resize: 'vertical', boxSizing: 'border-box', color: '#1C1C1E' }}
                   />
-                  <button onClick={() => remove(b.id)}
-                    style={{ padding: '8px 12px', borderRadius: 8, border: 'none', background: '#FDEBEC', color: '#D92D20', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: F }}>
-                    삭제
-                  </button>
                 </div>
               ))}
             </div>

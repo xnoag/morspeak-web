@@ -282,6 +282,17 @@ export default function AdminScreeningPage() {
   const screeningUnsubRef = useRef<(() => void) | null>(null);
   const qualUnsubRef = useRef<(() => void) | null>(null);
   const appsUnsubRef = useRef<(() => void) | null>(null);
+  // screeningUnsubRef/qualUnsubRef/appsUnsubRef는 load()/loadApplications()/loadQualScores()가
+  // 다시 호출될 때만 이전 구독을 해제한다. 컴포넌트가 언마운트될 때(다른 라우트로 이동 등)
+  // 구독을 끊어주지 않으면 이 페이지를 떠난 뒤에도 백그라운드에서 계속 Firestore 읽기가
+  // 발생해 과금으로 이어지므로, 언마운트 시 반드시 정리한다.
+  useEffect(() => {
+    return () => {
+      screeningUnsubRef.current?.();
+      qualUnsubRef.current?.();
+      appsUnsubRef.current?.();
+    };
+  }, []);
   const [applications, setApplications] = useState<Application[]>([]);
   const [appLoading, setAppLoading] = useState(false);
   const [expandedAppId, setExpandedAppId] = useState<string | null>(null);

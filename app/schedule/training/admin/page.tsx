@@ -31,6 +31,7 @@ const DATE_LABELS: Record<string, string> = {
   '2026-08-02': '8월 2일 (일)',
   '2026-08-03': '8월 3일 (월)',
   '2026-08-04': '8월 4일 (화)',
+  '2026-08-07': '8월 7일 (금)',
 };
 
 export default function TrainingAdminPage() {

@@ -116,6 +116,9 @@ const MODE_FLAGS: { key: string; label: string; morse: string; defaultOn: boolea
   // 5초 자동 진행으로 튜토리얼을 스스로 끝까지 진행할 수 있음. 아래 교육온보딩 탭에서 여러 단계를
   // 한 번에 체크해서 "단계 열기"로 큐에 넣어주면, 그 뒤로는 관리자 개입 없이 계속 진행됨
   { key: 'selfGuidedTutorial', label: '자율 온보딩 (관리자 개입 없이 진행)', morse: '(설정 화면)', defaultOn: false },
+  // 켜면 카메라(눈 깜빡임 감지) 대신 연결된 외장 키보드의 스페이스바로 장/단을 입력함 —
+  // 눈 깜빡임은 어렵지만 손가락은 움직일 수 있는 환자용
+  { key: 'oneKeyInput', label: '원키 입력 (외장 키보드 스페이스바로 장/단 입력)', morse: '(설정 화면)', defaultOn: false },
 ]
 
 export default function PatientDetail({ params }: { params: Promise<{ code: string }> }) {

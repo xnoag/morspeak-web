@@ -18,6 +18,7 @@ const DATES: { date: string; label: string; slots: string[] }[] = [
   { date: '2026-08-02', label: '8월 2일 (일)', slots: genSlots(15, 18) },
   { date: '2026-08-03', label: '8월 3일 (월)', slots: genSlots(13, 21) },
   { date: '2026-08-04', label: '8월 4일 (화)', slots: genSlots(11, 15) },
+  { date: '2026-08-07', label: '8월 7일 (금)', slots: genSlots(15, 19) },
 ];
 
 const formatPhone = (v: string) => {

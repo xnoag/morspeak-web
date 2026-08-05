@@ -20,6 +20,7 @@ type Booking = {
 
 const fmtRange = (t: string) => {
   const [h, m] = t.split(':').map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return t; // "방문" 같은 시간이 아닌 값은 그대로 표시
   const endM = m + 30;
   const endH = endM >= 60 ? h + 1 : h;
   const endMin = endM >= 60 ? endM - 60 : endM;
@@ -28,6 +29,7 @@ const fmtRange = (t: string) => {
 };
 
 const DATE_LABELS: Record<string, string> = {
+  '2026-08-05': '8월 5일 (수) · 방문 교육',
   '2026-08-02': '8월 2일 (일)',
   '2026-08-03': '8월 3일 (월)',
   '2026-08-04': '8월 4일 (화)',

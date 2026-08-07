@@ -11,6 +11,10 @@ type Entry = {
   id: string;
   name: string;
   phone: string;
+  patientName?: string;
+  diagnosis?: string;
+  relationship?: string;
+  region?: string;
   note?: string;
   contacted?: boolean;
   createdAt?: Timestamp;
@@ -77,9 +81,14 @@ export default function WaitlistAdminPage() {
         {position != null && (
           <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#1C1C1E', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{position}</div>
         )}
-        <div style={{ flex: 1, minWidth: 140 }}>
-          <div style={{ fontSize: 15, fontWeight: 600, color: '#1C1C1E' }}>{e.name}</div>
-          <div style={{ fontSize: 13, color: '#8E8E93' }}>{e.phone} · {fmtDate(e.createdAt)}</div>
+        <div style={{ flex: 1, minWidth: 180 }}>
+          <div style={{ fontSize: 15, fontWeight: 600, color: '#1C1C1E' }}>
+            {e.patientName || '(환우명 없음)'}
+            {e.diagnosis && <span style={{ fontSize: 12, fontWeight: 400, color: '#8E8E93' }}> · {e.diagnosis}</span>}
+          </div>
+          <div style={{ fontSize: 13, color: '#8E8E93' }}>
+            신청인 {e.name}{e.relationship ? `(${e.relationship})` : ''} · {e.phone} · {e.region ?? ''} · {fmtDate(e.createdAt)}
+          </div>
         </div>
         <button onClick={() => toggleContacted(e)}
           style={{ padding: '8px 12px', borderRadius: 8, border: 'none', background: e.contacted ? '#E5E5EA' : '#EAF6EC', color: e.contacted ? '#6E6E73' : '#1A8C3A', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: F }}>

@@ -191,6 +191,99 @@ function DetailPanel({ r, onDelete }: { r: SurveyRow; onDelete: (r: SurveyRow) =
   );
 }
 
+// 문항별로 전체 응답자의 답변 분포를 막대그래프로 보여주는 요약 뷰 — 응답을 한 건씩
+// 훑어보는 대신, 몇 명이 어떤 답을 골랐는지 문항 단위로 한눈에 파악할 수 있게 한다.
+function optionCounts(q: SurveyQuestion, rows: SurveyRow[]) {
+  const counts = new Map<string, number>();
+  let answeredCount = 0;
+  for (const r of rows) {
+    const v = r.answers[q.id];
+    const values = Array.isArray(v) ? v : v ? [v] : [];
+    if (values.length === 0) continue;
+    answeredCount++;
+    for (const val of values) counts.set(val, (counts.get(val) ?? 0) + 1);
+  }
+  return { counts, answeredCount };
+}
+
+function SummaryQuestion({ q, rows }: { q: SurveyQuestion; rows: SurveyRow[] }) {
+  if (q.type === 'text') {
+    const answered = rows.filter((r) => typeof r.answers[q.id] === 'string' && (r.answers[q.id] as string).length > 0);
+    return (
+      <div style={{ padding: '14px 16px', borderTop: '1px solid #f2f2f7' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
+          <span style={{ fontSize: 13, color: '#636366', flex: 1 }}>{q.title}</span>
+          <span style={{ fontSize: 12, color: '#8e8e93', flexShrink: 0 }}>{answered.length}명 응답</span>
+        </div>
+        {answered.length > 0 && (
+          <div style={{ display: 'grid', gap: 6 }}>
+            {answered.slice(0, 5).map((r) => (
+              <div key={r.id} style={{ fontSize: 12.5, color: '#1d1d1f', background: '#fafafa', borderRadius: 8, padding: '6px 10px', whiteSpace: 'pre-line' }}>
+                “{r.answers[q.id] as string}”
+              </div>
+            ))}
+            {answered.length > 5 && <div style={{ fontSize: 11.5, color: '#aeaeb2' }}>+ {answered.length - 5}건 더 (상세 보기에서 확인)</div>}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const { counts, answeredCount } = optionCounts(q, rows);
+  const maxCount = Math.max(1, ...Array.from(counts.values()));
+  return (
+    <div style={{ padding: '14px 16px', borderTop: '1px solid #f2f2f7' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
+        <span style={{ fontSize: 13, color: '#636366', flex: 1 }}>{q.title}</span>
+        <span style={{ fontSize: 12, color: '#8e8e93', flexShrink: 0 }}>{answeredCount}명 응답</span>
+      </div>
+      <div style={{ display: 'grid', gap: 7 }}>
+        {(q.options ?? []).map((o) => {
+          const c = counts.get(o.value) ?? 0;
+          const pct = answeredCount > 0 ? Math.round((c / answeredCount) * 100) : 0;
+          return (
+            <div key={o.value} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 12.5, color: '#1d1d1f', width: 190, flexShrink: 0, lineHeight: 1.4 }}>{o.label}</span>
+              <div style={{ flex: 1, height: 16, background: '#f2f2f7', borderRadius: 4, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${(c / maxCount) * 100}%`, background: '#007AFF', borderRadius: 4, transition: 'width .3s' }} />
+              </div>
+              <span style={{ fontSize: 12, color: '#636366', width: 64, flexShrink: 0, textAlign: 'right', fontFamily: M }}>{c}명 ({pct}%)</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function SummaryView({ rows }: { rows: SurveyRow[] }) {
+  return (
+    <div style={{ flex: 1, overflow: 'auto', padding: '24px 28px' }}>
+      <div style={{ maxWidth: 760, margin: '0 auto' }}>
+        {GROUPED_QUESTIONS.map((section) => (
+          <div key={section.key} style={{ marginBottom: 26 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#007AFF', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '.04em' }}>
+              [{section.key}] {section.label}
+            </div>
+            {section.groups.map((group, gi) => (
+              <div key={gi} style={{ marginBottom: 14 }}>
+                {group.label && <div style={{ fontSize: 12, fontWeight: 600, color: '#8e8e93', marginBottom: 8 }}>{group.label}</div>}
+                <div style={{ background: '#fff', borderRadius: 12, border: '1px solid rgba(0,0,0,0.07)', overflow: 'hidden' }}>
+                  {group.questions.map((q, qi) => (
+                    <div key={q.id} style={{ marginTop: qi > 0 ? -1 : 0 }}>
+                      <SummaryQuestion q={q} rows={rows} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // 응답자가 행, 문항이 열인 표 형태로 전체 응답을 한 화면에서 훑어볼 수 있게 한다 —
 // 엑셀 내보내기와 같은 데이터 구조를 화면에서 그대로 보여주는 버전.
 function TableView({ rows }: { rows: SurveyRow[] }) {
@@ -240,7 +333,7 @@ export default function SurveyAdminPage() {
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null); // 모바일: 펼친 카드 id
   const [selectedId, setSelectedId] = useState<string | null>(null); // PC: 선택된 응답 id
-  const [viewMode, setViewMode] = useState<'detail' | 'table'>('detail'); // PC: 목록+상세 / 전체 표 보기
+  const [viewMode, setViewMode] = useState<'detail' | 'table' | 'summary'>('detail'); // PC: 목록+상세 / 전체 표 / 문항별 요약
 
   useEffect(() => {
     // surveyType은 클라이언트에서 필터링한다 — where+orderBy 조합은 Firestore 복합 인덱스가
@@ -357,12 +450,27 @@ export default function SurveyAdminPage() {
             style={{ paddingLeft: 12, paddingRight: 12, height: 32, borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.1)', fontSize: 13, outline: 'none', fontFamily: F, flex: isMobile ? 1 : undefined, width: isMobile ? undefined : 200, color: '#fff' }}
           />
           {!isMobile && (
-            <button
-              onClick={() => setViewMode((m) => (m === 'detail' ? 'table' : 'detail'))}
-              style={{ ...iconBtn, flexShrink: 0 }}
-            >
-              {viewMode === 'detail' ? '표로 보기' : '상세 보기'}
-            </button>
+            <div style={{ display: 'flex', gap: 2, background: 'rgba(255,255,255,0.1)', borderRadius: 8, padding: 2, flexShrink: 0 }}>
+              {([
+                ['summary', '요약보기'],
+                ['detail', '상세보기'],
+                ['table', '표로보기'],
+              ] as const).map(([mode, label]) => (
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  style={{
+                    height: 28, padding: '0 10px', borderRadius: 6, border: 'none',
+                    background: viewMode === mode ? '#fff' : 'transparent',
+                    color: viewMode === mode ? '#1d1d1f' : 'rgba(255,255,255,0.85)',
+                    fontSize: 12, fontWeight: viewMode === mode ? 700 : 500, cursor: 'pointer', fontFamily: F,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           )}
           <button onClick={exportExcel} style={{ ...iconBtn, flexShrink: 0 }}>
             엑셀 내보내기
@@ -438,6 +546,9 @@ export default function SurveyAdminPage() {
       ) : viewMode === 'table' ? (
         // 응답자가 행, 문항이 열인 표로 전체 응답을 한 화면에서 훑어보는 모드.
         <TableView rows={filtered} />
+      ) : viewMode === 'summary' ? (
+        // 문항별 답변 분포를 막대그래프로 보여주는 요약 모드.
+        <SummaryView rows={filtered} />
       ) : (
         // PC: 좌측 응답 목록 + 우측 선택된 응답의 상세(요약 바 + 섹션별 문항)를 같이 보여주는
         // 2단 레이아웃. 아코디언 방식(행 펼치기)보다 여러 응답을 빠르게 훑어보기에 낫다.

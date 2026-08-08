@@ -206,6 +206,18 @@ function optionCounts(q: SurveyQuestion, rows: SurveyRow[]) {
   return { counts, answeredCount };
 }
 
+// showIf가 있는 문항은 특정 응답에 따라 일부 응답자에게만 노출되므로, 응답 인원이
+// 전체 응답자 수보다 적게 나오는 게 정상이다 — 요약 화면에 그 이유를 바로 보여준다.
+function ConditionalNote({ q, rows, answeredCount }: { q: SurveyQuestion; rows: SurveyRow[]; answeredCount: number }) {
+  if (!q.showIf) return null;
+  const eligible = rows.filter((r) => q.showIf!(r.answers)).length;
+  return (
+    <div style={{ fontSize: 11, color: '#ff9500', marginTop: -2, marginBottom: 8 }}>
+      조건부 문항 — 전체 {rows.length}명 중 {eligible}명에게만 노출됨 (그중 {answeredCount}명 응답)
+    </div>
+  );
+}
+
 function SummaryQuestion({ q, rows }: { q: SurveyQuestion; rows: SurveyRow[] }) {
   if (q.type === 'text') {
     const answered = rows.filter((r) => typeof r.answers[q.id] === 'string' && (r.answers[q.id] as string).length > 0);
@@ -215,14 +227,14 @@ function SummaryQuestion({ q, rows }: { q: SurveyQuestion; rows: SurveyRow[] }) 
           <span style={{ fontSize: 13, color: '#636366', flex: 1 }}>{q.title}</span>
           <span style={{ fontSize: 12, color: '#8e8e93', flexShrink: 0 }}>{answered.length}명 응답</span>
         </div>
+        <ConditionalNote q={q} rows={rows} answeredCount={answered.length} />
         {answered.length > 0 && (
           <div style={{ display: 'grid', gap: 6 }}>
-            {answered.slice(0, 5).map((r) => (
+            {answered.map((r) => (
               <div key={r.id} style={{ fontSize: 12.5, color: '#1d1d1f', background: '#fafafa', borderRadius: 8, padding: '6px 10px', whiteSpace: 'pre-line' }}>
                 “{r.answers[q.id] as string}”
               </div>
             ))}
-            {answered.length > 5 && <div style={{ fontSize: 11.5, color: '#aeaeb2' }}>+ {answered.length - 5}건 더 (상세 보기에서 확인)</div>}
           </div>
         )}
       </div>
@@ -237,6 +249,7 @@ function SummaryQuestion({ q, rows }: { q: SurveyQuestion; rows: SurveyRow[] }) 
         <span style={{ fontSize: 13, color: '#636366', flex: 1 }}>{q.title}</span>
         <span style={{ fontSize: 12, color: '#8e8e93', flexShrink: 0 }}>{answeredCount}명 응답</span>
       </div>
+      <ConditionalNote q={q} rows={rows} answeredCount={answeredCount} />
       <div style={{ display: 'grid', gap: 7 }}>
         {(q.options ?? []).map((o) => {
           const c = counts.get(o.value) ?? 0;

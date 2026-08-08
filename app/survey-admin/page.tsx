@@ -269,23 +269,30 @@ function SummaryQuestion({ q, rows }: { q: SurveyQuestion; rows: SurveyRow[] }) 
   );
 }
 
-// 조건부 문항(showIf)이 어떤 답변에 따라 나타나는지 트리 형태로 보여준다.
+// 조건부 문항(showIf)들은 일반 목록 대신 여기서 실제 문항 내용(제목+응답 막대그래프)을
+// 그대로 노드로 써서 마인드맵 형태로 연결해 보여준다. 가로로 길어지므로 좌우 스크롤.
 // lib/survey-questions.ts의 showIf 로직을 손으로 그대로 옮긴 것이라, 문항 조건이
-// 바뀌면 이 다이어그램도 같이 고쳐줘야 한다.
-function FlowNode({ id, title, sub }: { id: string; title: string; sub?: string }) {
+// 바뀌면 이 트리 구조도 같이 고쳐줘야 한다.
+const BRANCH_QUESTION_IDS = new Set(['A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'B4', 'B5']);
+
+function findQ(id: string): SurveyQuestion {
+  const q = SURVEY_QUESTIONS.find((x) => x.id === id);
+  if (!q) throw new Error(`unknown question id: ${id}`);
+  return q;
+}
+
+function TreeNode({ id, rows, width = 320 }: { id: string; rows: SurveyRow[]; width?: number }) {
   return (
-    <div style={{ background: '#fff', border: '1.5px solid #1d1d1f', borderRadius: 10, padding: '8px 12px', display: 'inline-block', minWidth: 120 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: '#007AFF', fontFamily: M, marginBottom: 2 }}>{id}</div>
-      <div style={{ fontSize: 12, color: '#1d1d1f', lineHeight: 1.4 }}>{title}</div>
-      {sub && <div style={{ fontSize: 10.5, color: '#aeaeb2', marginTop: 3 }}>{sub}</div>}
+    <div style={{ width, flexShrink: 0, background: '#fff', border: '1.5px solid #1d1d1f', borderRadius: 12, overflow: 'hidden' }}>
+      <SummaryQuestion q={findQ(id)} rows={rows} />
     </div>
   );
 }
 
 function FlowArrow({ label }: { label: string }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '4px 0' }}>
-      <div style={{ width: 1.5, height: 14, background: '#c7c7cc' }} />
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '6px 0', flexShrink: 0 }}>
+      <div style={{ width: 1.5, height: 16, background: '#c7c7cc' }} />
       <div style={{ fontSize: 10.5, color: '#ff9500', background: '#fff8ec', borderRadius: 6, padding: '2px 8px', whiteSpace: 'nowrap', fontWeight: 600, margin: '2px 0' }}>
         {label}
       </div>
@@ -294,7 +301,22 @@ function FlowArrow({ label }: { label: string }) {
   );
 }
 
-function BranchDiagram() {
+// 가로 방향(왼쪽 부모 → 오른쪽 자식)으로 흐르는 화살표. 세로 트리 사이를 가로로 이어줄 때 쓴다.
+function FlowArrowRight({ label }: { label: string }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', margin: '0 6px', flexShrink: 0 }}>
+      <div style={{ fontSize: 10.5, color: '#ff9500', background: '#fff8ec', borderRadius: 6, padding: '2px 8px', whiteSpace: 'nowrap', fontWeight: 600, marginBottom: 4 }}>
+        {label}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{ width: 24, height: 1.5, background: '#c7c7cc' }} />
+        <div style={{ width: 0, height: 0, borderTop: '4px solid transparent', borderBottom: '4px solid transparent', borderLeft: '5px solid #c7c7cc' }} />
+      </div>
+    </div>
+  );
+}
+
+function BranchDiagram({ rows }: { rows: SurveyRow[] }) {
   const [open, setOpen] = useState(false);
   return (
     <div style={{ background: '#fff', borderRadius: 12, border: '1px solid rgba(0,0,0,0.07)', marginBottom: 20 }}>
@@ -302,44 +324,46 @@ function BranchDiagram() {
         onClick={() => setOpen((v) => !v)}
         style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', fontFamily: F }}
       >
-        <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1d1d1f' }}>🔀 조건부 문항 분기도</span>
+        <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1d1d1f' }}>🔀 조건부 문항 마인드맵 (A2~A8, B4~B5)</span>
         <span style={{ fontSize: 12, color: '#8e8e93' }}>{open ? '접기 ▲' : '펼치기 ▼'}</span>
       </button>
       {open && (
         <div style={{ padding: '4px 20px 24px', overflowX: 'auto' }}>
-          <div style={{ display: 'flex', gap: 48, minWidth: 640, paddingBottom: 4 }}>
-            {/* Tree A: A2의 답변에 따라 A3~A8 중 무엇이 보일지 갈림 */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <FlowNode id="A2" title="현재 소통 방법 (다중 선택)" />
-              <div style={{ display: 'flex', gap: 40, marginTop: 4 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <FlowArrow label="'안구마우스 등' 선택 시" />
-                  <FlowNode id="A7" title="보조기기 사용 빈도" />
-                  <FlowArrow label="'전혀/거의/가끔 사용' 응답 시" />
-                  <FlowNode id="A8" title="미사용 이유 (2개 선택)" sub="A5의 '네' 응답에서도 연결됨" />
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <FlowArrow label="선택 안 함" />
-                  <FlowNode id="A3" title="보조기기 도입 고려 여부" />
-                  <FlowArrow label="'네' 응답 시" />
-                  <div style={{ display: 'flex', gap: 16 }}>
-                    <FlowNode id="A4" title="고려한 제품명" />
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                      <FlowNode id="A5" title="실제 도입 여부" />
-                      <FlowArrow label="'네' 응답 시 → A8로" />
-                    </div>
-                    <FlowNode id="A6" title="도입 시 어려웠던 점 (2개 선택)" />
-                  </div>
+          {/* Tree A: A2 응답에 따라 A3~A8 중 무엇이 보일지 갈림. 위쪽 줄은 "안구마우스 등"
+              선택 시 흐름(A7), 아래쪽 줄은 미선택 시 흐름(A3→A4/A5/A6)이며 둘 다 결국 A8로
+              모인다 — A8은 아래쪽 줄 끝에 한 번만 그리고, 위쪽 줄에는 텍스트로만 연결을 표시. */}
+          <div style={{ display: 'flex', alignItems: 'center', width: 'max-content', marginBottom: 32 }}>
+            <TreeNode id="A2" rows={rows} width={340} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 28, marginLeft: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <FlowArrowRight label="'안구마우스 등' 선택 시" />
+                <TreeNode id="A7" rows={rows} width={300} />
+                <div style={{ marginLeft: 14, maxWidth: 150, fontSize: 11, color: '#ff9500', lineHeight: 1.5 }}>
+                  “전혀/거의/가끔 사용” 응답 시 → 아래쪽 A8로 연결
                 </div>
               </div>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <FlowArrowRight label="선택 안 함" />
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <TreeNode id="A3" rows={rows} width={300} />
+                  <FlowArrow label="'네' 응답 시" />
+                  <div style={{ display: 'flex', gap: 16 }}>
+                    <TreeNode id="A4" rows={rows} width={280} />
+                    <TreeNode id="A5" rows={rows} width={300} />
+                    <TreeNode id="A6" rows={rows} width={340} />
+                  </div>
+                </div>
+                <FlowArrowRight label="A5 '네' 응답 시" />
+                <TreeNode id="A8" rows={rows} width={360} />
+              </div>
             </div>
+          </div>
 
-            {/* Tree B: B4의 답변에 따라 B5가 보일지 갈림 */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <FlowNode id="B4" title="대신 설명해야 하는 빈도" />
-              <FlowArrow label="'매번'~'반반' 응답 시" />
-              <FlowNode id="B5" title="추측 전달의 부담감" sub="'매번 환자분이 직접 소통'이면 안 보임" />
-            </div>
+          {/* Tree B: B4 응답에 따라 B5가 보일지 갈림 */}
+          <div style={{ display: 'flex', alignItems: 'center', width: 'max-content' }}>
+            <TreeNode id="B4" rows={rows} width={340} />
+            <FlowArrowRight label="'매번'~'반반' 응답 시" />
+            <TreeNode id="B5" rows={rows} width={340} />
           </div>
         </div>
       )}
@@ -351,24 +375,29 @@ function SummaryView({ rows }: { rows: SurveyRow[] }) {
   return (
     <div style={{ flex: 1, overflow: 'auto', padding: '24px 28px' }}>
       <div style={{ maxWidth: 760, margin: '0 auto' }}>
-        <BranchDiagram />
+        <BranchDiagram rows={rows} />
         {GROUPED_QUESTIONS.map((section) => (
           <div key={section.key} style={{ marginBottom: 26 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#007AFF', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '.04em' }}>
               [{section.key}] {section.label}
             </div>
-            {section.groups.map((group, gi) => (
-              <div key={gi} style={{ marginBottom: 14 }}>
-                {group.label && <div style={{ fontSize: 12, fontWeight: 600, color: '#8e8e93', marginBottom: 8 }}>{group.label}</div>}
-                <div style={{ background: '#fff', borderRadius: 12, border: '1px solid rgba(0,0,0,0.07)', overflow: 'hidden' }}>
-                  {group.questions.map((q, qi) => (
-                    <div key={q.id} style={{ marginTop: qi > 0 ? -1 : 0 }}>
-                      <SummaryQuestion q={q} rows={rows} />
-                    </div>
-                  ))}
+            {section.groups.map((group, gi) => {
+              // 조건부 문항(A2~A8, B4~B5)은 위쪽 마인드맵에서만 보여주고 일반 목록에서는 뺀다.
+              const questions = group.questions.filter((q) => !BRANCH_QUESTION_IDS.has(q.id));
+              if (questions.length === 0) return null;
+              return (
+                <div key={gi} style={{ marginBottom: 14 }}>
+                  {group.label && <div style={{ fontSize: 12, fontWeight: 600, color: '#8e8e93', marginBottom: 8 }}>{group.label}</div>}
+                  <div style={{ background: '#fff', borderRadius: 12, border: '1px solid rgba(0,0,0,0.07)', overflow: 'hidden' }}>
+                    {questions.map((q, qi) => (
+                      <div key={q.id} style={{ marginTop: qi > 0 ? -1 : 0 }}>
+                        <SummaryQuestion q={q} rows={rows} />
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ))}
       </div>

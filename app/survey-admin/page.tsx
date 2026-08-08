@@ -316,90 +316,117 @@ function FlowArrowRight({ label }: { label: string }) {
   );
 }
 
-function BranchDiagram({ rows }: { rows: SurveyRow[] }) {
-  const [open, setOpen] = useState(false);
+// 화살표 없이 단순히 "다음 문항"으로 순서상 이어짐만 표시하는 커넥터.
+function PlainArrow() {
   return (
-    <div style={{ background: '#fff', borderRadius: 12, border: '1px solid rgba(0,0,0,0.07)', marginBottom: 20 }}>
-      <button
-        onClick={() => setOpen((v) => !v)}
-        style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', fontFamily: F }}
-      >
-        <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1d1d1f' }}>🔀 조건부 문항 마인드맵 (A2~A8, B4~B5)</span>
-        <span style={{ fontSize: 12, color: '#8e8e93' }}>{open ? '접기 ▲' : '펼치기 ▼'}</span>
-      </button>
-      {open && (
-        <div style={{ padding: '4px 20px 24px', overflowX: 'auto' }}>
-          {/* Tree A: A2 응답에 따라 A3~A8 중 무엇이 보일지 갈림. 위쪽 줄은 "안구마우스 등"
-              선택 시 흐름(A7), 아래쪽 줄은 미선택 시 흐름(A3→A4/A5/A6)이며 둘 다 결국 A8로
-              모인다 — A8은 아래쪽 줄 끝에 한 번만 그리고, 위쪽 줄에는 텍스트로만 연결을 표시. */}
-          <div style={{ display: 'flex', alignItems: 'center', width: 'max-content', marginBottom: 32 }}>
-            <TreeNode id="A2" rows={rows} width={340} />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 28, marginLeft: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <FlowArrowRight label="'안구마우스 등' 선택 시" />
-                <TreeNode id="A7" rows={rows} width={300} />
-                <div style={{ marginLeft: 14, maxWidth: 150, fontSize: 11, color: '#ff9500', lineHeight: 1.5 }}>
-                  “전혀/거의/가끔 사용” 응답 시 → 아래쪽 A8로 연결
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <FlowArrowRight label="선택 안 함" />
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <TreeNode id="A3" rows={rows} width={300} />
-                  <FlowArrow label="'네' 응답 시" />
-                  <div style={{ display: 'flex', gap: 16 }}>
-                    <TreeNode id="A4" rows={rows} width={280} />
-                    <TreeNode id="A5" rows={rows} width={300} />
-                    <TreeNode id="A6" rows={rows} width={340} />
-                  </div>
-                </div>
-                <FlowArrowRight label="A5 '네' 응답 시" />
-                <TreeNode id="A8" rows={rows} width={360} />
-              </div>
-            </div>
-          </div>
-
-          {/* Tree B: B4 응답에 따라 B5가 보일지 갈림 */}
-          <div style={{ display: 'flex', alignItems: 'center', width: 'max-content' }}>
-            <TreeNode id="B4" rows={rows} width={340} />
-            <FlowArrowRight label="'매번'~'반반' 응답 시" />
-            <TreeNode id="B5" rows={rows} width={340} />
-          </div>
-        </div>
-      )}
+    <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0, margin: '0 4px' }}>
+      <div style={{ width: 20, height: 1.5, background: '#d1d1d6' }} />
+      <div style={{ width: 0, height: 0, borderTop: '4px solid transparent', borderBottom: '4px solid transparent', borderLeft: '5px solid #d1d1d6' }} />
     </div>
   );
 }
 
+// 섹션(A/B/C) 시작 지점에 세로로 꽂아 두는 라벨 — 가로로 쭉 스크롤할 때 어디쯔음인지 알 수 있게.
+function SectionMarker({ section }: { section: QuestionSection }) {
+  return (
+    <div style={{ flexShrink: 0, alignSelf: 'stretch', display: 'flex', alignItems: 'center', marginRight: 4 }}>
+      <div style={{
+        writingMode: 'vertical-rl' as const, textOrientation: 'mixed' as const,
+        fontSize: 11, fontWeight: 700, color: '#fff', background: '#007AFF',
+        borderRadius: 8, padding: '10px 5px', letterSpacing: '.05em', whiteSpace: 'nowrap',
+      }}>
+        [{section.key}] {section.label}
+      </div>
+    </div>
+  );
+}
+
+// A2 응답에 따라 A3~A8 중 무엇이 보일지 갈리는 구간. 위쪽 줄은 "안구마우스 등" 선택 시
+// 흐름(A7), 아래쪽 줄은 미선택 시 흐름(A3→A4/A5/A6)이며 둘 다 결국 A8로 모인다 — A8은
+// 아래쪽 줄 끝에 한 번만 그리고, 위쪽 줄에는 텍스트로만 연결을 표시한다.
+function ClusterA({ rows }: { rows: SurveyRow[] }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+      <TreeNode id="A2" rows={rows} width={340} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 28, marginLeft: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <FlowArrowRight label="'안구마우스 등' 선택 시" />
+          <TreeNode id="A7" rows={rows} width={300} />
+          <div style={{ marginLeft: 14, maxWidth: 150, fontSize: 11, color: '#ff9500', lineHeight: 1.5 }}>
+            “전혀/거의/가끔 사용” 응답 시 → 아래쪽 A8로 연결
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <FlowArrowRight label="선택 안 함" />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <TreeNode id="A3" rows={rows} width={300} />
+            <FlowArrow label="'네' 응답 시" />
+            <div style={{ display: 'flex', gap: 16 }}>
+              <TreeNode id="A4" rows={rows} width={280} />
+              <TreeNode id="A5" rows={rows} width={300} />
+              <TreeNode id="A6" rows={rows} width={340} />
+            </div>
+          </div>
+          <FlowArrowRight label="A5 '네' 응답 시" />
+          <TreeNode id="A8" rows={rows} width={360} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// B4 응답에 따라 B5가 보일지 갈리는 구간.
+function ClusterB({ rows }: { rows: SurveyRow[] }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+      <TreeNode id="B4" rows={rows} width={340} />
+      <FlowArrowRight label="'매번'~'반반' 응답 시" />
+      <TreeNode id="B5" rows={rows} width={340} />
+    </div>
+  );
+}
+
+type FlowStep =
+  | { kind: 'node'; id: string }
+  | { kind: 'clusterA' }
+  | { kind: 'clusterB' };
+
+// SURVEY_QUESTIONS 순서를 그대로 따라가면서, A2/B4를 만나면 그 자리에서 해당 분기
+// 구간(ClusterA/ClusterB)으로 바꿔치기하고 나머지 조건부 문항(A3~A8, B5)은 건너뛴다 —
+// 결과적으로 문항이 실제 등장하는 순서 그대로 가로 한 줄로 이어진다.
+const MAIN_FLOW_STEPS: FlowStep[] = (() => {
+  const steps: FlowStep[] = [];
+  for (const q of SURVEY_QUESTIONS) {
+    if (q.id === 'A2') { steps.push({ kind: 'clusterA' }); continue; }
+    if (q.id === 'B4') { steps.push({ kind: 'clusterB' }); continue; }
+    if (BRANCH_QUESTION_IDS.has(q.id)) continue;
+    steps.push({ kind: 'node', id: q.id });
+  }
+  return steps;
+})();
+
+const SECTION_START_IDS: Record<string, QuestionSection> = Object.fromEntries(
+  GROUPED_QUESTIONS.map((s) => [s.groups[0]?.questions[0]?.id, s])
+);
+
 function SummaryView({ rows }: { rows: SurveyRow[] }) {
   return (
-    <div style={{ flex: 1, overflow: 'auto', padding: '24px 28px' }}>
-      <div style={{ maxWidth: 760, margin: '0 auto' }}>
-        <BranchDiagram rows={rows} />
-        {GROUPED_QUESTIONS.map((section) => (
-          <div key={section.key} style={{ marginBottom: 26 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#007AFF', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '.04em' }}>
-              [{section.key}] {section.label}
+    <div style={{ flex: 1, overflow: 'auto', padding: '28px 24px' }}>
+      <p style={{ fontSize: 12, color: '#aeaeb2', marginBottom: 14 }}>← 좌우로 스크롤하면 A1부터 C3까지 순서대로 이어집니다. 조건부 문항 구간은 답변에 따라 갈라지는 흐름을 화살표로 표시했습니다.</p>
+      <div style={{ display: 'flex', alignItems: 'center', width: 'max-content' }}>
+        {MAIN_FLOW_STEPS.map((step, i) => {
+          const id = step.kind === 'node' ? step.id : step.kind === 'clusterA' ? 'A2' : 'B4';
+          const section = SECTION_START_IDS[id];
+          return (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+              {i > 0 && <PlainArrow />}
+              {section && <SectionMarker section={section} />}
+              {step.kind === 'node' && <TreeNode id={step.id} rows={rows} width={300} />}
+              {step.kind === 'clusterA' && <ClusterA rows={rows} />}
+              {step.kind === 'clusterB' && <ClusterB rows={rows} />}
             </div>
-            {section.groups.map((group, gi) => {
-              // 조건부 문항(A2~A8, B4~B5)은 위쪽 마인드맵에서만 보여주고 일반 목록에서는 뺀다.
-              const questions = group.questions.filter((q) => !BRANCH_QUESTION_IDS.has(q.id));
-              if (questions.length === 0) return null;
-              return (
-                <div key={gi} style={{ marginBottom: 14 }}>
-                  {group.label && <div style={{ fontSize: 12, fontWeight: 600, color: '#8e8e93', marginBottom: 8 }}>{group.label}</div>}
-                  <div style={{ background: '#fff', borderRadius: 12, border: '1px solid rgba(0,0,0,0.07)', overflow: 'hidden' }}>
-                    {questions.map((q, qi) => (
-                      <div key={q.id} style={{ marginTop: qi > 0 ? -1 : 0 }}>
-                        <SummaryQuestion q={q} rows={rows} />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

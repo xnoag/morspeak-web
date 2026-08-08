@@ -269,10 +269,89 @@ function SummaryQuestion({ q, rows }: { q: SurveyQuestion; rows: SurveyRow[] }) 
   );
 }
 
+// 조건부 문항(showIf)이 어떤 답변에 따라 나타나는지 트리 형태로 보여준다.
+// lib/survey-questions.ts의 showIf 로직을 손으로 그대로 옮긴 것이라, 문항 조건이
+// 바뀌면 이 다이어그램도 같이 고쳐줘야 한다.
+function FlowNode({ id, title, sub }: { id: string; title: string; sub?: string }) {
+  return (
+    <div style={{ background: '#fff', border: '1.5px solid #1d1d1f', borderRadius: 10, padding: '8px 12px', display: 'inline-block', minWidth: 120 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: '#007AFF', fontFamily: M, marginBottom: 2 }}>{id}</div>
+      <div style={{ fontSize: 12, color: '#1d1d1f', lineHeight: 1.4 }}>{title}</div>
+      {sub && <div style={{ fontSize: 10.5, color: '#aeaeb2', marginTop: 3 }}>{sub}</div>}
+    </div>
+  );
+}
+
+function FlowArrow({ label }: { label: string }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '4px 0' }}>
+      <div style={{ width: 1.5, height: 14, background: '#c7c7cc' }} />
+      <div style={{ fontSize: 10.5, color: '#ff9500', background: '#fff8ec', borderRadius: 6, padding: '2px 8px', whiteSpace: 'nowrap', fontWeight: 600, margin: '2px 0' }}>
+        {label}
+      </div>
+      <div style={{ width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderTop: '5px solid #c7c7cc' }} />
+    </div>
+  );
+}
+
+function BranchDiagram() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ background: '#fff', borderRadius: 12, border: '1px solid rgba(0,0,0,0.07)', marginBottom: 20 }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', fontFamily: F }}
+      >
+        <span style={{ fontSize: 13.5, fontWeight: 700, color: '#1d1d1f' }}>🔀 조건부 문항 분기도</span>
+        <span style={{ fontSize: 12, color: '#8e8e93' }}>{open ? '접기 ▲' : '펼치기 ▼'}</span>
+      </button>
+      {open && (
+        <div style={{ padding: '4px 20px 24px', overflowX: 'auto' }}>
+          <div style={{ display: 'flex', gap: 48, minWidth: 640, paddingBottom: 4 }}>
+            {/* Tree A: A2의 답변에 따라 A3~A8 중 무엇이 보일지 갈림 */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <FlowNode id="A2" title="현재 소통 방법 (다중 선택)" />
+              <div style={{ display: 'flex', gap: 40, marginTop: 4 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <FlowArrow label="'안구마우스 등' 선택 시" />
+                  <FlowNode id="A7" title="보조기기 사용 빈도" />
+                  <FlowArrow label="'전혀/거의/가끔 사용' 응답 시" />
+                  <FlowNode id="A8" title="미사용 이유 (2개 선택)" sub="A5의 '네' 응답에서도 연결됨" />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <FlowArrow label="선택 안 함" />
+                  <FlowNode id="A3" title="보조기기 도입 고려 여부" />
+                  <FlowArrow label="'네' 응답 시" />
+                  <div style={{ display: 'flex', gap: 16 }}>
+                    <FlowNode id="A4" title="고려한 제품명" />
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                      <FlowNode id="A5" title="실제 도입 여부" />
+                      <FlowArrow label="'네' 응답 시 → A8로" />
+                    </div>
+                    <FlowNode id="A6" title="도입 시 어려웠던 점 (2개 선택)" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Tree B: B4의 답변에 따라 B5가 보일지 갈림 */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <FlowNode id="B4" title="대신 설명해야 하는 빈도" />
+              <FlowArrow label="'매번'~'반반' 응답 시" />
+              <FlowNode id="B5" title="추측 전달의 부담감" sub="'매번 환자분이 직접 소통'이면 안 보임" />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SummaryView({ rows }: { rows: SurveyRow[] }) {
   return (
     <div style={{ flex: 1, overflow: 'auto', padding: '24px 28px' }}>
       <div style={{ maxWidth: 760, margin: '0 auto' }}>
+        <BranchDiagram />
         {GROUPED_QUESTIONS.map((section) => (
           <div key={section.key} style={{ marginBottom: 26 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#007AFF', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '.04em' }}>

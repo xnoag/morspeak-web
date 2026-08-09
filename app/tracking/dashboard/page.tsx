@@ -36,6 +36,10 @@ function isActiveToday(ts?: { seconds: number }) {
   if (!ts) return false
   return Date.now() - ts.seconds * 1000 < 86400000
 }
+function todayKey() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
 type SortKey = 'userName' | 'speakCount' | 'callCount' | 'totalSessionSeconds' | 'lastUpdated'
 type Patient = Record<string, any> & { id: string }
@@ -193,6 +197,9 @@ function PatientTable({ title, list, sortKey, sortAsc, onSort, emptyLabel, toggl
                 환우명 {sortKey==='userName'?(sortAsc?'↑':'↓'):''}
               </th>
               <th style={{ padding: '10px 8px', width: 20 }} />
+              <th style={{ padding: '10px 20px', textAlign: 'center', fontSize: 11, fontWeight: 600, color: '#8e8e93', textTransform: 'uppercase', letterSpacing: '.06em', whiteSpace: 'nowrap' }}>
+                오늘의 미션
+              </th>
               {COLS.map(c => (
                 <th key={c.key} onClick={() => onSort(c.key)} style={{ padding: '10px 20px', textAlign: 'right', fontSize: 11, fontWeight: 600, color: sortKey===c.key?'#007AFF':'#8e8e93', textTransform: 'uppercase', letterSpacing: '.06em', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                   {c.label} {sortKey===c.key?(sortAsc?'↑':'↓'):''}
@@ -218,6 +225,10 @@ function PatientTable({ title, list, sortKey, sortAsc, onSort, emptyLabel, toggl
                   </td>
                   <td style={{ padding: '13px 8px' }}>
                     <div style={{ width: 7, height: 7, borderRadius: '50%', background: active ? '#34c759' : '#d1d1d6', boxShadow: active ? '0 0 0 2px rgba(52,199,89,0.2)' : 'none' }} title={active ? '오늘 활동' : '비활성'} />
+                  </td>
+                  <td style={{ padding: '13px 20px', textAlign: 'center', fontSize: 15 }}
+                    title={p.lastMissionCompletedDate === todayKey() ? '오늘 미션 완료' : '오늘 미션 미완료'}>
+                    {p.lastMissionCompletedDate === todayKey() ? '✅' : <span style={{ color: '#d1d1d6' }}>—</span>}
                   </td>
                   <td style={{ padding: '13px 20px', textAlign: 'right', fontFamily: M, fontSize: 13, fontWeight: 600, color: (p.speakCount??0)>0?'#007AFF':'#d1d1d6' }}>
                     {(p.speakCount??0)>0 ? (p.speakCount??0).toLocaleString() : '—'}

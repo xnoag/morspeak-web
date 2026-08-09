@@ -118,7 +118,7 @@ const MODE_FLAGS: { key: string; label: string; morse: string; defaultOn: boolea
   { key: 'selfGuidedTutorial', label: '자율 온보딩 (관리자 개입 없이 진행)', morse: '(설정 화면)', defaultOn: false },
   // 켜면 카메라(눈 깜빡임 감지) 대신 연결된 외장 키보드의 스페이스바로 장/단을 입력함 —
   // 눈 깜빡임은 어렵지만 손가락은 움직일 수 있는 환자용
-  { key: 'oneKeyInput', label: '원키 입력 (외장 키보드 스페이스바로 장/단 입력)', morse: '(설정 화면)', defaultOn: false },
+  { key: 'oneKeyInput', label: '원키 입력 (외장 키보드 아무 키로 장/단 입력)', morse: '(설정 화면)', defaultOn: false },
 ]
 
 export default function PatientDetail({ params }: { params: Promise<{ code: string }> }) {
@@ -1480,6 +1480,7 @@ const iconBtn: React.CSSProperties = { padding:'2px 5px',border:'1px solid #d2d2
 
 // ── 일별 데이터 섹션 ──────────────────────────────────────────
 const DAILY_METRICS = [
+  { key: 'missionCompleted',  label: '오늘의 미션', color: '#ff2d55' },
   { key: 'speakCount',        label: '말하기',    color: '#1d1d1f' },
   { key: 'callCount',         label: '호출',      color: '#ff3b30' },
   { key: 'messageSentCount',  label: '문자',      color: '#06c'    },

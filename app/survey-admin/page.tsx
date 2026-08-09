@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { collection, deleteDoc, doc, getDocs, orderBy, query, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { SURVEY_QUESTIONS, SurveyAnswers, SurveyQuestion, formatAnswerLabel } from '@/lib/survey-questions';
@@ -281,49 +281,14 @@ function findQ(id: string): SurveyQuestion {
   return q;
 }
 
-const NODE_WIDTH = 460;
+const NODE_WIDTH = 440;
 
-function TreeNode({ id, rows, width = NODE_WIDTH }: { id: string; rows: SurveyRow[]; width?: number }) {
+type NodeRegister = (id: string) => (el: HTMLDivElement | null) => void;
+
+function TreeNode({ id, rows, register }: { id: string; rows: SurveyRow[]; register: NodeRegister }) {
   return (
-    <div style={{ width, flexShrink: 0, background: '#fff', border: '1.5px solid #1d1d1f', borderRadius: 12, overflow: 'hidden' }}>
+    <div ref={register(id)} style={{ width: NODE_WIDTH, flexShrink: 0, background: '#fff', border: '1.5px solid #1d1d1f', borderRadius: 12, overflow: 'hidden', position: 'relative', zIndex: 1 }}>
       <SummaryQuestion q={findQ(id)} rows={rows} />
-    </div>
-  );
-}
-
-function FlowArrow({ label }: { label: string }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '6px 0', flexShrink: 0 }}>
-      <div style={{ width: 1.5, height: 16, background: '#c7c7cc' }} />
-      <div style={{ fontSize: 10.5, color: '#ff9500', background: '#fff8ec', borderRadius: 6, padding: '2px 8px', whiteSpace: 'nowrap', fontWeight: 600, margin: '2px 0' }}>
-        {label}
-      </div>
-      <div style={{ width: 0, height: 0, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderTop: '5px solid #c7c7cc' }} />
-    </div>
-  );
-}
-
-// 가로 방향(왼쪽 부모 → 오른쪽 자식)으로 흐르는 화살표. 세로 트리 사이를 가로로 이어줄 때 쓴다.
-function FlowArrowRight({ label }: { label: string }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', margin: '0 6px', flexShrink: 0 }}>
-      <div style={{ fontSize: 10.5, color: '#ff9500', background: '#fff8ec', borderRadius: 6, padding: '2px 8px', whiteSpace: 'nowrap', fontWeight: 600, marginBottom: 4 }}>
-        {label}
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        <div style={{ width: 24, height: 1.5, background: '#c7c7cc' }} />
-        <div style={{ width: 0, height: 0, borderTop: '4px solid transparent', borderBottom: '4px solid transparent', borderLeft: '5px solid #c7c7cc' }} />
-      </div>
-    </div>
-  );
-}
-
-// 화살표 없이 단순히 "다음 문항"으로 순서상 이어짐만 표시하는 커넥터.
-function PlainArrow() {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0, margin: '0 4px' }}>
-      <div style={{ width: 20, height: 1.5, background: '#d1d1d6' }} />
-      <div style={{ width: 0, height: 0, borderTop: '4px solid transparent', borderBottom: '4px solid transparent', borderLeft: '5px solid #d1d1d6' }} />
     </div>
   );
 }
@@ -331,7 +296,7 @@ function PlainArrow() {
 // 섹션(A/B/C) 시작 지점에 세로로 꽂아 두는 라벨 — 가로로 쭉 스크롤할 때 어디쯔음인지 알 수 있게.
 function SectionMarker({ section }: { section: QuestionSection }) {
   return (
-    <div style={{ flexShrink: 0, alignSelf: 'stretch', display: 'flex', alignItems: 'center', marginRight: 4 }}>
+    <div style={{ flexShrink: 0, alignSelf: 'stretch', display: 'flex', alignItems: 'center', margin: '0 16px' }}>
       <div style={{
         writingMode: 'vertical-rl' as const, textOrientation: 'mixed' as const,
         fontSize: 11, fontWeight: 700, color: '#fff', background: '#007AFF',
@@ -343,58 +308,37 @@ function SectionMarker({ section }: { section: QuestionSection }) {
   );
 }
 
-// A2 응답에 따라 A3~A8 중 무엇이 보일지 갈리는 구간. CSS 그리드로 2행(위: 안구마우스 등
-// 선택 시 → A7 흐름 / 아래: 미선택 시 → A3→A4·A5·A6 흐름)을 짜서, 각 행의 노드 높이가
-// 서로 크게 달라도(문항마다 보기 개수가 다름) flex의 세로 중앙정렬 때문에 박스가 붕 뜨거나
-// 흐트러지는 문제 없이 각 행 상단에 깔끔히 정렬되게 한다. A8은 아래 행 끝에 한 번만 두고,
-// 위쪽 행에는 텍스트로만 "여기로 연결된다"는 걸 표시한다(같은 박스로 실제 선을 그리진 않음).
-function ClusterA({ rows }: { rows: SurveyRow[] }) {
-  const cellStyle: React.CSSProperties = { display: 'flex', alignItems: 'flex-start' };
+// A2 응답에 따라 A3~A8 중 무엇이 보일지 갈리는 구간. 실제 선 연결은 부모의 <svg> 오버레이가
+// 노드 위치를 재서 그려주므로, 여기서는 겹치지 않게 자리만 넉넉히 배치한다.
+function ClusterA({ rows, register }: { rows: SurveyRow[]; register: NodeRegister }) {
   return (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: 'auto auto auto auto auto',
-      alignItems: 'start',
-      columnGap: 10,
-      rowGap: 24,
-      flexShrink: 0,
-    }}>
-      <div style={{ gridRow: '1 / span 2', ...cellStyle }}>
-        <TreeNode id="A2" rows={rows} />
+    <div style={{ display: 'grid', gridTemplateColumns: 'auto auto auto auto', columnGap: 90, rowGap: 60, flexShrink: 0 }}>
+      <div style={{ gridRow: '1 / span 2', alignSelf: 'center' }}>
+        <TreeNode id="A2" rows={rows} register={register} />
       </div>
-
-      {/* 위쪽 행: 안구마우스 등 선택 시 */}
-      <div style={{ gridRow: 1, ...cellStyle, alignSelf: 'center' }}><FlowArrowRight label="'안구마우스 등' 선택 시" /></div>
-      <div style={{ gridRow: 1, ...cellStyle }}><TreeNode id="A7" rows={rows} /></div>
-      <div style={{ gridRow: 1, ...cellStyle, alignSelf: 'center', maxWidth: 150, fontSize: 11, color: '#ff9500', lineHeight: 1.5 }}>
-        “전혀/거의/가끔 사용” 응답 시 → 아래 행 A8로 연결
-      </div>
+      <div style={{ gridRow: 1, alignSelf: 'center' }}><TreeNode id="A7" rows={rows} register={register} /></div>
       <div style={{ gridRow: 1 }} />
+      <div style={{ gridRow: 1, alignSelf: 'center' }}><TreeNode id="A8" rows={rows} register={register} /></div>
 
-      {/* 아래쪽 행: 선택 안 함 */}
-      <div style={{ gridRow: 2, ...cellStyle, alignSelf: 'start', marginTop: 50 }}><FlowArrowRight label="선택 안 함" /></div>
-      <div style={{ gridRow: 2, ...cellStyle, flexDirection: 'column', alignItems: 'center' }}>
-        <TreeNode id="A3" rows={rows} />
-        <FlowArrow label="'네' 응답 시" />
-        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-          <TreeNode id="A4" rows={rows} />
-          <TreeNode id="A5" rows={rows} />
-          <TreeNode id="A6" rows={rows} />
-        </div>
+      <div style={{ gridRow: 2, alignSelf: 'start' }}>
+        <TreeNode id="A3" rows={rows} register={register} />
       </div>
-      <div style={{ gridRow: 2, ...cellStyle, alignSelf: 'center' }}><FlowArrowRight label="A5 '네' 응답 시" /></div>
-      <div style={{ gridRow: 2, ...cellStyle }}><TreeNode id="A8" rows={rows} /></div>
+      <div style={{ gridRow: 2, alignSelf: 'start', display: 'flex', flexDirection: 'column', gap: 60 }}>
+        <TreeNode id="A4" rows={rows} register={register} />
+        <TreeNode id="A5" rows={rows} register={register} />
+        <TreeNode id="A6" rows={rows} register={register} />
+      </div>
+      <div style={{ gridRow: 2 }} />
     </div>
   );
 }
 
 // B4 응답에 따라 B5가 보일지 갈리는 구간.
-function ClusterB({ rows }: { rows: SurveyRow[] }) {
+function ClusterB({ rows, register }: { rows: SurveyRow[]; register: NodeRegister }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', flexShrink: 0 }}>
-      <TreeNode id="B4" rows={rows} />
-      <div style={{ alignSelf: 'center' }}><FlowArrowRight label="'매번'~'반반' 응답 시" /></div>
-      <TreeNode id="B5" rows={rows} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 90, flexShrink: 0 }}>
+      <TreeNode id="B4" rows={rows} register={register} />
+      <TreeNode id="B5" rows={rows} register={register} />
     </div>
   );
 }
@@ -422,21 +366,135 @@ const SECTION_START_IDS: Record<string, QuestionSection> = Object.fromEntries(
   GROUPED_QUESTIONS.map((s) => [s.groups[0]?.questions[0]?.id, s])
 );
 
+// 노드-노드 간에 실제로 어떤 선이 이어지는지: 순서상 다음 문항으로 가는 연결(회색, 무조건)과
+// 조건부 분기에서 답변에 따라 갈라지는 연결(주황, 라벨 있음)을 모두 여기 한곳에 정의한다.
+// step의 "entry"는 그 구간에 들어오는 화살표가 꽂히는 노드, "exit"는 다음 구간으로 나가는
+// 화살표가 시작되는 노드다.
+function stepEntry(step: FlowStep): string {
+  return step.kind === 'node' ? step.id : step.kind === 'clusterA' ? 'A2' : 'B4';
+}
+function stepExit(step: FlowStep): string {
+  return step.kind === 'node' ? step.id : step.kind === 'clusterA' ? 'A8' : 'B5';
+}
+
+type FlowEdge = { from: string; to: string; label?: string };
+
+const FLOW_EDGES: FlowEdge[] = (() => {
+  const edges: FlowEdge[] = [];
+  for (let i = 0; i < MAIN_FLOW_STEPS.length - 1; i++) {
+    edges.push({ from: stepExit(MAIN_FLOW_STEPS[i]), to: stepEntry(MAIN_FLOW_STEPS[i + 1]) });
+  }
+  edges.push({ from: 'A2', to: 'A7', label: "'안구마우스 등' 선택 시" });
+  edges.push({ from: 'A2', to: 'A3', label: '선택 안 함' });
+  edges.push({ from: 'A3', to: 'A4', label: "'네' 응답 시" });
+  edges.push({ from: 'A3', to: 'A5' });
+  edges.push({ from: 'A3', to: 'A6' });
+  edges.push({ from: 'A5', to: 'A8', label: "'네' 응답 시" });
+  edges.push({ from: 'A7', to: 'A8', label: "'전혀/거의/가끔' 응답 시" });
+  edges.push({ from: 'B4', to: 'B5', label: "'매번'~'반반' 응답 시" });
+  return edges;
+})();
+
+type EdgePath = { key: string; d: string; conditional: boolean; label?: string; lx: number; ly: number };
+
+// 실제 화면에 그려진 노드 위치를 재서(getBoundingClientRect) 노드-노드를 잇는 곡선을
+// <svg>로 직접 그린다 — 텍스트 라벨이나 근처에 놓은 화살표 아이콘이 아니라, 모든 연결이
+// 예외 없이 시작 노드에서 도착 노드까지 실선으로 이어지도록 하기 위함이다.
+function useFlowConnectors(rows: SurveyRow[]) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const nodeRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [paths, setPaths] = useState<EdgePath[]>([]);
+  const [canvas, setCanvas] = useState({ width: 0, height: 0 });
+
+  const register: NodeRegister = useCallback((id) => (el) => { nodeRefs.current[id] = el; }, []);
+
+  const recompute = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const cRect = container.getBoundingClientRect();
+    setCanvas({ width: container.scrollWidth, height: container.scrollHeight });
+    const next: EdgePath[] = [];
+    for (const edge of FLOW_EDGES) {
+      const fromEl = nodeRefs.current[edge.from];
+      const toEl = nodeRefs.current[edge.to];
+      if (!fromEl || !toEl) continue;
+      const fr = fromEl.getBoundingClientRect();
+      const tr = toEl.getBoundingClientRect();
+      const fx = fr.right - cRect.left;
+      const fy = fr.top + fr.height / 2 - cRect.top;
+      const tx = tr.left - cRect.left;
+      const ty = tr.top + tr.height / 2 - cRect.top;
+      const midX = (fx + tx) / 2;
+      const d = `M ${fx} ${fy} C ${midX} ${fy}, ${midX} ${ty}, ${tx} ${ty}`;
+      next.push({ key: `${edge.from}>${edge.to}`, d, conditional: !!edge.label, label: edge.label, lx: (fx + tx) / 2, ly: (fy + ty) / 2 });
+    }
+    setPaths(next);
+  }, []);
+
+  useLayoutEffect(() => {
+    recompute();
+    const t1 = setTimeout(recompute, 150);
+    const t2 = setTimeout(recompute, 500);
+    window.addEventListener('resize', recompute);
+    return () => { clearTimeout(t1); clearTimeout(t2); window.removeEventListener('resize', recompute); };
+  }, [rows, recompute]);
+
+  return { containerRef, register, paths, canvas };
+}
+
+function FlowConnectorsSvg({ canvas, paths }: { canvas: { width: number; height: number }; paths: EdgePath[] }) {
+  return (
+    <svg
+      width={canvas.width} height={canvas.height}
+      style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', overflow: 'visible' }}
+    >
+      <defs>
+        <marker id="flow-arrow-plain" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 Z" fill="#c7c7cc" />
+        </marker>
+        <marker id="flow-arrow-cond" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 Z" fill="#ff9500" />
+        </marker>
+      </defs>
+      {paths.map((p) => (
+        <path
+          key={p.key} d={p.d} fill="none"
+          stroke={p.conditional ? '#ff9500' : '#c7c7cc'}
+          strokeWidth={p.conditional ? 1.75 : 1.5}
+          markerEnd={p.conditional ? 'url(#flow-arrow-cond)' : 'url(#flow-arrow-plain)'}
+        />
+      ))}
+    </svg>
+  );
+}
+
 function SummaryView({ rows }: { rows: SurveyRow[] }) {
+  const { containerRef, register, paths, canvas } = useFlowConnectors(rows);
   return (
     <div style={{ flex: 1, overflow: 'auto', padding: '28px 24px' }}>
-      <p style={{ fontSize: 12, color: '#aeaeb2', marginBottom: 14 }}>← 좌우로 스크롤하면 A1부터 C3까지 순서대로 이어집니다. 조건부 문항 구간은 답변에 따라 갈라지는 흐름을 화살표로 표시했습니다.</p>
-      <div style={{ display: 'flex', alignItems: 'flex-start', width: 'max-content' }}>
+      <p style={{ fontSize: 12, color: '#aeaeb2', marginBottom: 14 }}>← 좌우로 스크롤하면 A1부터 C3까지 순서대로 이어집니다. 회색 선은 순서상 다음 문항, 주황 선은 답변에 따라 갈라지는 조건부 문항 연결입니다.</p>
+      <div ref={containerRef} style={{ position: 'relative', display: 'flex', alignItems: 'center', width: 'max-content' }}>
+        <FlowConnectorsSvg canvas={canvas} paths={paths} />
+        {paths.filter((p) => p.label).map((p) => (
+          <div key={p.key} style={{
+            position: 'absolute', left: p.lx, top: p.ly, transform: 'translate(-50%, -50%)', zIndex: 2,
+            fontSize: 10.5, color: '#ff9500', background: '#fff8ec', border: '1px solid #ffe4b8',
+            borderRadius: 6, padding: '2px 7px', whiteSpace: 'nowrap', fontWeight: 600,
+          }}>
+            {p.label}
+          </div>
+        ))}
         {MAIN_FLOW_STEPS.map((step, i) => {
-          const id = step.kind === 'node' ? step.id : step.kind === 'clusterA' ? 'A2' : 'B4';
+          const id = stepEntry(step);
           const section = SECTION_START_IDS[id];
           return (
-            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', flexShrink: 0 }}>
-              {i > 0 && <div style={{ alignSelf: 'center' }}><PlainArrow /></div>}
+            <div key={i} style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
               {section && <SectionMarker section={section} />}
-              {step.kind === 'node' && <TreeNode id={step.id} rows={rows} />}
-              {step.kind === 'clusterA' && <ClusterA rows={rows} />}
-              {step.kind === 'clusterB' && <ClusterB rows={rows} />}
+              <div style={{ marginRight: 70 }}>
+                {step.kind === 'node' && <TreeNode id={step.id} rows={rows} register={register} />}
+                {step.kind === 'clusterA' && <ClusterA rows={rows} register={register} />}
+                {step.kind === 'clusterB' && <ClusterB rows={rows} register={register} />}
+              </div>
             </div>
           );
         })}

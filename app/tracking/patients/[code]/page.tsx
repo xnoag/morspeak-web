@@ -119,6 +119,9 @@ const MODE_FLAGS: { key: string; label: string; morse: string; defaultOn: boolea
   // 켜면 카메라(눈 깜빡임 감지) 대신 연결된 외장 키보드의 스페이스바로 장/단을 입력함 —
   // 눈 깜빡임은 어렵지만 손가락은 움직일 수 있는 환자용
   { key: 'oneKeyInput', label: '원키 입력 (외장 키보드 아무 키로 장/단 입력)', morse: '(설정 화면)', defaultOn: false },
+  // 켜면 눈 깜빡임 대신 입 벌리는 정도(jawOpen)로 장/단을 입력함 — 카메라 화면은 눈
+  // 깜빡임 모드와 동일. oneKeyInput과 상호 배타적(둘 다 켜지면 mouthOpenInput 우선)
+  { key: 'mouthOpenInput', label: '입 벌림 입력 (jawOpen으로 장/단 입력)', morse: '(설정 화면)', defaultOn: false },
 ]
 
 export default function PatientDetail({ params }: { params: Promise<{ code: string }> }) {

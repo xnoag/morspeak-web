@@ -245,20 +245,27 @@ type EdgePath = { key: string; d: string; conditional: boolean; label?: string; 
 
 // 실제 화면에 그려진 노드 위치를 재서(getBoundingClientRect) 노드-노드를 잇는 곡선을
 // <svg>로 직접 그린다 — 텍스트 라벨이나 근처에 놓은 화살표 아이콘이 아니라, 모든 연결이
-// 예외 없이 시작 노드에서 도착 노드까지 실선으로 이어지도록 하기 위함이다. 측정은 항상
-// zoom=1(변형 없음) 상태에서 이뤄지므로, 이후 컨테이너에 transform:scale을 적용해도
-// (좌표가 자연 좌표라서) 정렬이 깨지지 않는다.
-function useFlowConnectors(rows: MindMapRow[]) {
+// 예외 없이 시작 노드에서 도착 노드까지 실선으로 이어지도록 하기 위함이다.
+// getBoundingClientRect는 현재 적용된 transform:scale(zoom)까지 반영된 값을 주기 때문에,
+// 그 상태 그대로 좌표를 저장하면 "측정 시점의 zoom"에 고정돼버려서 이후 확대/축소하거나
+// (지연 재계산 타이머가 그 사이 바뀐 zoom에서 실행되는 경우) 배율이 두 번 곱해져 선이
+// 박스에서 멀어져 보이는 문제가 생긴다. 그래서 측정한 값을 항상 현재 zoom으로 나눠
+// "자연 좌표"로 정규화해 저장하고, 실제 화면 배율은 오직 부모의 transform:scale 하나로만
+// 적용되게 한다.
+function useFlowConnectors(rows: MindMapRow[], zoom: number) {
   const containerRef = useRef<HTMLDivElement>(null);
   const nodeRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [paths, setPaths] = useState<EdgePath[]>([]);
   const [canvas, setCanvas] = useState({ width: 0, height: 0 });
+  const zoomRef = useRef(zoom);
+  useLayoutEffect(() => { zoomRef.current = zoom; }, [zoom]);
 
   const register: NodeRegister = useCallback((id) => (el) => { nodeRefs.current[id] = el; }, []);
 
   const recompute = useCallback(() => {
     const container = containerRef.current;
     if (!container) return;
+    const z = zoomRef.current;
     const cRect = container.getBoundingClientRect();
     setCanvas({ width: container.scrollWidth, height: container.scrollHeight });
     const next: EdgePath[] = [];
@@ -268,10 +275,10 @@ function useFlowConnectors(rows: MindMapRow[]) {
       if (!fromEl || !toEl) continue;
       const fr = fromEl.getBoundingClientRect();
       const tr = toEl.getBoundingClientRect();
-      const fx = fr.right - cRect.left;
-      const fy = fr.top + fr.height / 2 - cRect.top;
-      const tx = tr.left - cRect.left;
-      const ty = tr.top + tr.height / 2 - cRect.top;
+      const fx = (fr.right - cRect.left) / z;
+      const fy = (fr.top + fr.height / 2 - cRect.top) / z;
+      const tx = (tr.left - cRect.left) / z;
+      const ty = (tr.top + tr.height / 2 - cRect.top) / z;
       const midX = (fx + tx) / 2;
       const d = `M ${fx} ${fy} C ${midX} ${fy}, ${midX} ${ty}, ${tx} ${ty}`;
       next.push({ key: `${edge.from}>${edge.to}`, d, conditional: !!edge.label, label: edge.label, lx: (fx + tx) / 2, ly: (fy + ty) / 2 });
@@ -349,8 +356,8 @@ function ZoomControls({ zoom, setZoom }: { zoom: number; setZoom: (z: number) =>
 }
 
 export default function SurveyMindMap({ rows }: { rows: MindMapRow[] }) {
-  const { containerRef, register, paths, canvas } = useFlowConnectors(rows);
   const [zoom, setZoom] = useState(1);
+  const { containerRef, register, paths, canvas } = useFlowConnectors(rows, zoom);
 
   return (
     <div style={{ flex: 1, overflow: 'auto', padding: '28px 24px', position: 'relative' }}>

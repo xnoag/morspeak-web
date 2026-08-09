@@ -122,6 +122,10 @@ const MODE_FLAGS: { key: string; label: string; morse: string; defaultOn: boolea
   // 켜면 눈 깜빡임 대신 입 벌리는 정도(jawOpen)로 장/단을 입력함 — 카메라 화면은 눈
   // 깜빡임 모드와 동일. oneKeyInput과 상호 배타적(둘 다 켜지면 mouthOpenInput 우선)
   { key: 'mouthOpenInput', label: '입 벌림 입력 (jawOpen으로 장/단 입력)', morse: '(설정 화면)', defaultOn: false },
+  // 켜면 눈 깜빡임 대신 눈썹 올리는 정도(browOuterUpLeft/Right)로 장/단을 입력함 —
+  // 눈처럼 좌/우가 따로 있어서 흔들림 오탐 방지 교차검증이 그대로 유지됨. 셋 다 켜지면
+  // eyebrowInput 우선
+  { key: 'eyebrowInput', label: '눈썹 입력 (눈썹 올리기로 장/단 입력)', morse: '(설정 화면)', defaultOn: false },
 ]
 
 export default function PatientDetail({ params }: { params: Promise<{ code: string }> }) {

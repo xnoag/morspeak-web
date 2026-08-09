@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { SURVEY_QUESTIONS, SurveyAnswers, SurveyQuestion } from '@/lib/survey-questions';
 
 const M = "'SF Mono','Fira Mono','Cascadia Mono',monospace";
@@ -355,12 +355,49 @@ function ZoomControls({ zoom, setZoom }: { zoom: number; setZoom: (z: number) =>
   );
 }
 
+const ZOOM_MIN = ZOOM_STEPS[0];
+const ZOOM_MAX = ZOOM_STEPS[ZOOM_STEPS.length - 1];
+
 export default function SurveyMindMap({ rows }: { rows: MindMapRow[] }) {
   const [zoom, setZoom] = useState(1);
   const { containerRef, register, paths, canvas } = useFlowConnectors(rows, zoom);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  // 트랙패드 핀치(또는 ctrl+스크롤)로 확대/축소할 때, 커서가 가리키던 지점이 화면에서
+  // 그대로 유지되도록(줌 후 스크롤 위치를 보정) 다음 레이아웃 갱신에서 적용할 목표를 담아둔다.
+  const pendingAnchorRef = useRef<{ fracX: number; fracY: number; clientX: number; clientY: number } | null>(null);
+
+  useEffect(() => {
+    const scrollEl = scrollRef.current;
+    if (!scrollEl) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey) return; // 트랙패드 핀치줌은 브라우저가 ctrlKey=true인 wheel 이벤트로 보낸다
+      e.preventDefault();
+      const rect = scrollEl.getBoundingClientRect();
+      const contentX = scrollEl.scrollLeft + (e.clientX - rect.left);
+      const contentY = scrollEl.scrollTop + (e.clientY - rect.top);
+      const totalW = canvas.width * zoom;
+      const totalH = canvas.height * zoom;
+      const fracX = totalW > 0 ? contentX / totalW : 0;
+      const fracY = totalH > 0 ? contentY / totalH : 0;
+      pendingAnchorRef.current = { fracX, fracY, clientX: e.clientX, clientY: e.clientY };
+      setZoom((z) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z * (1 - e.deltaY * 0.01))));
+    };
+    scrollEl.addEventListener('wheel', onWheel, { passive: false });
+    return () => scrollEl.removeEventListener('wheel', onWheel);
+  }, [canvas, zoom]);
+
+  useLayoutEffect(() => {
+    const anchor = pendingAnchorRef.current;
+    const scrollEl = scrollRef.current;
+    if (!anchor || !scrollEl) return;
+    pendingAnchorRef.current = null;
+    const rect = scrollEl.getBoundingClientRect();
+    scrollEl.scrollLeft = anchor.fracX * canvas.width * zoom - (anchor.clientX - rect.left);
+    scrollEl.scrollTop = anchor.fracY * canvas.height * zoom - (anchor.clientY - rect.top);
+  }, [zoom, canvas]);
 
   return (
-    <div style={{ flex: 1, overflow: 'auto', padding: '28px 24px', position: 'relative' }}>
+    <div ref={scrollRef} style={{ flex: 1, overflow: 'auto', padding: '28px 24px', position: 'relative' }}>
       <p style={{ fontSize: 12, color: '#aeaeb2', marginBottom: 14 }}>← 좌우로 스크롤하면 A1부터 C3까지 순서대로 이어집니다. 회색 선은 순서상 다음 문항, 주황 선은 답변에 따라 갈라지는 조건부 문항 연결입니다. 우측 하단에서 확대/축소할 수 있습니다.</p>
       <div style={{ width: canvas.width * zoom, height: canvas.height * zoom }}>
         <div

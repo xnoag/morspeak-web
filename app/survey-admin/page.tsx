@@ -281,7 +281,9 @@ function findQ(id: string): SurveyQuestion {
   return q;
 }
 
-function TreeNode({ id, rows, width = 320 }: { id: string; rows: SurveyRow[]; width?: number }) {
+const NODE_WIDTH = 460;
+
+function TreeNode({ id, rows, width = NODE_WIDTH }: { id: string; rows: SurveyRow[]; width?: number }) {
   return (
     <div style={{ width, flexShrink: 0, background: '#fff', border: '1.5px solid #1d1d1f', borderRadius: 12, overflow: 'hidden' }}>
       <SummaryQuestion q={findQ(id)} rows={rows} />
@@ -341,36 +343,47 @@ function SectionMarker({ section }: { section: QuestionSection }) {
   );
 }
 
-// A2 응답에 따라 A3~A8 중 무엇이 보일지 갈리는 구간. 위쪽 줄은 "안구마우스 등" 선택 시
-// 흐름(A7), 아래쪽 줄은 미선택 시 흐름(A3→A4/A5/A6)이며 둘 다 결국 A8로 모인다 — A8은
-// 아래쪽 줄 끝에 한 번만 그리고, 위쪽 줄에는 텍스트로만 연결을 표시한다.
+// A2 응답에 따라 A3~A8 중 무엇이 보일지 갈리는 구간. CSS 그리드로 2행(위: 안구마우스 등
+// 선택 시 → A7 흐름 / 아래: 미선택 시 → A3→A4·A5·A6 흐름)을 짜서, 각 행의 노드 높이가
+// 서로 크게 달라도(문항마다 보기 개수가 다름) flex의 세로 중앙정렬 때문에 박스가 붕 뜨거나
+// 흐트러지는 문제 없이 각 행 상단에 깔끔히 정렬되게 한다. A8은 아래 행 끝에 한 번만 두고,
+// 위쪽 행에는 텍스트로만 "여기로 연결된다"는 걸 표시한다(같은 박스로 실제 선을 그리진 않음).
 function ClusterA({ rows }: { rows: SurveyRow[] }) {
+  const cellStyle: React.CSSProperties = { display: 'flex', alignItems: 'flex-start' };
   return (
-    <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-      <TreeNode id="A2" rows={rows} width={340} />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 28, marginLeft: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <FlowArrowRight label="'안구마우스 등' 선택 시" />
-          <TreeNode id="A7" rows={rows} width={300} />
-          <div style={{ marginLeft: 14, maxWidth: 150, fontSize: 11, color: '#ff9500', lineHeight: 1.5 }}>
-            “전혀/거의/가끔 사용” 응답 시 → 아래쪽 A8로 연결
-          </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <FlowArrowRight label="선택 안 함" />
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <TreeNode id="A3" rows={rows} width={300} />
-            <FlowArrow label="'네' 응답 시" />
-            <div style={{ display: 'flex', gap: 16 }}>
-              <TreeNode id="A4" rows={rows} width={280} />
-              <TreeNode id="A5" rows={rows} width={300} />
-              <TreeNode id="A6" rows={rows} width={340} />
-            </div>
-          </div>
-          <FlowArrowRight label="A5 '네' 응답 시" />
-          <TreeNode id="A8" rows={rows} width={360} />
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: 'auto auto auto auto auto',
+      alignItems: 'start',
+      columnGap: 10,
+      rowGap: 24,
+      flexShrink: 0,
+    }}>
+      <div style={{ gridRow: '1 / span 2', ...cellStyle }}>
+        <TreeNode id="A2" rows={rows} />
+      </div>
+
+      {/* 위쪽 행: 안구마우스 등 선택 시 */}
+      <div style={{ gridRow: 1, ...cellStyle, alignSelf: 'center' }}><FlowArrowRight label="'안구마우스 등' 선택 시" /></div>
+      <div style={{ gridRow: 1, ...cellStyle }}><TreeNode id="A7" rows={rows} /></div>
+      <div style={{ gridRow: 1, ...cellStyle, alignSelf: 'center', maxWidth: 150, fontSize: 11, color: '#ff9500', lineHeight: 1.5 }}>
+        “전혀/거의/가끔 사용” 응답 시 → 아래 행 A8로 연결
+      </div>
+      <div style={{ gridRow: 1 }} />
+
+      {/* 아래쪽 행: 선택 안 함 */}
+      <div style={{ gridRow: 2, ...cellStyle, alignSelf: 'start', marginTop: 50 }}><FlowArrowRight label="선택 안 함" /></div>
+      <div style={{ gridRow: 2, ...cellStyle, flexDirection: 'column', alignItems: 'center' }}>
+        <TreeNode id="A3" rows={rows} />
+        <FlowArrow label="'네' 응답 시" />
+        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+          <TreeNode id="A4" rows={rows} />
+          <TreeNode id="A5" rows={rows} />
+          <TreeNode id="A6" rows={rows} />
         </div>
       </div>
+      <div style={{ gridRow: 2, ...cellStyle, alignSelf: 'center' }}><FlowArrowRight label="A5 '네' 응답 시" /></div>
+      <div style={{ gridRow: 2, ...cellStyle }}><TreeNode id="A8" rows={rows} /></div>
     </div>
   );
 }
@@ -378,10 +391,10 @@ function ClusterA({ rows }: { rows: SurveyRow[] }) {
 // B4 응답에 따라 B5가 보일지 갈리는 구간.
 function ClusterB({ rows }: { rows: SurveyRow[] }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-      <TreeNode id="B4" rows={rows} width={340} />
-      <FlowArrowRight label="'매번'~'반반' 응답 시" />
-      <TreeNode id="B5" rows={rows} width={340} />
+    <div style={{ display: 'flex', alignItems: 'flex-start', flexShrink: 0 }}>
+      <TreeNode id="B4" rows={rows} />
+      <div style={{ alignSelf: 'center' }}><FlowArrowRight label="'매번'~'반반' 응답 시" /></div>
+      <TreeNode id="B5" rows={rows} />
     </div>
   );
 }
@@ -413,15 +426,15 @@ function SummaryView({ rows }: { rows: SurveyRow[] }) {
   return (
     <div style={{ flex: 1, overflow: 'auto', padding: '28px 24px' }}>
       <p style={{ fontSize: 12, color: '#aeaeb2', marginBottom: 14 }}>← 좌우로 스크롤하면 A1부터 C3까지 순서대로 이어집니다. 조건부 문항 구간은 답변에 따라 갈라지는 흐름을 화살표로 표시했습니다.</p>
-      <div style={{ display: 'flex', alignItems: 'center', width: 'max-content' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', width: 'max-content' }}>
         {MAIN_FLOW_STEPS.map((step, i) => {
           const id = step.kind === 'node' ? step.id : step.kind === 'clusterA' ? 'A2' : 'B4';
           const section = SECTION_START_IDS[id];
           return (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-              {i > 0 && <PlainArrow />}
+            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', flexShrink: 0 }}>
+              {i > 0 && <div style={{ alignSelf: 'center' }}><PlainArrow /></div>}
               {section && <SectionMarker section={section} />}
-              {step.kind === 'node' && <TreeNode id={step.id} rows={rows} width={300} />}
+              {step.kind === 'node' && <TreeNode id={step.id} rows={rows} />}
               {step.kind === 'clusterA' && <ClusterA rows={rows} />}
               {step.kind === 'clusterB' && <ClusterB rows={rows} />}
             </div>

@@ -126,6 +126,9 @@ const MODE_FLAGS: { key: string; label: string; morse: string; defaultOn: boolea
   // 눈처럼 좌/우가 따로 있어서 흔들림 오탐 방지 교차검증이 그대로 유지됨. 셋 다 켜지면
   // eyebrowInput 우선
   { key: 'eyebrowInput', label: '눈썹 입력 (눈썹 올리기로 장/단 입력)', morse: '(설정 화면)', defaultOn: false },
+  // 켜면 카메라 대신 마이크에 부는 바람(저주파 에너지 비율)으로 장/단을 입력함 — 눈/입/
+  // 눈썹 움직임이 다 어려운 환자용. 넷 다 켜지면 micBlowInput 우선
+  { key: 'micBlowInput', label: '마이크 입력 (바람 불기로 장/단 입력)', morse: '(설정 화면)', defaultOn: false },
 ]
 
 export default function PatientDetail({ params }: { params: Promise<{ code: string }> }) {

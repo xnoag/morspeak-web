@@ -3,8 +3,8 @@ import { use, useEffect, useState } from 'react'
 import { initializeApp, getApps } from 'firebase/app'
 import { getFirestore, doc, getDoc, collection, query, orderBy, getDocs, where, deleteDoc, setDoc, limit, updateDoc, onSnapshot } from 'firebase/firestore'
 
-const F = "-apple-system,'SF Pro Display','SF Pro Text',sans-serif"
-const M = "'SF Mono','Fira Mono',monospace"
+export const F = "-apple-system,'SF Pro Display','SF Pro Text',sans-serif"
+export const M = "'SF Mono','Fira Mono',monospace"
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -18,14 +18,14 @@ function getDb() {
   const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig)
   return getFirestore(app)
 }
-function todayKey() { return new Date().toISOString().slice(0, 10) }
-function fmtT(sec?: number) {
+export function todayKey() { return new Date().toISOString().slice(0, 10) }
+export function fmtT(sec?: number) {
   if (!sec) return '—'
   const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60)
   return h > 0 ? `${h}h ${m}m` : `${m}m`
 }
-function fmtS(s?: number) { return s != null ? `${s.toFixed(2)}s` : '—' }
-function n(v: any) { return (v ?? 0) as number }
+export function fmtS(s?: number) { return s != null ? `${s.toFixed(2)}s` : '—' }
+export function n(v: any) { return (v ?? 0) as number }
 // 단계 완료까지 걸린 시간 표시용 — 60초 넘으면 "1분 20초"로
 function fmtDur(sec?: number) {
   if (sec == null) return null
@@ -70,15 +70,15 @@ function reflectionStatus(
   return { label: '화면이 반영되지 않았어요 — 기기 확인 필요', color: '#ff3b30' }
 }
 
-const KBD_C = ['ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ']
-const KBD_V = ['ㅏ','ㅑ','ㅓ','ㅕ','ㅗ','ㅛ','ㅜ','ㅠ','ㅡ','ㅣ','ㅐ','ㅒ','ㅔ','ㅖ']
-const FN_BTNS = [
+export const KBD_C = ['ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ']
+export const KBD_V = ['ㅏ','ㅑ','ㅓ','ㅕ','ㅗ','ㅛ','ㅜ','ㅠ','ㅡ','ㅣ','ㅐ','ㅒ','ㅔ','ㅖ']
+export const FN_BTNS = [
   ['말하기','11','btn_fn_speak'],['초기화','11211','btn_fn_reset'],['호출','22','btn_fn_call'],
   ['AI 추천','12','btn_fn_ai'],['딜리트','1','btn_fn_delete'],['더보기','2','btn_fn_command'],
   ['잠그기','2(기능)','btn_fn_lock'],['→ 키보드','11112','btn_fn_toKeyboard'],['→ 단축어','21111','btn_fn_toShortcut'],
   ['콘센트01','12(기능)','iotOutlet1Count'],['콘센트02','211','iotOutlet2Count'],['콘센트03','121','iotOutlet3Count'],
 ]
-const NAV_ITEMS = [
+export const NAV_ITEMS = [
   { id: '개요',     icon: '📊', label: '개요' },
   { id: '발화기록', icon: '💬', label: '발화 기록' },
   { id: '일별데이터',icon: '📅', label: '일별 데이터' },
@@ -1455,10 +1455,10 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
   )
 }
 
-function ColTitle({ children }: { children: React.ReactNode }) {
+export function ColTitle({ children }: { children: React.ReactNode }) {
   return <h2 style={{fontSize:20,fontWeight:700,letterSpacing:'-.3px',margin:'0 0 12px',color:'#1d1d1f'}}>{children}</h2>
 }
-function Bar({ val, max, color }: { val: number; max: number; color: string }) {
+export function Bar({ val, max, color }: { val: number; max: number; color: string }) {
   const w = max > 0 ? Math.round(val/max*100) : 0
   return (
     <div style={{height:6,background:'#f0f0f5',borderRadius:3,overflow:'hidden'}}>
@@ -1501,7 +1501,7 @@ const DAILY_METRICS = [
   { key: 'shortcutInputTotal',label: '단축어',    color: '#34c759' },
 ]
 
-function DailySection({ daily }: { daily: any[] }) {
+export function DailySection({ daily }: { daily: any[] }) {
   const [focus, setFocus] = useState<string>('speakCount')
   if (!daily.length) return <p style={{fontSize:13,color:'#aeaeb2'}}>데이터 없음</p>
 
@@ -1628,7 +1628,7 @@ function DailySection({ daily }: { daily: any[] }) {
 }
 
 // ── 발화 기록 섹션 (날짜별 + 빈도 순위) ────────────────────────
-function SpeakLogSection({ speaks }: { speaks: any[] }) {
+export function SpeakLogSection({ speaks }: { speaks: any[] }) {
   const [view, setView] = useState<'daily'|'ranking'>('daily')
   const [selectedDate, setSelectedDate] = useState<string|null>(null)
 
@@ -1898,7 +1898,7 @@ function LessonPanel({ code, getDb }: { code: string; getDb: ()=>any }) {
 }
 
 // ── 세션 기록 (시각화) ─────────────────────────────────────────────
-function SessionSection({ sessions }: { sessions: any[] }) {
+export function SessionSection({ sessions }: { sessions: any[] }) {
   const Ff = "system-ui,-apple-system,'SF Pro Text',sans-serif"
   const Mm = "'SF Mono','Fira Mono',monospace"
   const [tooltip, setTooltip] = useState<{x:number;y:number;lines:string[]}|null>(null)

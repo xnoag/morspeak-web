@@ -14,6 +14,9 @@ export const metadata: Metadata = {
     icon: "https://framerusercontent.com/images/P9l2DEc8FwKtUKp8uBlFWioDZKU.png",
     apple: "https://framerusercontent.com/images/1HXtbwYoXwmf2tHp2bEfwWsoUlg.png",
   },
+  verification: {
+    google: "_h00yi2WRWANln_PIp4uD_mN-jk727hFyDEkQ6C-_K8",
+  },
 };
 
 export default function RootLayout({

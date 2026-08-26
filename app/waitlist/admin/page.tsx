@@ -15,6 +15,9 @@ type Entry = {
   diagnosis?: string;
   relationship?: string;
   region?: string;
+  commMethod?: string;
+  movements?: string[];
+  preferredDate?: string;
   note?: string;
   contacted?: boolean;
   createdAt?: Timestamp;
@@ -24,6 +27,15 @@ const fmtDate = (ts?: Timestamp) => {
   if (!ts) return '—';
   return ts.toDate().toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 };
+
+const MOVEMENT_LABELS: Record<string, string> = {
+  finger: '손가락', blink: '눈 깜빡임', eyebrow: '눈썹', mouth: '입 벌림', blow: '바람 불기',
+};
+
+function fmtMonday(iso: string) {
+  const [, m, day] = iso.split('-').map(Number);
+  return `${m}월 ${day}일 (월)`;
+}
 
 export default function WaitlistAdminPage() {
   const [pw, setPw] = useState('');
@@ -89,6 +101,14 @@ export default function WaitlistAdminPage() {
           <div style={{ fontSize: 13, color: '#8E8E93' }}>
             신청인 {e.name}{e.relationship ? `(${e.relationship})` : ''} · {e.phone} · {e.region ?? ''} · {fmtDate(e.createdAt)}
           </div>
+          {(e.commMethod || (e.movements && e.movements.length > 0)) && (
+            <div style={{ fontSize: 12, color: '#3255A8', marginTop: 4 }}>
+              {e.commMethod && <span>소통방법: {e.commMethod}</span>}
+              {e.movements && e.movements.length > 0 && (
+                <span>{e.commMethod ? ' · ' : ''}가능한 움직임: {e.movements.map(k => MOVEMENT_LABELS[k] ?? k).join(', ')}</span>
+              )}
+            </div>
+          )}
         </div>
         <button onClick={() => toggleContacted(e)}
           style={{ padding: '8px 12px', borderRadius: 8, border: 'none', background: e.contacted ? '#E5E5EA' : '#EAF6EC', color: e.contacted ? '#6E6E73' : '#1A8C3A', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: F }}>
@@ -121,7 +141,26 @@ export default function WaitlistAdminPage() {
             <div style={{ background: '#fff', borderRadius: 16, padding: 32, textAlign: 'center', color: '#AEAEB2', fontSize: 15 }}>
               대기 중인 신청이 없습니다.
             </div>
-          ) : waiting.map((e, i) => renderEntry(e, i + 1))}
+          ) : (() => {
+            // 안내 순번은 날짜별 배치(2주 간격 월요일)마다 따로 매겨야 실제 안내 순서와 맞으므로,
+            // preferredDate로 묶어서 그룹별로 보여준다. 날짜를 아직 안 고른 옛 신청은 맨 뒤로.
+            const groups = waiting.reduce<Record<string, Entry[]>>((acc, e) => {
+              const key = e.preferredDate || '미지정';
+              (acc[key] ??= []).push(e);
+              return acc;
+            }, {});
+            const dateKeys = Object.keys(groups).sort((a, b) => a === '미지정' ? 1 : b === '미지정' ? -1 : a.localeCompare(b));
+            return dateKeys.map((key) => (
+              <div key={key} style={{ marginBottom: 20 }}>
+                <div style={{ background: '#1C1C1E', borderRadius: 10, padding: '8px 14px', marginBottom: 8 }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: '#fff', margin: 0 }}>
+                    {key === '미지정' ? '날짜 미지정' : fmtMonday(key)} · {groups[key].length}명
+                  </p>
+                </div>
+                {groups[key].map((e, i) => renderEntry(e, i + 1))}
+              </div>
+            ));
+          })()}
         </div>
 
         {contacted.length > 0 && (

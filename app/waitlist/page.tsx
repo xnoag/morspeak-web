@@ -8,6 +8,34 @@ const F = "-apple-system,'SF Pro Display',BlinkMacSystemFont,'Helvetica Neue',sa
 
 const REGIONS = ['서울', '경기', '인천', '부산', '대구', '대전', '광주', '울산', '세종', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주'];
 const RELATIONS = ['배우자', '자녀', '부모', '형제/자매', '기타 가족', '간병인/요양보호사', '본인'];
+const COMM_METHODS = ['추측', '직접 의사소통', '글자판', '안구마우스', '소통이 어려운 상태', '기타'];
+const MOVEMENT_OPTIONS = [
+  { key: 'finger', label: '손가락으로 키보드 버튼 하나는 누를 수 있어요' },
+  { key: 'blink', label: '눈을 깜빡일 수 있어요' },
+  { key: 'eyebrow', label: '눈썹을 위로 올릴 수 있어요' },
+  { key: 'mouth', label: '입을 벌렸다가 닫을 수 있어요' },
+  { key: 'blow', label: '바람을 불 수 있어요' },
+];
+
+// 안내는 2주 간격 월요일에 순차로 진행 — 오늘 이후 가장 가까운 월요일부터 14일 간격으로
+// N개를 뽑아서 신청자가 원하는 날짜를 직접 고르게 한다.
+function getBiweeklyMondays(count: number): string[] {
+  const d = new Date();
+  const day = d.getDay(); // 0=일 ... 1=월
+  const diffToNextMonday = ((8 - day) % 7) || 7; // 오늘이 월요일이면 당일이 아니라 다음주로
+  d.setDate(d.getDate() + diffToNextMonday);
+  const dates: string[] = [];
+  for (let i = 0; i < count; i++) {
+    dates.push(d.toISOString().slice(0, 10));
+    d.setDate(d.getDate() + 14);
+  }
+  return dates;
+}
+function fmtMonday(iso: string) {
+  const [, m, day] = iso.split('-').map(Number);
+  return `${m}월 ${day}일 (월)`;
+}
+const GUIDANCE_DATES = getBiweeklyMondays(5);
 
 const formatPhone = (v: string) => {
   const d = v.replace(/\D/g, '').slice(0, 11);
@@ -44,9 +72,17 @@ export default function WaitlistPage() {
   const [relationship, setRelationship] = useState('');
   const [phone, setPhone] = useState('');
   const [region, setRegion] = useState('');
+  const [commMethod, setCommMethod] = useState('');
+  const [movements, setMovements] = useState<string[]>([]);
+  const [preferredDate, setPreferredDate] = useState('');
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [myPosition, setMyPosition] = useState<number | null>(null);
+  const [confirmedDate, setConfirmedDate] = useState('');
+
+  const toggleMovement = (key: string) => {
+    setMovements((prev) => prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]);
+  };
 
   useEffect(() => {
     signInAnonymously(getAuth()).catch(() => {});
@@ -56,7 +92,7 @@ export default function WaitlistPage() {
     return () => unsub();
   }, []);
 
-  const canSubmit = patientName.trim() && applicantName.trim() && relationship && phone.trim() && region;
+  const canSubmit = patientName.trim() && applicantName.trim() && relationship && phone.trim() && region && commMethod && preferredDate;
 
   const handleSubmit = async () => {
     if (!canSubmit || submitting) return;
@@ -69,15 +105,21 @@ export default function WaitlistPage() {
         relationship,
         phone: phone.trim(),
         region,
+        commMethod,
+        movements,
+        preferredDate,
         note: note.trim(),
         contacted: false,
         createdAt: serverTimestamp(),
       });
+      setConfirmedDate(preferredDate);
+      // 안내 순번은 "전체 대기열"이 아니라 "같은 날짜를 고른 사람들 안에서" 몇 번째인지가
+      // 신청자에게 실제로 의미 있는 숫자라, preferredDate가 같은 문서들끼리만 순위를 매긴다.
       const position = await new Promise<number>(resolve => {
         const unsub = onSnapshot(collection(db, 'waitlist'), s => {
           unsub();
           const sorted = s.docs
-            .filter(d => !d.data().contacted)
+            .filter(d => !d.data().contacted && d.data().preferredDate === preferredDate)
             .sort((a, b) => (a.data().createdAt?.seconds ?? 0) - (b.data().createdAt?.seconds ?? 0));
           const idx = sorted.findIndex(d => d.id === ref.id);
           resolve(idx >= 0 ? idx + 1 : sorted.length);
@@ -96,10 +138,10 @@ export default function WaitlistPage() {
         <div style={{ fontSize: 64, marginBottom: 20 }}>✅</div>
         <h2 style={{ fontSize: 26, fontWeight: 700, color: '#1C1C1E', marginBottom: 10 }}>신청이 접수됐습니다</h2>
         <p style={{ fontSize: 18, color: '#3C3C43', lineHeight: 1.7, marginBottom: 8 }}>
-          현재 대기 순번은 <strong>{myPosition}번째</strong>입니다
+          <strong>{fmtMonday(confirmedDate)}</strong> 안내 순번은 <strong>{myPosition}번째</strong>입니다
         </p>
         <p style={{ fontSize: 16, color: '#8E8E93', lineHeight: 1.7 }}>
-          접수 순서대로 모스픽 담당자가 유선으로 안내드립니다.<br />조금만 기다려주세요 🙏
+          해당 날짜에 순서대로 모스픽 담당자가 유선으로 안내드립니다.<br />조금만 기다려주세요 🙏
         </p>
       </div>
     </div>
@@ -126,7 +168,7 @@ export default function WaitlistPage() {
         <div style={{ background: '#EEF3FF', border: '1px solid #D6E4FF', borderRadius: 14, padding: '14px 16px', marginBottom: 20, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
           <span style={{ fontSize: 18 }}>📋</span>
           <p style={{ fontSize: 13.5, color: '#3255A8', lineHeight: 1.6, margin: 0 }}>
-            아래 정보를 남겨주시면 <strong>접수 순서대로</strong> 모스픽 담당자가 직접 연락드려 이용 절차를 안내합니다.
+            모스픽 이용 안내는 <strong>2주 간격(매주 월요일)</strong>으로 진행됩니다. 원하시는 날짜를 선택하시면 해당 날 접수 순서대로 모스픽 담당자가 직접 연락드려 이용 절차를 안내합니다.
           </p>
         </div>
 
@@ -143,7 +185,48 @@ export default function WaitlistPage() {
         </div>
 
         <div style={{ background: '#fff', borderRadius: 20, padding: '24px 20px', marginBottom: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-          <SectionHeader n={2} title="신청인 정보" />
+          <SectionHeader n={2} title="현재 소통 방식" />
+          <div style={{ marginBottom: 16 }}>
+            <label style={labelStyle}>현재 사용 중인 보조기기 / 소통 방법</label>
+            <select value={commMethod} onChange={e => setCommMethod(e.target.value)} style={{ ...inputStyle, appearance: 'none' }}>
+              <option value="">선택</option>
+              {COMM_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>조금이라도 자유롭게 움직일 수 있는 부분 <span style={{ color: '#AEAEB2', fontWeight: 400 }}>(해당하는 항목 모두 선택, 선택)</span></label>
+            <div style={{ display: 'grid', gap: 8 }}>
+              {MOVEMENT_OPTIONS.map(o => (
+                <label key={o.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: `1.5px solid ${movements.includes(o.key) ? '#1C1C1E' : '#E5E5EA'}`, borderRadius: 10, cursor: 'pointer', background: movements.includes(o.key) ? '#F5F5F7' : '#fff' }}>
+                  <input type="checkbox" checked={movements.includes(o.key)} onChange={() => toggleMovement(o.key)} style={{ width: 16, height: 16, flexShrink: 0, accentColor: '#1C1C1E' }} />
+                  <span style={{ fontSize: 14, color: '#1C1C1E' }}>{o.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ background: '#fff', borderRadius: 20, padding: '24px 20px', marginBottom: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+          <SectionHeader n={3} title="안내받고 싶은 날짜" />
+          <p style={{ fontSize: 13, color: '#8E8E93', marginBottom: 12 }}>2주 간격 월요일 중 원하시는 날짜를 선택해주세요.</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
+            {GUIDANCE_DATES.map(d => (
+              <button key={d} type="button" onClick={() => setPreferredDate(d)}
+                style={{
+                  padding: '12px 0', borderRadius: 10,
+                  border: `1.5px solid ${preferredDate === d ? '#1C1C1E' : '#D1D1D6'}`,
+                  background: preferredDate === d ? '#1C1C1E' : '#fff',
+                  color: preferredDate === d ? '#fff' : '#3C3C43',
+                  fontSize: 14, fontWeight: preferredDate === d ? 700 : 500, cursor: 'pointer', fontFamily: F,
+                }}>
+                {fmtMonday(d)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ background: '#fff', borderRadius: 20, padding: '24px 20px', marginBottom: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+          <SectionHeader n={4} title="신청인 정보" />
           <div style={{ marginBottom: 14 }}>
             <label style={labelStyle}>신청인(보호자) 성함</label>
             <input value={applicantName} onChange={e => setApplicantName(e.target.value)} placeholder="신청하시는 분 성함" style={inputStyle} />
@@ -171,7 +254,7 @@ export default function WaitlistPage() {
         </div>
 
         <div style={{ background: '#fff', borderRadius: 20, padding: '24px 20px', marginBottom: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-          <SectionHeader n={3} title="문의 내용" />
+          <SectionHeader n={5} title="문의 내용" />
           <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="환자분 현재 상태, 궁금하신 점 등을 자유롭게 남겨주세요 (선택)"
             rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
         </div>

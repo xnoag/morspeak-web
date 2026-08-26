@@ -17,13 +17,13 @@ const MOVEMENT_OPTIONS = [
   { key: 'blow', label: '바람을 불 수 있어요' },
 ];
 
-// 안내는 2주 간격 월요일에 순차로 진행 — 오늘 이후 가장 가까운 월요일부터 14일 간격으로
-// N개를 뽑아서 신청자가 원하는 날짜를 직접 고르게 한다.
+// 안내는 2주 간격 월요일에 순차로 진행 — 가장 가까운 월요일은 준비 기간이 부족해 제외하고,
+// 그 다음 월요일부터 14일 간격으로 N개를 뽑아서 신청자가 원하는 날짜를 직접 고르게 한다.
 function getBiweeklyMondays(count: number): string[] {
   const d = new Date();
   const day = d.getDay(); // 0=일 ... 1=월
   const diffToNextMonday = ((8 - day) % 7) || 7; // 오늘이 월요일이면 당일이 아니라 다음주로
-  d.setDate(d.getDate() + diffToNextMonday);
+  d.setDate(d.getDate() + diffToNextMonday + 14); // 가장 가까운 월요일은 스킵
   const dates: string[] = [];
   for (let i = 0; i < count; i++) {
     dates.push(d.toISOString().slice(0, 10));

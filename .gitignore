@@ -42,3 +42,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# 영상 편집 원본은 git 에 넣지 않는다 (iCloud 04-미디어/01-영상 에 보관)
+*.mov

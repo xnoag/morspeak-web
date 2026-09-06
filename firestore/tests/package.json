@@ -1,0 +1,13 @@
+{
+  "name": "morspeak-firestore-rules-tests",
+  "private": true,
+  "type": "module",
+  "description": "Firestore 보안 규칙 단위 테스트. 웹 앱 의존성과 분리하려고 별도 package.json 을 둔다.",
+  "scripts": {
+    "test": "firebase emulators:exec --only firestore --project morspeak-rules-test 'node rules.test.mjs'"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "firebase": "^12.0.0"
+  }
+}

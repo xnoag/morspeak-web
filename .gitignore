@@ -45,3 +45,8 @@ next-env.d.ts
 
 # 영상 편집 원본은 git 에 넣지 않는다 (iCloud 04-미디어/01-영상 에 보관)
 *.mov
+
+### Firestore 규칙 테스트 ###
+firestore/tests/node_modules
+firestore/tests/firestore-debug.log
+firestore/tests/*-debug.log

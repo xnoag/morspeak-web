@@ -1,0 +1,26 @@
+// ⚠️ 이것은 2026-09-07 시점 Firebase Console 에 배포돼 있던 규칙 원본이다.
+// 되돌릴 기준점으로만 보관한다. 이 내용을 다시 배포하지 말 것 — 전면 개방 상태다.
+//
+// 문제: match /{document=**} 에 read, write 가 2040년까지 허용돼 있다.
+// = 인증 없이 누구나 전체 DB 를 읽고 쓰고 지울 수 있다.
+// 확인 방법: 인증 토큰 없이 존재하지 않는 문서를 요청했을 때 403 이 아니라 404 가 돌아온다.
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // This rule allows anyone with your Firestore database reference to view, edit,
+    // and delete all data in your Firestore database. It is useful for getting
+    // started, but it is configured to expire after 30 days because it
+    // leaves your app open to attackers. At that time, all client
+    // requests to your Firestore database will be denied.
+    //
+    // Make sure to write security rules for your app before that time, or else
+    // all client requests to your Firestore database will be denied until you Update
+    // your rules
+    match /{document=**} {
+      allow read, write: if request.time < timestamp.date(2040, 8, 30);
+    }
+  }
+}

@@ -50,3 +50,4 @@ next-env.d.ts
 firestore/tests/node_modules
 firestore/tests/firestore-debug.log
 firestore/tests/*-debug.log
+firestore/scripts/node_modules

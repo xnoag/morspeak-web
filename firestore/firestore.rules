@@ -40,32 +40,40 @@
 //   educationSessions  youtubeSuggestions snapshotRequests  deviceStatus
 //   deviceTokens(루트)
 //
-// ⚠️ patients 와 usageStats 는 웹이 목록 조회하므로 list 를 열어둔다.
-//    두 컬렉션에 환자 실명·생년월일·진단명·보호자 연락처가 있고,
-//    patients 에는 평문 비밀번호까지 있다. 여기가 가장 큰 구멍이며 이 단계로는 닫히지 않는다.
-//    2단계에서 웹 읽기를 서버 사이드(Admin SDK)로 옮긴 뒤 list 를 닫아야 한다.
+// ✅ patients 와 usageStats 의 list 도 닫았다(2026-09-07).
+//    웹이 where('chatCode','==',code) 로 조회하던 것을 usageStats/{chatCode}.loginId 를
+//    거쳐 getDoc(patients/{loginId}) 하도록 바꿨다. 운영 DB 대조로 동등함을 확인했다:
+//    patients 24건 / usageStats 99건, loginId 있는 24건은 patients 100% 존재,
+//    없는 75건은 chatCode 쿼리로도 못 찾는다(patients 문서 자체가 없음).
 
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── 환자 계정 ──────────────────────────────────────────────────
-    // 문서 ID = loginId. 평문 비밀번호가 아직 여기 있다(Auth 이관 전).
-    // 웹이 where('chatCode','==',code) 로 조회하므로 list 를 막을 수 없다.
+    // ── 환자 계정 — list 차단 ─────────────────────────────────────
+    // 문서 ID = loginId. 평문 비밀번호가 아직 여기 있다(Auth 이관 전)이므로
+    // 전수 수집을 반드시 막아야 한다.
+    // 웹이 where('chatCode','==',code) 로 조회하던 것을
+    // usageStats/{chatCode}.loginId → getDoc(patients/{loginId}) 로 바꿔서 list 가 불필요해졌다
+    // (morspeak-web: patient-report/[code], tracking/patients/[code]).
     match /patients/{loginId} {
-      allow get, list: if true;
+      allow get: if true;
       allow create, update: if true;
       allow delete: if true;   // 웹 계정 삭제 플로우
+      allow list: if false;
     }
 
     // ── 사용 통계 + 환자 정보(대시보드 식별용) ────────────────────
     // upsertPatientInfo 가 여기에 쓴다. 비밀번호는 2026-09-07 커밋 b5a9bb8 로 제거됨.
     // 기존 문서에 남아있는 password 필드는 정리 스크립트가 필요하다.
+    // 루트 list 차단 — 웹은 getDoc(usageStats/{code}) 와 하위 컬렉션 조회만 쓴다.
+    // 환자 실명·생년월일·진단명·병원·보호자 연락처가 여기 있다.
     match /usageStats/{code} {
-      allow get, list: if true;
+      allow get: if true;
       allow create, update: if true;
       allow delete: if true;   // 웹 계정 삭제 플로우
+      allow list: if false;
       match /daily/{day}            { allow read, write: if true; }
       match /sessions/{sessionId}   { allow read, write: if true; }
       match /speaks/{speakId}       { allow read, write: if true; }

@@ -95,12 +95,14 @@ await check('보호자앱: caregiverTokens 목록 조회', () =>
 await check('판별앱: screening_results 쓰기', () =>
   assertSucceeds(setDoc(doc(anon, 'screening_results', 'r1'), { ok: true })));
 
-await check('웹: patients 를 chatCode 로 조회 — 대시보드', () =>
-  assertSucceeds(getDocs(query(
-    collection(anon, 'patients'), where('chatCode', '==', CODE)))));
+await check('웹: usageStats/{code} 단건 읽기 — 대시보드 진입', () =>
+  assertSucceeds(getDoc(doc(anon, 'usageStats', CODE))));
 
-await check('웹: usageStats 목록 조회 — 대시보드', () =>
-  assertSucceeds(getDocs(collection(anon, 'usageStats'))));
+await check('웹: loginId 로 patients 단건 읽기 — chatCode 쿼리 대체', () =>
+  assertSucceeds(getDoc(doc(anon, 'patients', LOGIN))));
+
+await check('웹: usageStats/{code}/daily 조회 — 하위 컬렉션은 허용', () =>
+  assertSucceeds(getDocs(collection(anon, 'usageStats', CODE, 'daily'))));
 
 await check('웹: waitlist 목록 조회', () =>
   assertSucceeds(getDocs(collection(anon, 'waitlist'))));
@@ -133,6 +135,15 @@ await check('deviceStatus 전체 목록 조회 차단', () =>
 
 await check('deviceTokens 루트 목록 조회 차단', () =>
   assertFails(getDocs(collection(anon, 'deviceTokens'))));
+
+await check('patients 전수 수집 차단 — 평문 비밀번호가 아직 여기 있다', () =>
+  assertFails(getDocs(collection(anon, 'patients'))));
+
+await check('patients 를 chatCode 로 쿼리하는 것도 차단', () =>
+  assertFails(getDocs(query(collection(anon, 'patients'), where('chatCode', '==', CODE)))));
+
+await check('usageStats 전수 수집 차단 — 실명·생년월일·진단명이 여기 있다', () =>
+  assertFails(getDocs(collection(anon, 'usageStats'))));
 
 await check('알려지지 않은 컬렉션 쓰기 차단 — 스토리지·요금 남용 방지', () =>
   assertFails(setDoc(doc(anon, 'attacker_junk', 'x'), { a: 1 })));

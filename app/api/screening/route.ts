@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { getDb, ensureTable } from '@/lib/db';
 
 export async function POST(req: NextRequest) {
@@ -29,9 +30,15 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET(req: NextRequest) {
-  const password = req.nextUrl.searchParams.get('password');
-  if (!password || password !== process.env.ADMIN_PASSWORD) {
+export async function GET() {
+  // 예전에는 관리자 비밀번호를 URL 쿼리스트링(?password=)으로 받았다.
+  // 쿼리스트링은 서버 로그·Vercel 로그·브라우저 기록·리퍼러 헤더에 그대로 남는다.
+  // 게다가 트래킹 대시보드와 같은 ADMIN_PASSWORD 였다.
+  //
+  // 나머지 관리자 화면과 같은 방식(admin_session 쿠키)으로 통일한다.
+  // 쿠키는 /api/admin/auth 가 httpOnly·secure·sameSite=strict 로 발급한다.
+  const cookieStore = await cookies();
+  if (cookieStore.get('admin_session')?.value !== 'authenticated') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

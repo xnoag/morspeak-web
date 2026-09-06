@@ -1,7 +1,7 @@
 'use client'
 import { use, useEffect, useState } from 'react'
 import { initializeApp, getApps } from 'firebase/app'
-import { getFirestore, doc, getDoc, collection, query, orderBy, getDocs, where, deleteDoc, setDoc, limit, updateDoc, onSnapshot } from 'firebase/firestore'
+import { getFirestore, doc, getDoc, collection, query, orderBy, getDocs, deleteDoc, setDoc, limit, updateDoc, onSnapshot } from 'firebase/firestore'
 
 export const F = "-apple-system,'SF Pro Display','SF Pro Text',sans-serif"
 export const M = "'SF Mono','Fira Mono',monospace"
@@ -171,10 +171,9 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
   useEffect(() => {
     async function load() {
       const db = getDb()
-      const [sS,bS,dS,pS,pD,scS,ytS,tS,spS] = await Promise.all([
+      const [sS,bS,dS,scS,ytS,tS,spS] = await Promise.all([
         getDoc(doc(db,'usageStats',code)), getDoc(doc(db,'blinkProfiles',code)),
         getDocs(query(collection(db,'usageStats',code,'daily'),orderBy('date','desc'))),
-        getDocs(query(collection(db,'patients'),where('chatCode','==',code))), getDoc(doc(db,'patients',code)),
         getDoc(doc(db,'shortcuts',code)), getDoc(doc(db,'youtubeSuggestions',code)),
         getDoc(doc(db,'usageStats',code,'daily',todayKey())),
         getDocs(query(collection(db,'usageStats',code,'speaks'),orderBy('timestamp','desc'),limit(500))),
@@ -182,8 +181,15 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
       const ssSnap = await getDocs(query(collection(db,'usageStats',code,'sessions'),orderBy('start','desc'),limit(200)))
       setSessions(ssSnap.docs.map(d=>({id:d.id,...d.data()})))
       let m: Record<string,any> = sS.exists() ? sS.data() : {}
-      if (!pS.empty) m={...pS.docs[0].data(),...m}
-      else if (pD.exists()) m={...pD.data(),...m}
+      // patients 는 문서 ID 가 loginId 라 chatCode 로 바로 못 읽는다. 예전에는 collection
+      // 쿼리(where chatCode == code)를 썼는데, 그러면 규칙에서 patients 의 list 를 열어둬야
+      // 하고 = 전 환자 문서를 통째로 긁을 수 있게 된다. usageStats/{chatCode}.loginId 로
+      // get 두 번 하면 같은 결과다. (동등성 확인 내용은 patient-report/[code] 주석 참고)
+      const loginId = sS.exists() ? (sS.data().loginId as string | undefined) : undefined
+      if (loginId) {
+        const pD = await getDoc(doc(db,'patients',loginId))
+        if (pD.exists()) m={...pD.data(),...m}
+      }
       setStats(m); if(bS.exists()) setBlink(bS.data())
       setDaily(dS.docs.map(d=>({id:d.id,...d.data()})))
       if(tS.exists()) setToday(tS.data())
@@ -307,11 +313,18 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
         <button onClick={async()=>{
           if(!confirm(`"${stats.userName||code}" 전체 데이터를 삭제합니다.`)) return
           setDeleting(true); const db=getDb()
+          // patients 문서 ID 는 loginId 다. usageStats 를 지우기 **전에** 먼저 읽어둬야
+          // loginId 를 알 수 있다 — 예전에는 지운 뒤 chatCode 쿼리로 찾았는데, 그러면
+          // 규칙에서 patients 의 list 를 열어둬야 한다(= 전 환자 문서 전수 수집 가능).
+          // 참고: deleteDoc(patients/{code}) 는 원래 항상 무의미했다. 문서 ID 가 chatCode 인
+          // patients 문서는 운영 DB 에 0건이다(2026-09-07 확인).
+          const usDoc = await getDoc(doc(db,'usageStats',code))
+          const loginId = usDoc.exists() ? (usDoc.data().loginId as string | undefined) : undefined
+
           const [d1,d2,d3]=await Promise.all([getDocs(collection(db,'usageStats',code,'daily')),getDocs(collection(db,'chats',code,'messages')),getDocs(collection(db,'usageStats',code,'speaks'))])
           await Promise.all([...d1.docs,...d2.docs,...d3.docs].map(d=>deleteDoc(d.ref)))
-          await Promise.all([deleteDoc(doc(db,'usageStats',code)),deleteDoc(doc(db,'blinkProfiles',code)),deleteDoc(doc(db,'patients',code)),deleteDoc(doc(db,'chats',code)),deleteDoc(doc(db,'shortcuts',code)),deleteDoc(doc(db,'youtubeSuggestions',code))])
-          const byCode=await getDocs(query(collection(db,'patients'),where('chatCode','==',code)))
-          await Promise.all(byCode.docs.map(d=>deleteDoc(d.ref)))
+          await Promise.all([deleteDoc(doc(db,'usageStats',code)),deleteDoc(doc(db,'blinkProfiles',code)),deleteDoc(doc(db,'chats',code)),deleteDoc(doc(db,'shortcuts',code)),deleteDoc(doc(db,'youtubeSuggestions',code))])
+          if (loginId) await deleteDoc(doc(db,'patients',loginId))
           location.href='/tracking/dashboard'
         }} disabled={deleting} style={{fontSize:11,color:'#ff453a',border:'none',background:'transparent',cursor:'pointer',fontFamily:F}}>
           {deleting?'삭제 중...':'삭제'}

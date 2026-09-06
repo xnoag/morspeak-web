@@ -1,7 +1,7 @@
 'use client';
 
 import { use, useEffect, useState } from 'react';
-import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, limit, orderBy, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import {
   F, M, ColTitle, Bar, DailySection, SpeakLogSection, SessionSection,
@@ -36,18 +36,30 @@ export default function PatientReportPage({ params }: { params: Promise<{ code: 
 
   useEffect(() => {
     async function load() {
-      const [sS, bS, dS, pS, pD, spS] = await Promise.all([
+      const [sS, bS, dS, spS] = await Promise.all([
         getDoc(doc(db, 'usageStats', code)), getDoc(doc(db, 'blinkProfiles', code)),
         getDocs(query(collection(db, 'usageStats', code, 'daily'), orderBy('date', 'desc'))),
-        getDocs(query(collection(db, 'patients'), where('chatCode', '==', code))), getDoc(doc(db, 'patients', code)),
         getDocs(query(collection(db, 'usageStats', code, 'speaks'), orderBy('timestamp', 'desc'), limit(500))),
       ]);
       const ssSnap = await getDocs(query(collection(db, 'usageStats', code, 'sessions'), orderBy('start', 'desc'), limit(200)));
       setSessions(ssSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
       const tS = await getDoc(doc(db, 'usageStats', code, 'daily', todayKey()));
       let m: Record<string, unknown> = sS.exists() ? sS.data() : {};
-      if (!pS.empty) m = { ...pS.docs[0].data(), ...m };
-      else if (pD.exists()) m = { ...pD.data(), ...m };
+      // patients 는 문서 ID 가 loginId 라서 chatCode 로는 바로 못 읽는다.
+      // 예전에는 collection 쿼리(where chatCode == code)로 찾았는데, 그러면 규칙에서
+      // patients 의 list 를 열어둬야 하고 = 전 환자 문서를 통째로 긁을 수 있게 된다.
+      // usageStats/{chatCode} 에 loginId 가 있으므로 get 두 번으로 같은 결과를 얻는다.
+      //
+      // 동등성 확인(2026-09-07, 운영 DB 조회):
+      //   patients 24건 / usageStats 99건
+      //   loginId 있는 24건 → patients 문서 100% 존재
+      //   loginId 없는 75건 → chatCode 쿼리로도 못 찾음(patients 문서 자체가 없음)
+      //   patients 문서 ID 가 chatCode 인 경우 0건 → getDoc(patients/{code}) 는 항상 빈 결과였다
+      const loginId = sS.exists() ? (sS.data().loginId as string | undefined) : undefined;
+      if (loginId) {
+        const pD = await getDoc(doc(db, 'patients', loginId));
+        if (pD.exists()) m = { ...pD.data(), ...m };
+      }
       setStats(m);
       if (bS.exists()) setBlink(bS.data());
       setDaily(dS.docs.map((d) => ({ id: d.id, ...d.data() })));

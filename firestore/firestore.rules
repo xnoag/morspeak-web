@@ -73,7 +73,21 @@ service cloud.firestore {
       allow get: if true;
       allow create, update: if true;
       allow delete: if true;   // 웹 계정 삭제 플로우
-      allow list: if false;
+      // 🔴 **여기는 아직 열려 있다. 닫으려다 운영 화면을 깨뜨려서 되돌렸다 (2026-09-07 밤).**
+      //   `list: if false` 로 배포했더니 트래킹 대시보드(`app/tracking/dashboard/page.tsx`)가
+      //   빈 화면이 됐다. 그 화면은 **환자 명단** 이고 루트 전수 조회가 그 자체로 기능이다.
+      //   2단계에서 닫은 것은 환자 **상세** 조회(where 쿼리 → getDoc 두 번)였고,
+      //   명단 화면은 대조 목록에서 빠져 있었다.
+      //
+      //   지금 노출: 환자 실명·생년월일·진단명·병원·보호자 연락처가 전수 수집 가능하다.
+      //   ⚠️ 어제까지는 DB 전체가 읽기·쓰기 개방이었으므로 **그보다 나쁘지는 않다.**
+      //      하지만 이건 고쳐야 할 구멍으로 남는 것이다 — 못 본 척하지 말 것.
+      //
+      //   진짜 해결(3단계): 대시보드를 **서버 사이드 API**로 옮긴다. `admin_session` 쿠키로
+      //   막힌 라우트에서 Admin SDK 로 읽으면 클라이언트에 list 권한이 필요 없어진다.
+      //   Vercel 에 서비스 계정 키를 넣어야 해서 대표 승인이 필요하다.
+      //   (`patients` 의 list 는 계속 닫혀 있다 — 평문 비밀번호가 있는 쪽이라 더 위험하다)
+      allow list: if true;
       match /daily/{day}            { allow read, write: if true; }
       match /sessions/{sessionId}   { allow read, write: if true; }
       match /speaks/{speakId}       { allow read, write: if true; }

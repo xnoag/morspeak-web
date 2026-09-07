@@ -142,8 +142,16 @@ await check('patients 전수 수집 차단 — 평문 비밀번호가 아직 여
 await check('patients 를 chatCode 로 쿼리하는 것도 차단', () =>
   assertFails(getDocs(query(collection(anon, 'patients'), where('chatCode', '==', CODE)))));
 
-await check('usageStats 전수 수집 차단 — 실명·생년월일·진단명이 여기 있다', () =>
-  assertFails(getDocs(collection(anon, 'usageStats'))));
+// 🔴 이 검사는 예전에 `assertFails` 였다. 닫은 채로 배포했더니 트래킹 대시보드가
+//   빈 화면이 됐다(그 화면은 환자 명단이고 루트 전수 조회가 기능 자체다).
+//   지금은 **열려 있는 것이 사실**이므로 사실대로 고정한다 — 테스트가 규칙과
+//   어긋난 상태로 남으면 다음 사람이 "닫혀 있다" 고 믿는다.
+//   닫는 것은 대시보드를 서버 사이드로 옮긴 다음이다(3단계).
+await check('usageStats 전수 수집은 아직 열려 있다 — 대시보드가 명단을 그린다', () =>
+  assertSucceeds(getDocs(collection(anon, 'usageStats'))));
+
+await check('patients 전수 수집은 닫혀 있다 — 평문 비밀번호가 여기 있다', () =>
+  assertFails(getDocs(collection(anon, 'patients'))));
 
 await check('알려지지 않은 컬렉션 쓰기 차단 — 스토리지·요금 남용 방지', () =>
   assertFails(setDoc(doc(anon, 'attacker_junk', 'x'), { a: 1 })));

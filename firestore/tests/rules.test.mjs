@@ -18,7 +18,7 @@ import {
   assertFails,
 } from '@firebase/rules-unit-testing';
 import {
-  doc, getDoc, setDoc, updateDoc, deleteDoc,
+  doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc, serverTimestamp,
   collection, getDocs, query, where, orderBy, limit,
 } from 'firebase/firestore';
 
@@ -156,6 +156,49 @@ await check('재단 정산: 인증 없이 orgs 읽기 차단', () =>
 
 await check('featureFlags 삭제 차단', () =>
   assertFails(deleteDoc(doc(anon, 'featureFlags', CODE))));
+
+await check('웹: 문의 폼 제출 — /contact', () =>
+  assertSucceeds(addDoc(collection(anon, 'inquiries'), {
+    kind: 'contact', organization: '테스트병원', name: '홍길동',
+    phone: '010-0000-0000', email: 'a@b.com', message: '문의합니다',
+    locale: 'ko', handled: false, createdAt: serverTimestamp(),
+  })));
+
+await check('웹: 소식 구독 제출 — /eng·/jpn', () =>
+  assertSucceeds(addDoc(collection(anon, 'inquiries'), {
+    kind: 'newsletter', email: 'a@b.com', locale: 'en',
+    handled: false, createdAt: serverTimestamp(),
+  })));
+
+await check('웹: 문의 목록 조회 — /admin/inquiries', () =>
+  assertSucceeds(getDocs(collection(anon, 'inquiries'))));
+
+console.log('\n── 문의 폼이 공개 입구라서 검증되는가 (스팸·요금 남용 방지) ──');
+
+await check('문의: 모르는 필드가 섞이면 차단 — 임의 데이터 저장소로 쓰이는 것 방지', () =>
+  assertFails(addDoc(collection(anon, 'inquiries'), {
+    kind: 'contact', junk: 'x'.repeat(100), createdAt: serverTimestamp(),
+  })));
+
+await check('문의: kind 가 정해진 둘 중 하나가 아니면 차단', () =>
+  assertFails(addDoc(collection(anon, 'inquiries'), {
+    kind: 'attacker', createdAt: serverTimestamp(),
+  })));
+
+await check('문의: 본문 2000자 초과 차단', () =>
+  assertFails(addDoc(collection(anon, 'inquiries'), {
+    kind: 'contact', message: 'a'.repeat(2001), createdAt: serverTimestamp(),
+  })));
+
+await check('문의: createdAt 을 직접 지정하면 차단 — 목록 앞에 끼워넣기 방지', () =>
+  assertFails(addDoc(collection(anon, 'inquiries'), {
+    kind: 'contact', createdAt: new Date(2000, 0, 1),
+  })));
+
+await check('문의: handled=true 로 만들어 처리된 척하는 것 차단', () =>
+  assertFails(addDoc(collection(anon, 'inquiries'), {
+    kind: 'contact', handled: true, createdAt: serverTimestamp(),
+  })));
 
 await testEnv.cleanup();
 

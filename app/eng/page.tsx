@@ -162,7 +162,7 @@ export default function EngPage() {
       <section className="py-20 px-6" style={{ background: "#111" }}>
         <div className="max-w-[1200px] mx-auto">
           <FadeIn>
-            <NewsletterForm label="Get product news and updates" placeholder="you@example.com" successMessage="Thank you! We'll be in touch." />
+            <NewsletterForm locale="en" label="Get product news and updates" placeholder="you@example.com" successMessage="Thank you! We'll be in touch." />
           </FadeIn>
         </div>
       </section>

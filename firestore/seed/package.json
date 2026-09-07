@@ -1,0 +1,17 @@
+{
+  "name": "seed",
+  "version": "1.0.0",
+  "description": "에뮬레이터 시드 — 운영 DB 에는 절대 쓰지 않는다",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "firebase-admin": "^14.3.0"
+  }
+}

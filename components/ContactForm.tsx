@@ -1,7 +1,21 @@
 'use client';
 
 import { useState } from 'react';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
+/**
+ * 기관 문의 폼 (/contact).
+ *
+ * 예전에는 `await new Promise(r => setTimeout(r, 800))` 뒤에 성공 화면만 띄우고
+ * **데이터를 아무 데도 보내지 않았다.** 기관이 문의를 남기면 그대로 사라지는데
+ * 화면에는 "문의가 접수되었습니다. 빠른 시일 내에 연락드리겠습니다." 가 떴다.
+ * 놓친 문의는 되돌릴 수 없다 (2026-09-07 수정).
+ *
+ * 지금은 Firestore `inquiries` 에 쓰고 /admin/inquiries 에서 본다.
+ * ⚠️ **쓰기가 실패하면 성공 화면을 띄우지 않는다.** 조용히 성공한 척하는 것이
+ *    원래 버그의 본질이었다 — 실패는 실패로 보여야 상대가 다른 경로로 연락한다.
+ */
 export default function ContactForm() {
   const [form, setForm] = useState({
     organization: '',
@@ -12,6 +26,7 @@ export default function ContactForm() {
   });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -20,10 +35,27 @@ export default function ContactForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // TODO: Connect to backend or email service
-    await new Promise((r) => setTimeout(r, 800));
-    setSubmitted(true);
-    setLoading(false);
+    setError(false);
+    try {
+      await addDoc(collection(db, 'inquiries'), {
+        kind: 'contact',
+        // 규칙(isValidInquiry)이 길이를 제한한다. 여기서도 잘라 보내서
+        // 사용자가 "제출은 됐는데 거부됨" 을 겪지 않게 한다.
+        organization: form.organization.trim().slice(0, 100),
+        name: form.name.trim().slice(0, 50),
+        phone: form.phone.trim().slice(0, 30),
+        email: form.email.trim().slice(0, 200),
+        message: form.message.trim().slice(0, 2000),
+        locale: 'ko',
+        handled: false,
+        createdAt: serverTimestamp(),
+      });
+      setSubmitted(true);
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (submitted) {
@@ -83,6 +115,11 @@ export default function ContactForm() {
         rows={5}
         className={`${inputClass} resize-none`}
       />
+      {error && (
+        <p className="text-[14px]" style={{ color: '#D92D20' }} role="alert">
+          전송에 실패했습니다. 잠시 후 다시 시도해주시거나 gaon@morspeak.com 으로 보내주세요.
+        </p>
+      )}
       <button
         type="submit"
         disabled={loading}

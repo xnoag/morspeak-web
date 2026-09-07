@@ -167,6 +167,38 @@ service cloud.firestore {
     match /equipment_loans/{itemId}    { allow read, write: if true; }
     match /donation_messages/{itemId}  { allow read, write: if true; }
 
+    // ── 웹 문의 폼 (/contact · /eng·/jpn 뉴스레터) ─────────────────
+    // create 만 검증한다. **공개 폼이라 아무나 쓸 수 있는 유일한 입구**이므로
+    // 필드 이름과 길이를 제한해 스팸이 저장소·요금을 갉아먹는 것을 막는다.
+    // (다른 웹 컬렉션은 검증이 없다 — 새로 만드는 이 컬렉션만이라도 조여 둔다)
+    //
+    // ⚠️ read 가 열려 있다. 관리자 페이지(/admin/inquiries)가 클라이언트에서
+    //    목록을 읽기 때문이다. 담당자명·전화번호가 들어오므로 Firestore 보안
+    //    2단계에서 **이 컬렉션을 반드시 같이 조여야 한다** (서버 라우트로 옮기거나 인증).
+    //    지금 열어두는 건 기존 waitlist·applications 와 같은 수준이라는 뜻일 뿐이다.
+    function isValidInquiry() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['kind', 'organization', 'name', 'phone', 'email',
+                               'message', 'locale', 'handled', 'note', 'createdAt'])
+        && d.keys().hasAll(['kind', 'createdAt'])
+        && (d.kind == 'contact' || d.kind == 'newsletter')
+        // serverTimestamp() 만 허용 — 날짜를 조작해 목록 앞에 끼워넣지 못하게 한다
+        && d.createdAt == request.time
+        && (!('organization' in d) || (d.organization is string && d.organization.size() <= 100))
+        && (!('name' in d)         || (d.name is string && d.name.size() <= 50))
+        && (!('phone' in d)        || (d.phone is string && d.phone.size() <= 30))
+        && (!('email' in d)        || (d.email is string && d.email.size() <= 200))
+        && (!('message' in d)      || (d.message is string && d.message.size() <= 2000))
+        && (!('locale' in d)       || (d.locale is string && d.locale.size() <= 10))
+        && (!('note' in d)         || (d.note is string && d.note.size() <= 2000))
+        && (!('handled' in d)      || d.handled == false);
+    }
+    match /inquiries/{itemId} {
+      allow create: if isValidInquiry();
+      allow read: if true;             // 관리자 페이지 목록 — 위 경고 참조
+      allow update, delete: if true;   // 처리 표시·메모·삭제
+    }
+
     // ── 아산나눔재단 정산 — 유일하게 인증이 걸린 영역 ─────────────
     // 이쪽은 Firebase 이메일 링크 인증(lib/receiptAuth.ts)을 쓴다.
     // firestore.receipts.rules.draft.txt 의 내용을 그대로 반영했다.

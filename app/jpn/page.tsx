@@ -159,7 +159,7 @@ export default function JpnPage() {
       <section className="py-20 px-6" style={{ background: "#111" }}>
         <div className="max-w-[1200px] mx-auto">
           <FadeIn>
-            <NewsletterForm label="製品の最新情報とアップデートを受け取る" placeholder="you@example.com" successMessage="ありがとうございます！" />
+            <NewsletterForm locale="ja" label="製品の最新情報とアップデートを受け取る" placeholder="you@example.com" successMessage="ありがとうございます！" />
           </FadeIn>
         </div>
       </section>

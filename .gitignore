@@ -51,3 +51,9 @@ firestore/tests/node_modules
 firestore/tests/firestore-debug.log
 firestore/tests/*-debug.log
 firestore/scripts/node_modules
+
+# Firebase 에뮬레이터를 저장소 루트에서 띄우면 로그가 여기 쌓인다
+# (위 firestore/tests/ 패턴은 규칙 테스트용이고, 이건 QA 에뮬레이터용이다)
+/firebase-debug.log
+/firestore-debug.log
+/ui-debug.log

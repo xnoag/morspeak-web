@@ -107,14 +107,18 @@ service cloud.firestore {
     match /featureFlags/{code} {
       allow get: if true;
       allow create, update: if true;
-      allow list, delete: if false;
+      allow list: if false;
+    // 계정 삭제에서 지운다 — 환자 코드로 묶인 문서라 남겨두면 개인정보가 남는다
+      allow delete: if true;
     }
 
     // ── 튜토리얼 원격 제어 — list 차단 ────────────────────────────
     match /tutorialConfig/{code} {
       allow get: if true;
       allow create, update: if true;
-      allow list, delete: if false;
+      allow list: if false;
+    // 계정 삭제에서 지운다
+      allow delete: if true;
     }
 
     // ── 깜빡임 학습 프로필 — list 차단 ────────────────────────────
@@ -135,7 +139,9 @@ service cloud.firestore {
 
     // ── 교육 세션 / 유튜브 추천 / 스냅샷 요청 / 기기 상태 — list 차단 ──
     match /educationSessions/{code} {
-      allow get: if true; allow create, update: if true; allow list, delete: if false;
+      allow get: if true; allow create, update: if true; allow list: if false;
+      // 계정 삭제에서 지운다
+      allow delete: if true;
     }
     match /youtubeSuggestions/{code} {
       allow get: if true; allow create, update: if true; allow list: if false;
@@ -147,7 +153,9 @@ service cloud.firestore {
       allow list: if false;
     }
     match /deviceStatus/{code} {
-      allow get: if true; allow create, update: if true; allow list, delete: if false;
+      allow get: if true; allow create, update: if true; allow list: if false;
+      // 계정 삭제에서 지운다
+      allow delete: if true;
     }
 
     // ── 기기 토큰(FCM) ────────────────────────────────────────────

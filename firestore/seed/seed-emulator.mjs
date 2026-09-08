@@ -104,10 +104,14 @@ await db.collection('featureFlags').doc(CODE).set({
   shortcut: true, functionMode: true, repeatSpeak: true,
   reset: true, delete: true, keyboardMode: true, commandMode: true,
   blinkDetection: true,
-  // 미구현 기능은 꺼둔다 (안드로이드는 ANDROID_UNIMPLEMENTED 로 한 번 더 막힌다)
-  youtube: false, outlet1: false, outlet2: false, outlet3: false, aiSuggest: false,
+  // ⚠️ youtube·aiSuggest 를 여기서 꺼두는 바람에 **QA 순회가 두 기능을 한 번도 안 봤다**
+  //    (2026-09-08 발견). 둘 다 2026-09-07 에 iOS·안드로이드 양쪽에 구현됐고
+  //    안드로이드 `ANDROID_UNIMPLEMENTED` 에서도 빠져 있다. 그래서 켠다.
+  youtube: true, aiSuggest: true,
+  // 콘센트만 계속 끈다 — Matter 연동 전이고 **실제 하드웨어가 있어야** 눌러볼 수 있다
+  outlet1: false, outlet2: false, outlet3: false,
 });
 
 console.log('✅ 에뮬레이터에 테스트 계정을 심었다');
 console.log(`   아이디 ${LOGIN} / 비밀번호 1234 / 채팅코드 ${CODE}`);
-console.log('   훈련 완료 상태 · 단축어 4개 · 미구현 기능 off');
+console.log('   훈련 완료 상태 · 단축어 4개 · 콘센트만 off (하드웨어 필요)');

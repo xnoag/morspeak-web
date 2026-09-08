@@ -6,6 +6,20 @@ import { db } from '@/lib/firebase';
 
 const F = "-apple-system,'SF Pro Display',BlinkMacSystemFont,'Helvetica Neue',sans-serif";
 
+// 어떤 경로로 모스픽을 알게 됐는지 — 어디에 알려야 하는지 판단할 근거가 된다.
+// 「기타」를 고르면 직접 적게 한다. 선택지에 없는 경로가 실제로 가장 큰 유입일 수 있는데,
+// 목록에 가둬두면 그게 「기타」 한 덩어리로 뭉쳐서 안 보인다.
+const REFERRAL_SOURCES = [
+  '인터넷 검색',
+  '유튜브',
+  '인스타그램 · 페이스북',
+  '뉴스 · 기사',
+  '병원 · 의료진 소개',
+  '환우회 · 환자 모임',
+  '지인 소개',
+  '기타',
+];
+
 const REGIONS = ['서울', '경기', '인천', '부산', '대구', '대전', '광주', '울산', '세종', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주'];
 const RELATIONS = ['배우자', '자녀', '부모', '형제/자매', '기타 가족', '간병인/요양보호사', '본인'];
 const COMM_METHODS = ['추측', '직접 의사소통', '글자판', '안구마우스', '소통이 어려운 상태', '기타'];
@@ -80,6 +94,8 @@ export default function WaitlistPage() {
   const [commMethod, setCommMethod] = useState('');
   const [movements, setMovements] = useState<string[]>([]);
   const [preferredDate, setPreferredDate] = useState('');
+  const [referralSource, setReferralSource] = useState('');
+  const [referralDetail, setReferralDetail] = useState('');
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [myPosition, setMyPosition] = useState<number | null>(null);
@@ -113,6 +129,9 @@ export default function WaitlistPage() {
         commMethod,
         movements,
         preferredDate,
+        referralSource,
+        // 「기타」일 때만 직접 적은 내용을 함께 보낸다
+        referralDetail: referralSource === '기타' ? referralDetail.trim() : '',
         note: note.trim(),
         contacted: false,
         createdAt: serverTimestamp(),
@@ -186,6 +205,22 @@ export default function WaitlistPage() {
           <div>
             <label style={labelStyle}>진단명 / 질환 <span style={{ color: '#AEAEB2', fontWeight: 400 }}>(선택)</span></label>
             <input value={diagnosis} onChange={e => setDiagnosis(e.target.value)} placeholder="예: 근위축성측삭경화증(ALS), 뇌병변 등" style={inputStyle} />
+          </div>
+
+          <div style={{ marginTop: 16 }}>
+            <label style={labelStyle}>모스픽을 어떻게 알게 되셨나요? <span style={{ color: '#AEAEB2', fontWeight: 400 }}>(선택)</span></label>
+            <select value={referralSource} onChange={e => setReferralSource(e.target.value)} style={{ ...inputStyle, appearance: 'none' }}>
+              <option value="">선택</option>
+              {REFERRAL_SOURCES.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+            {referralSource === '기타' && (
+              <input
+                value={referralDetail}
+                onChange={e => setReferralDetail(e.target.value)}
+                placeholder="어떤 경로였는지 적어주세요"
+                style={{ ...inputStyle, marginTop: 8 }}
+              />
+            )}
           </div>
         </div>
 

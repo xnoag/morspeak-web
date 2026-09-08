@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import ConditionalLayout from "@/components/ConditionalLayout";
+import FirebaseAuthBootstrap from "@/components/FirebaseAuthBootstrap";
 
 export const metadata: Metadata = {
   title: "모스픽 | Morspeak",
@@ -33,6 +34,9 @@ export default function RootLayout({
         />
       </head>
       <body>
+        {/* 익명 인증을 한 번 보장한다 — Firestore 규칙을 request.auth != null 로
+            조이기 위한 준비. 자세한 이유는 컴포넌트 주석에 있다 */}
+        <FirebaseAuthBootstrap />
         <ConditionalLayout>{children}</ConditionalLayout>
       </body>
     </html>

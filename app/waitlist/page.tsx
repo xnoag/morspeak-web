@@ -17,13 +17,18 @@ const MOVEMENT_OPTIONS = [
   { key: 'blow', label: '바람을 불 수 있어요' },
 ];
 
-// 안내는 2주 간격 월요일에 순차로 진행 — 가장 가까운 월요일은 준비 기간이 부족해 제외하고,
-// 그 다음 월요일부터 14일 간격으로 N개를 뽑아서 신청자가 원하는 날짜를 직접 고르게 한다.
+// 안내는 2주 간격 월요일에 순차로 진행 — **가장 가까운 월요일부터** 14일 간격으로 N개를
+// 뽑아서 신청자가 원하는 날짜를 직접 고르게 한다.
+//
+// ⚠️ 예전에는 가장 가까운 월요일을 "준비 기간이 부족하다" 며 건너뛰었다(`+ 14`).
+//    그러면 화요일에 접수하는 사람은 **6일 뒤 월요일을 고를 수 없고** 20일 뒤부터만 보였다.
+//    2026-09-08 대표 지시로 스킵을 없앴다 — 가장 가까운 월요일도 고를 수 있어야 한다.
+//    날짜를 코드에 박지 않는다. 박으면 그 날이 지나는 순간 조용히 낡는다.
 function getBiweeklyMondays(count: number): string[] {
   const d = new Date();
   const day = d.getDay(); // 0=일 ... 1=월
   const diffToNextMonday = ((8 - day) % 7) || 7; // 오늘이 월요일이면 당일이 아니라 다음주로
-  d.setDate(d.getDate() + diffToNextMonday + 14); // 가장 가까운 월요일은 스킵
+  d.setDate(d.getDate() + diffToNextMonday);
   const dates: string[] = [];
   for (let i = 0; i < count; i++) {
     dates.push(d.toISOString().slice(0, 10));

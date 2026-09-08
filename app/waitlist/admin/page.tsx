@@ -18,6 +18,8 @@ type Entry = {
   commMethod?: string;
   movements?: string[];
   preferredDate?: string;
+  referralSource?: string;
+  referralDetail?: string;
   note?: string;
   contacted?: boolean;
   createdAt?: Timestamp;
@@ -101,6 +103,14 @@ export default function WaitlistAdminPage() {
           <div style={{ fontSize: 13, color: '#8E8E93' }}>
             신청인 {e.name}{e.relationship ? `(${e.relationship})` : ''} · {e.phone} · {e.region ?? ''} · {fmtDate(e.createdAt)}
           </div>
+          {/* 유입 경로 — 수집만 하고 여기 안 보이면 아무도 못 본다.
+              「기타」면 직접 적은 내용을 괄호로 붙인다 */}
+          {e.referralSource && (
+            <div style={{ fontSize: 12, color: '#8E5A00', marginTop: 4 }}>
+              알게 된 경로: {e.referralSource}
+              {e.referralDetail ? ` (${e.referralDetail})` : ''}
+            </div>
+          )}
           {(e.commMethod || (e.movements && e.movements.length > 0)) && (
             <div style={{ fontSize: 12, color: '#3255A8', marginTop: 4 }}>
               {e.commMethod && <span>소통방법: {e.commMethod}</span>}

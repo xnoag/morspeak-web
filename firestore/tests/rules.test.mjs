@@ -162,8 +162,15 @@ await check('알려지지 않은 컬렉션 읽기 차단', () =>
 await check('재단 정산: 인증 없이 orgs 읽기 차단', () =>
   assertFails(getDoc(doc(anon, 'orgs', 'org1'))));
 
-await check('featureFlags 삭제 차단', () =>
-  assertFails(deleteDoc(doc(anon, 'featureFlags', CODE))));
+// 예전에는 「featureFlags 삭제 차단」이었다. 계정 삭제가 이 문서를 지워야 해서
+// 규칙을 열었는데(5a65de3) 테스트가 따라오지 않아 실패로 남아 있었다.
+// 이제는 **삭제가 되는지**를 지킨다 — 막히면 계정 삭제가 환자 코드로 묶인 문서를 남긴다.
+//
+// ⚠️ 남는 노출: 이 컬렉션은 create·update 도 `if true` 라 채팅 코드만 알면 누구나
+//    남의 기능 플래그를 바꾸거나 지울 수 있다. 삭제만의 문제가 아니라 1단계 규칙 전체의
+//    성격이다. 코드 소유 증명(익명 UID ↔ 코드 연결)을 넣는 다음 단계에서 같이 좁힌다.
+await check('featureFlags 삭제 허용 — 계정 삭제가 지워야 한다', () =>
+  assertSucceeds(deleteDoc(doc(anon, 'featureFlags', CODE))));
 
 await check('웹: 문의 폼 제출 — /contact', () =>
   assertSucceeds(addDoc(collection(anon, 'inquiries'), {

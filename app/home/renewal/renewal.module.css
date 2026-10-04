@@ -80,7 +80,7 @@
   padding-inline: var(--gutter);
   z-index: 30;
   color: white;
-  background: rgba(0, 0, 0, 0.72);
+  background: transparent;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }

@@ -571,6 +571,9 @@
   }
 }
 @media (max-width: 734px) {
+  .page {
+    --nav-height: 60px;
+  }
   .page h2 {
     font-size: 28px;
     line-height: 32px;

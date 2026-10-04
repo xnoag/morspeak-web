@@ -261,7 +261,7 @@ function Hero() {
     const panel = element?.firstElementChild;
     if (!element || !panel) return 0;
     // Finish the transition after half a screen, then hold the introduction
-    // for another half screen before the sticky panel leaves the viewport.
+    // for another 65% of a screen before the sticky panel leaves the viewport.
     const distance = panel.clientHeight * 0.5;
     return Math.max(
       0,

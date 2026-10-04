@@ -50,8 +50,8 @@
 }
 .heroSequence {
   position: relative;
-  height: 200svh;
-  min-height: 1200px;
+  height: 215svh;
+  min-height: 1290px;
   margin-bottom: max(0px, calc(580px - 50svh));
 }
 .hero {

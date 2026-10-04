@@ -94,20 +94,15 @@
   justify-content: space-between;
   padding-inline: var(--gutter);
   z-index: 30;
-  color: white;
-  background: transparent;
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
+  color: var(--ink);
+  background: #ff4800;
 }
 .nav picture,
 .nav img {
   display: block;
 }
-.darkLogo img {
+.menuButton img {
   filter: invert(1);
-}
-.darkLinks {
-  color: #1d1d1f;
 }
 .desktopNav {
   display: flex;

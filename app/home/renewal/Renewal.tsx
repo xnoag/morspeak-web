@@ -338,7 +338,10 @@ export default function Renewal() {
       if (!bar) return;
       function darkInk(rect: DOMRect) {
         const underneath = document
-          .elementsFromPoint(rect.left + rect.width / 2, 32)
+          .elementsFromPoint(
+            rect.left + rect.width / 2,
+            rect.top + rect.height / 2,
+          )
           .find((element) => !bar!.contains(element));
         return !underneath?.closest(`.${styles.hero}, .${styles.storyCard}`);
       }

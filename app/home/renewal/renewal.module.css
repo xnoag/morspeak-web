@@ -81,8 +81,8 @@
   z-index: 30;
   color: white;
   background: transparent;
-  backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
 }
 .nav picture,
 .nav img {

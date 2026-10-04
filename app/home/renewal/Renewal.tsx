@@ -249,8 +249,13 @@ function Gallery({
   );
 }
 
-const introduction =
-  "The best technology is designed with everyone in mind. That’s why our products and services have built-in features to help you create, connect, and do what you love, your way. Our long-standing commitment to accessibility is fundamental to everything we\u00a0do.";
+const introduction = (
+  <>
+    We don&apos;t limit people to one way.
+    <br />
+    We adapt technology to each individual.
+  </>
+);
 
 function Hero() {
   const scene = useRef<HTMLElement>(null);

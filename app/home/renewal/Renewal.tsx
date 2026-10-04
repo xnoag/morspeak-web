@@ -270,10 +270,13 @@ function Hero() {
   });
   const titleOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
   const introOpacity = useTransform(scrollYProgress, [0.5, 1], [0, 1]);
-  const clipPath = useTransform(
+  // Center the finished frame in the viewport below the fixed navigation.
+  const clipPath = useTransform(scrollYProgress, (progress) =>
+    `inset(calc(${progress * 10}% + var(--nav-height) * ${progress * 0.9}) ${progress * 6.25}% calc(${progress * 10}% - var(--nav-height) * ${progress * 0.1}) round ${progress * 40}px)`,
+  );
+  const introPosition = useTransform(
     scrollYProgress,
-    [0, 1],
-    ["inset(0% 0% round 0px)", "inset(10% 6.25% round 40px)"],
+    (progress) => `translateY(calc(var(--nav-height) * ${progress * 0.5}))`,
   );
   return (
     <section
@@ -303,7 +306,7 @@ function Hero() {
         {!reducedMotion && (
           <motion.div
             className={styles.heroIntro}
-            style={{ opacity: introOpacity }}
+            style={{ opacity: introOpacity, transform: introPosition }}
           >
             <p>{introduction}</p>
           </motion.div>

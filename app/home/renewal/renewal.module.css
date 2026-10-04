@@ -48,10 +48,17 @@
 .skip:focus {
   transform: none;
 }
+.heroSequence {
+  position: relative;
+  height: 150svh;
+  min-height: 900px;
+  margin-bottom: max(0px, calc(580px - 50svh));
+}
 .hero {
   height: 100svh;
   min-height: 600px;
-  position: relative;
+  position: sticky;
+  top: 0;
   background: #000;
   color: #f5f5f7;
 }
@@ -110,11 +117,11 @@
 }
 .heroCopy {
   position: absolute;
-  top: 36.5972%;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   text-align: center;
-  width: 63.7695%;
+  width: 70.625%;
   max-width: 1040px;
 }
 .heroCopy h1 {
@@ -122,33 +129,40 @@
   line-height: 84px;
   letter-spacing: -1.2px;
   font-weight: 600;
-  margin-top: 18px;
+  margin-top: 0;
 }
-.symbol {
-  position: relative;
-  width: 103px;
-  height: 103px;
-  margin: auto;
+.heroCopy h1 span {
+  display: block;
 }
-.symbol picture {
+@media (min-width: 1069px) {
+  .heroCopy h1 span {
+    white-space: nowrap;
+  }
+}
+.heroIntro {
   position: absolute;
-  display: block;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-inline: var(--gutter);
+  pointer-events: none;
 }
-.symbol img {
-  display: block;
-  max-width: none;
+.heroIntro p {
+  max-width: 816.25px;
+  font-size: 32px;
+  line-height: 36px;
+  font-weight: 600;
+  letter-spacing: 0.128px;
+  text-align: center;
 }
-.person {
-  left: 25.3%;
-  top: 18.59%;
+.reducedScene {
+  height: auto;
+  min-height: 0;
+  margin-bottom: 0;
 }
-.ringFirst {
-  left: 0.72%;
-  top: 26.36%;
-}
-.ringSecond {
-  left: 0.72%;
-  top: 0.72%;
+.reducedScene .hero {
+  position: relative;
 }
 .intro {
   padding: 200px var(--gutter);
@@ -575,17 +589,12 @@
   }
   .heroCopy {
     width: 87.5%;
-    top: 37.85545%;
   }
   .heroCopy h1 {
     font-size: 48px;
     line-height: 52px;
-    letter-spacing: -0.72px;
-    margin-top: 16px;
-  }
-  .symbol {
-    width: 77px;
-    height: 77px;
+    letter-spacing: -0.144px;
+    margin-top: 0;
   }
   .desktopNav {
     display: none;
@@ -613,12 +622,23 @@
     color: white;
   }
   .intro p {
-    font-size: 20px;
+    font-size: 21px;
     line-height: 25px;
     letter-spacing: 0;
   }
   .intro {
     padding: 200px var(--gutter);
+  }
+  .heroSequence {
+    margin-bottom: max(0px, calc(600px - 50svh));
+  }
+  .heroIntro p {
+    font-size: 21px;
+    line-height: 25px;
+    letter-spacing: 0.231px;
+  }
+  .reducedScene {
+    margin-bottom: 0;
   }
   .featureHeading {
     margin-bottom: 48px;

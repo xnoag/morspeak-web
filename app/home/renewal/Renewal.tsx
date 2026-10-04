@@ -3,6 +3,12 @@
 /* The current homepage Figma frames are the source of truth. The Apple copy
    and artwork remain reference content until replaced in the design. */
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  motion,
+  useReducedMotion,
+  useScroll,
+  useTransform,
+} from "framer-motion";
 import { pc, mobile } from "./assets";
 import styles from "./renewal.module.css";
 
@@ -243,6 +249,73 @@ function Gallery({
   );
 }
 
+const introduction =
+  "The best technology is designed with everyone in mind. That’s why our products and services have built-in features to help you create, connect, and do what you love, your way. Our long-standing commitment to accessibility is fundamental to everything we\u00a0do.";
+
+function Hero() {
+  const scene = useRef<HTMLElement>(null);
+  const reducedMotion = useReducedMotion();
+  const { scrollY } = useScroll();
+  const scrollYProgress = useTransform(scrollY, () => {
+    const element = scene.current;
+    const panel = element?.firstElementChild;
+    if (!element || !panel) return 0;
+    const distance = element.offsetHeight - panel.clientHeight;
+    return Math.max(
+      0,
+      Math.min(1, -element.getBoundingClientRect().top / Math.max(1, distance)),
+    );
+  });
+  const titleOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+  const introOpacity = useTransform(scrollYProgress, [0.5, 1], [0, 1]);
+  const clipPath = useTransform(
+    scrollYProgress,
+    [0, 1],
+    ["inset(0% 0% round 0px)", "inset(10% 6.25% round 40px)"],
+  );
+  return (
+    <section
+      ref={scene}
+      className={`${styles.heroSequence} ${reducedMotion ? styles.reducedScene : ""}`}
+      id="renewal-overview"
+    >
+      <motion.div
+        className={styles.hero}
+        style={reducedMotion ? undefined : { clipPath }}
+      >
+        <Picture
+          src={pc[heroKey]}
+          small={mobile[heroKey]}
+          className={styles.heroImage}
+          alt="A man in a power wheelchair using a MacBook Air and a switch control device"
+        />
+        <motion.div
+          className={styles.heroCopy}
+          style={reducedMotion ? undefined : { opacity: titleOpacity }}
+        >
+          <h1>
+            <span>Expanding Possibilities</span>
+            <span>Through Flexible Solutions</span>
+          </h1>
+        </motion.div>
+        {!reducedMotion && (
+          <motion.div
+            className={styles.heroIntro}
+            style={{ opacity: introOpacity }}
+          >
+            <p>{introduction}</p>
+          </motion.div>
+        )}
+      </motion.div>
+      {reducedMotion && (
+        <div className={styles.intro}>
+          <p>{introduction}</p>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function Renewal() {
   const [menu, setMenu] = useState(false);
   const [active, setActive] = useState<number | null>(null);
@@ -312,86 +385,51 @@ export default function Renewal() {
       <a href="#renewal-features" className={styles.skip}>
         Skip to features
       </a>
-      <section className={styles.hero} id="renewal-overview">
-        <Picture
-          src={pc[heroKey]}
-          small={mobile[heroKey]}
-          className={styles.heroImage}
-          alt="A man in a power wheelchair using a MacBook Air and a switch control device"
-        />
-        <header ref={header} className={styles.nav}>
-          <a
-            href="#renewal-overview"
-            aria-label="Morspeak homepage"
-            className={ink.logo ? styles.darkLogo : undefined}
-          >
-            <Picture
-              src={pc.imgMorspeakLogoWhiteOriginalRgbVectors}
-              small={mobile.imgMorspeakLogoWhiteOriginalRgbVectors}
-              alt="Morspeak"
-            />
+      <header ref={header} className={styles.nav}>
+        <a
+          href="#renewal-overview"
+          aria-label="Morspeak homepage"
+          className={ink.logo ? styles.darkLogo : undefined}
+        >
+          <Picture
+            src={pc.imgMorspeakLogoWhiteOriginalRgbVectors}
+            small={mobile.imgMorspeakLogoWhiteOriginalRgbVectors}
+            alt="Morspeak"
+          />
+        </a>
+        <nav
+          className={`${styles.desktopNav} ${ink.links ? styles.darkLinks : ""}`}
+          aria-label="Main"
+        >
+          <a href="#renewal-overview">Overview</a>
+          <a href="#renewal-features">Features</a>
+        </nav>
+        <button
+          type="button"
+          className={`${styles.menuButton} ${ink.links ? styles.darkLogo : ""}`}
+          aria-label="Navigation menu"
+          aria-expanded={menu}
+          aria-controls="renewal-menu"
+          onClick={() => setMenu(!menu)}
+        >
+          <img src={mobile.imgOriginalSvg9} alt="" />
+        </button>
+      </header>
+      {menu && (
+        <nav
+          id="renewal-menu"
+          className={styles.mobileNav}
+          aria-label="Mobile main"
+        >
+          <a href="#renewal-overview" onClick={() => setMenu(false)}>
+            Overview
           </a>
-          <nav
-            className={`${styles.desktopNav} ${ink.links ? styles.darkLinks : ""}`}
-            aria-label="Main"
-          >
-            <a href="#renewal-overview">Overview</a>
-            <a href="#renewal-features">Features</a>
-          </nav>
-          <button
-            type="button"
-            className={`${styles.menuButton} ${ink.links ? styles.darkLogo : ""}`}
-            aria-label="Navigation menu"
-            aria-expanded={menu}
-            aria-controls="renewal-menu"
-            onClick={() => setMenu(!menu)}
-          >
-            <img src={mobile.imgOriginalSvg9} alt="" />
-          </button>
-        </header>
-        {menu && (
-          <nav
-            id="renewal-menu"
-            className={styles.mobileNav}
-            aria-label="Mobile main"
-          >
-            <a href="#renewal-overview" onClick={() => setMenu(false)}>
-              Overview
-            </a>
-            <a href="#renewal-features" onClick={() => setMenu(false)}>
-              Features
-            </a>
-          </nav>
-        )}
-        <div className={styles.heroCopy}>
-          <div className={styles.symbol} aria-hidden="true">
-            <Picture
-              src={pc.imgGroup}
-              small={mobile.imgGroup}
-              className={styles.person}
-            />
-            <Picture
-              src={pc.imgGroup1}
-              small={mobile.imgGroup1}
-              className={styles.ringFirst}
-            />
-            <Picture
-              src={pc.imgGroup2}
-              small={mobile.imgGroup2}
-              className={styles.ringSecond}
-            />
-          </div>
-          <h1>Innovation that’s accessible by&nbsp;design.</h1>
-        </div>
-      </section>
-      <section className={styles.intro}>
-        <p>
-          The best technology is designed with everyone in mind. That’s why our
-          products and services have built-in features to help you create,
-          connect, and do what you love, your way. Our long-standing commitment
-          to accessibility is fundamental to everything we&nbsp;do.
-        </p>
-      </section>
+          <a href="#renewal-features" onClick={() => setMenu(false)}>
+            Features
+          </a>
+        </nav>
+      )}
+      <Hero />
       <section className={styles.features} id="renewal-features">
         <div className={styles.featureHeading}>
           <h2>

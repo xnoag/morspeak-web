@@ -249,13 +249,8 @@ function Gallery({
   );
 }
 
-const introduction = (
-  <>
-    We don&apos;t limit people to one way.
-    <br />
-    We adapt technology to each individual.
-  </>
-);
+const introduction =
+  "We discover new possibilities in small movements. Everyone connects with the world in their way. We adapt technology to each individual, opening up ways to express and connect. Through flexible solutions, we expand the possibilities of everyday life.";
 
 function Hero() {
   const scene = useRef<HTMLElement>(null);
@@ -443,8 +438,9 @@ export default function Renewal() {
       <section className={styles.features} id="renewal-features">
         <div className={styles.featureHeading}>
           <h2>
-            Must-know vision, hearing, speech, mobility, and
-            cognitive&nbsp;features.
+            We don&apos;t limit people to one way.
+            <br />
+            We adapt technology to each individual.
           </h2>
           <a href="https://www.apple.com/accessibility/features/">
             Browse all features

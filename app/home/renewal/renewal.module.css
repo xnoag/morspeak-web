@@ -185,14 +185,6 @@
   max-width: 840px;
   min-height: 180px;
 }
-.featureHeading > a {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  font-size: 17px;
-  line-height: 21px;
-  letter-spacing: -0.374px;
-}
 .gallery {
   display: flex;
   gap: 20px;
@@ -290,8 +282,11 @@
 .resources {
   padding: 160px 0;
 }
-.resources > h2 {
+.page .resources > h2 {
   margin: 0 var(--gutter) 42px;
+  font-size: 48px;
+  line-height: 52px;
+  letter-spacing: -0.144px;
 }
 .resourceCard {
   background: var(--surface);
@@ -654,13 +649,6 @@
     min-height: 96px;
     max-width: none;
   }
-  .featureHeading > a {
-    position: static;
-    display: block;
-    font-size: 14px;
-    line-height: 18px;
-    margin-top: 11.195px;
-  }
   .gallery > article,
   .gallery > a {
     flex-basis: 260px;
@@ -696,8 +684,11 @@
   .resources {
     padding: 96px 0;
   }
-  .resources > h2 {
+  .page .resources > h2 {
     margin-bottom: 40px;
+    font-size: 28px;
+    line-height: 32px;
+    letter-spacing: 0.196px;
   }
   .resourceCard {
     padding: 24px;

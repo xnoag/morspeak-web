@@ -403,9 +403,6 @@ export default function Renewal() {
             <br />
             Through Flexible Solutions
           </h2>
-          <a href="https://www.apple.com/accessibility/features/">
-            Browse all features
-          </a>
         </div>
         <Gallery label="Accessibility features">
           {features.map((card, i) => (
@@ -443,7 +440,11 @@ export default function Renewal() {
         </Gallery>
       </section>
       <section className={styles.resources}>
-        <h2>Explore our accessibility resources.</h2>
+        <h2>
+          We don’t limit people to one way.
+          <br />
+          We adapt technology to each individual.
+        </h2>
         <Gallery label="Accessibility resources">
           {resources.map((card) => (
             <a

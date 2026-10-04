@@ -40,7 +40,7 @@
   position: fixed;
   top: 8px;
   left: 8px;
-  z-index: 10;
+  z-index: 40;
   background: white;
   padding: 12px;
   transform: translateY(-200%);
@@ -72,14 +72,17 @@
 }
 .nav {
   height: 64px;
-  position: absolute;
+  position: fixed;
   inset: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding-inline: var(--gutter);
-  z-index: 3;
+  z-index: 30;
   color: white;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 .nav picture,
 .nav img {
@@ -152,6 +155,9 @@
   letter-spacing: 0.128px;
   max-width: 816.25px;
   margin: auto;
+}
+.features {
+  scroll-margin-top: 64px;
 }
 .featureHeading {
   margin: 0 var(--gutter) 80px;
@@ -590,11 +596,11 @@
   .mobileNav {
     display: flex;
     flex-direction: column;
-    position: absolute;
+    position: fixed;
     top: 64px;
     left: 0;
     right: 0;
-    z-index: 4;
+    z-index: 29;
     background: rgba(0, 0, 0, 0.95);
     padding: 20px var(--gutter);
     gap: 20px;

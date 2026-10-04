@@ -289,7 +289,7 @@ function Hero() {
           src={pc[heroKey]}
           small={mobile[heroKey]}
           className={styles.heroImage}
-          alt="A man in a power wheelchair using a MacBook Air and a switch control device"
+          alt="A person in bed using Morspeak on a mounted tablet to control their surroundings"
         />
         <motion.div
           className={styles.heroCopy}

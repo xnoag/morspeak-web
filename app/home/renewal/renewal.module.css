@@ -68,6 +68,13 @@
   inset: 0;
   overflow: hidden;
 }
+.heroImage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
 .heroImage img {
   display: block;
   width: 101.136%;
@@ -587,6 +594,12 @@
   }
   .hero {
     min-height: 600px;
+  }
+  .heroImage img {
+    width: 439.375%;
+    height: 136.23%;
+    left: -166.23%;
+    top: -35.66%;
   }
   .heroCopy {
     width: 87.5%;

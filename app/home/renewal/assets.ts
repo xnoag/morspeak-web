@@ -1,6 +1,6 @@
 export const pc = {
   imgPhotoOfAManInAPowerWheelchairAtADeskUsingAccessibilityKeyboardFeatureOnHis13InchMacBookAirAndASwitchControlDevice:
-    "/renewal-reference/d3e16cb9936956.png",
+    "/renewal-reference/morspeak-hero.webp",
   imgIllustrationOfSideProfileOfAWomanStandingHoldingAWhiteCanePointingAnIPhoneAtKeysOnATableInFrontOfHer:
     "/renewal-reference/97e43cea8047b0.png",
   imgIllustrationOfAHandHoldingAnIPhoneShowingAVideoClipOfABoySittingInFrontOfACakeWithCandlesWithCaptionsOnScreen:
@@ -39,7 +39,7 @@ export const pc = {
 };
 export const mobile = {
   imgPhotoOfAManInAPowerWheelchairAtADeskUsingAccessibilityKeyboardFeatureOnHis13InchMacBookAirAndASwitchControlDevice:
-    "/renewal-reference/fe559e3196815e.png",
+    "/renewal-reference/morspeak-hero.webp",
   imgIllustrationOfSideProfileOfAWomanStandingHoldingAWhiteCanePointingAnIPhoneAtKeysOnATableInFrontOfHer:
     "/renewal-reference/695fe4d9bb982b.png",
   imgIllustrationOfAHandHoldingAnIPhoneShowingAVideoClipOfABoySittingInFrontOfACakeWithCandlesWithCaptionsOnScreen:

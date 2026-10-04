@@ -299,8 +299,8 @@ function Hero() {
           style={reducedMotion ? undefined : { opacity: titleOpacity }}
         >
           <h1>
-            <span>Expanding Possibilities</span>
-            <span>Through Flexible Solutions</span>
+            <span>Small,</span>{" "}
+            <span>Yet Significant</span>
           </h1>
         </motion.div>
         {!reducedMotion && (
@@ -399,9 +399,9 @@ export default function Renewal() {
       <section className={styles.features} id="renewal-features">
         <div className={styles.featureHeading}>
           <h2>
-            We don&apos;t limit people to one way.
+            Expanding Possibilities
             <br />
-            We adapt technology to each individual.
+            Through Flexible Solutions
           </h2>
           <a href="https://www.apple.com/accessibility/features/">
             Browse all features

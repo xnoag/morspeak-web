@@ -246,8 +246,46 @@ function Gallery({
 export default function Renewal() {
   const [menu, setMenu] = useState(false);
   const [active, setActive] = useState<number | null>(null);
+  const [ink, setInk] = useState({ logo: false, links: false });
+  const header = useRef<HTMLElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    let frame = 0;
+    function update() {
+      frame = 0;
+      const bar = header.current;
+      if (!bar) return;
+      function darkInk(rect: DOMRect) {
+        const underneath = document
+          .elementsFromPoint(rect.left + rect.width / 2, 32)
+          .find((element) => !bar!.contains(element));
+        return !underneath?.closest(`.${styles.hero}, .${styles.storyCard}`);
+      }
+      const logo = bar.querySelector("a")!.getBoundingClientRect();
+      const desktop = bar.querySelector("nav")!.getBoundingClientRect();
+      const controls = desktop.width
+        ? desktop
+        : bar.querySelector("button")!.getBoundingClientRect();
+      const next = { logo: darkInk(logo), links: darkInk(controls) };
+      setInk((current) =>
+        current.logo === next.logo && current.links === next.links
+          ? current
+          : next,
+      );
+    }
+    function schedule() {
+      if (!frame) frame = requestAnimationFrame(update);
+    }
+    schedule();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+    };
+  }, []);
   useEffect(() => {
     if (active === null) return;
     const body = document.body;
@@ -281,21 +319,28 @@ export default function Renewal() {
           className={styles.heroImage}
           alt="A man in a power wheelchair using a MacBook Air and a switch control device"
         />
-        <header className={styles.nav}>
-          <a href="#renewal-overview" aria-label="Morspeak homepage">
+        <header ref={header} className={styles.nav}>
+          <a
+            href="#renewal-overview"
+            aria-label="Morspeak homepage"
+            className={ink.logo ? styles.darkLogo : undefined}
+          >
             <Picture
               src={pc.imgMorspeakLogoWhiteOriginalRgbVectors}
               small={mobile.imgMorspeakLogoWhiteOriginalRgbVectors}
               alt="Morspeak"
             />
           </a>
-          <nav className={styles.desktopNav} aria-label="Main">
+          <nav
+            className={`${styles.desktopNav} ${ink.links ? styles.darkLinks : ""}`}
+            aria-label="Main"
+          >
             <a href="#renewal-overview">Overview</a>
             <a href="#renewal-features">Features</a>
           </nav>
           <button
             type="button"
-            className={styles.menuButton}
+            className={`${styles.menuButton} ${ink.links ? styles.darkLogo : ""}`}
             aria-label="Navigation menu"
             aria-expanded={menu}
             aria-controls="renewal-menu"

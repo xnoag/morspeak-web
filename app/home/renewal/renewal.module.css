@@ -88,6 +88,12 @@
 .nav img {
   display: block;
 }
+.darkLogo img {
+  filter: invert(1);
+}
+.darkLinks {
+  color: #1d1d1f;
+}
 .desktopNav {
   display: flex;
   gap: 24px;

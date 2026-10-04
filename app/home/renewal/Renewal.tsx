@@ -260,7 +260,9 @@ function Hero() {
     const element = scene.current;
     const panel = element?.firstElementChild;
     if (!element || !panel) return 0;
-    const distance = element.offsetHeight - panel.clientHeight;
+    // Finish the transition after half a screen, then hold the introduction
+    // for another half screen before the sticky panel leaves the viewport.
+    const distance = panel.clientHeight * 0.5;
     return Math.max(
       0,
       Math.min(1, -element.getBoundingClientRect().top / Math.max(1, distance)),

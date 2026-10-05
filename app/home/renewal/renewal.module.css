@@ -634,7 +634,7 @@
     padding: 200px var(--gutter);
   }
   .heroSequence {
-    margin-bottom: max(0px, calc(600px - 50svh));
+    margin-bottom: max(0px, calc(560px - 50svh));
   }
   .heroIntro {
     padding-inline: calc(var(--gutter) + 20px);

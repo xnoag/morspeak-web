@@ -20,8 +20,8 @@ const heroSlides = [
   "An overhead view of a home connected through Morspeak",
   "Morspeak connecting small movements with everyday life",
 ].map((alt, index) => ({
-  src: `/renewal-reference/hero-pc-${index + 1}.webp`,
-  small: `/renewal-reference/hero-mobile-${index + 1}.webp`,
+  src: `/renewal-reference/hero-pc-${index + 1}${index === 3 ? "-phone" : ""}.webp`,
+  small: `/renewal-reference/hero-mobile-${index + 1}${index === 3 ? "-phone" : ""}.webp`,
   alt,
 }));
 

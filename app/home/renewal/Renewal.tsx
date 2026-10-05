@@ -147,7 +147,7 @@ const features = [
   {
     title: "Connection",
     body: "Stay close to the people who matter.",
-    image: "/renewal-reference/morspeak-connection-illustration.webp",
+    image: "/renewal-reference/morspeak-connection-illustration-v2.webp",
     alt: "A person using Morspeak to connect with a loved one through messages and video",
     bg: "#ff4800",
     light: false,

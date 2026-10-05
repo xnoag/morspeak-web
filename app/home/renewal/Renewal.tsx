@@ -128,8 +128,8 @@ const features = [
   {
     title: "VoiceOver",
     body: "Hear detailed descriptions of what’s in view, just by asking.",
-    image: "/renewal-reference/morspeak-bedside-group-1.webp",
-    small: "/renewal-reference/morspeak-bedside-group-1.webp",
+    image: "/renewal-reference/morspeak-bedside-group-2.webp",
+    small: "/renewal-reference/morspeak-bedside-group-2.webp",
     bg: "#f5f5f7",
     light: false,
   },

@@ -129,10 +129,8 @@ const features = [
     title: "VoiceOver",
     body: "Hear detailed descriptions of what’s in view, just by asking.",
     note: "Powered by Apple Intelligence",
-    image:
-      pc.imgIllustrationOfSideProfileOfAWomanStandingHoldingAWhiteCanePointingAnIPhoneAtKeysOnATableInFrontOfHer,
-    small:
-      mobile.imgIllustrationOfSideProfileOfAWomanStandingHoldingAWhiteCanePointingAnIPhoneAtKeysOnATableInFrontOfHer,
+    image: "/renewal-reference/morspeak-bedside-illustration.webp",
+    small: "/renewal-reference/morspeak-bedside-illustration.webp",
     bg: "#f5f5f7",
     light: false,
   },
@@ -526,8 +524,8 @@ export default function Renewal() {
               <Picture
                 src={card.image}
                 small={card.small}
-                className={styles.featureImage}
-                alt={card.title}
+                className={`${styles.featureImage} ${i === 0 ? styles.featureArtwork : ""}`}
+                alt={i === 0 ? "A person in bed communicating through Morspeak on a mounted tablet" : card.title}
               />
               {i < 3 && (
                 <div className={styles.featureCopy}>

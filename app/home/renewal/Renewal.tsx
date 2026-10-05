@@ -6,14 +6,83 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   motion,
   useReducedMotion,
+  useInView,
   useScroll,
   useTransform,
 } from "framer-motion";
 import { pc, mobile } from "./assets";
 import styles from "./renewal.module.css";
 
-const heroKey =
-  "imgPhotoOfAManInAPowerWheelchairAtADeskUsingAccessibilityKeyboardFeatureOnHis13InchMacBookAirAndASwitchControlDevice";
+const heroSlides = [
+  "A person in bed using Morspeak on a mounted tablet",
+  "A caregiver connecting with a person through Morspeak",
+  "An overhead view of a home connected through Morspeak",
+  "Morspeak connecting small movements with everyday life",
+].map((alt, index) => ({
+  src: `/renewal-reference/hero-pc-${index + 1}.webp`,
+  small: `/renewal-reference/hero-mobile-${index + 1}.webp`,
+  alt,
+}));
+
+function HeroSlideshow() {
+  const ref = useRef<HTMLDivElement>(null);
+  const visible = useInView(ref, { amount: 0.2 });
+  const reducedMotion = useReducedMotion();
+  const [active, setActive] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [pageVisible, setPageVisible] = useState(true);
+
+  useEffect(() => {
+    const update = () => setPageVisible(!document.hidden);
+    update();
+    document.addEventListener("visibilitychange", update);
+    return () => document.removeEventListener("visibilitychange", update);
+  }, []);
+
+  useEffect(() => {
+    if (reducedMotion || paused || !visible || !pageVisible) return;
+    const timer = window.setInterval(() => {
+      const next = (active + 1) % heroSlides.length;
+      const image = ref.current?.querySelector<HTMLImageElement>(
+        `[data-slide="${next}"] img`,
+      );
+      if (image?.complete && image.naturalWidth > 0) setActive(next);
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [active, paused, visible, pageVisible, reducedMotion]);
+
+  return (
+    <div ref={ref} className={styles.heroSlideshow}>
+      {heroSlides.map((slide, index) => (
+        <motion.div
+          key={slide.src}
+          className={styles.heroSlide}
+          data-slide={index}
+          aria-hidden={index !== (reducedMotion ? 0 : active)}
+          initial={false}
+          animate={{
+            opacity: index === (reducedMotion ? 0 : active) ? 1 : 0,
+            x: reducedMotion || index === active ? "0%" : "1.5%",
+          }}
+          transition={{ duration: reducedMotion ? 0 : 1.4, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <Picture {...slide} className={styles.heroSlideImage} />
+        </motion.div>
+      ))}
+      {!reducedMotion && (
+        <button
+          type="button"
+          className={styles.heroPause}
+          onClick={() => setPaused(!paused)}
+          aria-label={paused ? "Play hero slideshow" : "Pause hero slideshow"}
+          aria-pressed={paused}
+        >
+          {paused ? "▶" : "Ⅱ"}
+        </button>
+      )}
+    </div>
+  );
+}
 const features = [
   {
     title: "VoiceOver",
@@ -288,12 +357,7 @@ function Hero() {
         className={styles.hero}
         style={reducedMotion ? undefined : { clipPath }}
       >
-        <Picture
-          src={pc[heroKey]}
-          small={mobile[heroKey]}
-          className={styles.heroImage}
-          alt="A person in bed using Morspeak on a mounted tablet to control their surroundings"
-        />
+        <HeroSlideshow />
         <motion.div
           className={styles.heroCopy}
           style={reducedMotion ? undefined : { opacity: titleOpacity }}

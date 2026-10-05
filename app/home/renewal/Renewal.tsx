@@ -25,11 +25,11 @@ const heroSlides = [
   alt,
 }));
 
-// Match the reference's subtle 5% push-in, overlapping dissolve, and replay state.
+// Keep the subtle push-in and dissolve continuous, including the last-to-first transition.
 const HERO_STEP_MS = 5000;
 const HERO_ZOOM_MS = 5500;
 const HERO_FADE_MS = 450;
-const HERO_END_MS = (heroSlides.length - 1) * HERO_STEP_MS + HERO_ZOOM_MS;
+const HERO_CYCLE_MS = heroSlides.length * HERO_STEP_MS;
 
 function HeroSlideshow({ controlRight, controlBottom }: {
   controlRight: MotionValue<string>;
@@ -42,8 +42,7 @@ function HeroSlideshow({ controlRight, controlBottom }: {
   const [paused, setPaused] = useState(false);
   const [pageVisible, setPageVisible] = useState(true);
   const elapsedRef = useRef(0);
-  const finished = elapsed >= HERO_END_MS;
-  const playing = !reducedMotion && !paused && visible && pageVisible && !finished;
+  const playing = !reducedMotion && !paused && visible && pageVisible;
 
   useEffect(() => {
     const update = () => setPageVisible(!document.hidden);
@@ -60,39 +59,35 @@ function HeroSlideshow({ controlRight, controlBottom }: {
       const images = ref.current?.querySelectorAll<HTMLImageElement>("img");
       const ready = images && Array.from(images).every(image => image.complete && image.naturalWidth > 0);
       if (ready && previous !== undefined) {
-        elapsedRef.current = Math.min(HERO_END_MS, elapsedRef.current + Math.min(now - previous, 100));
+        elapsedRef.current = (elapsedRef.current + Math.min(now - previous, 100)) % HERO_CYCLE_MS;
         setElapsed(elapsedRef.current);
       }
       previous = now;
-      if (elapsedRef.current < HERO_END_MS) frame = requestAnimationFrame(tick);
+      frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
   }, [playing]);
 
-  const togglePlayback = () => {
-    if (finished) {
-      elapsedRef.current = 0;
-      setElapsed(0);
-      setPaused(false);
-    } else setPaused(value => !value);
-  };
-  const active = reducedMotion ? 0 : Math.min(heroSlides.length - 1, Math.floor(elapsed / HERO_STEP_MS));
+  const active = reducedMotion ? 0 : Math.floor(elapsed / HERO_STEP_MS);
+  const next = (active + 1) % heroSlides.length;
+  const stepElapsed = elapsed % HERO_STEP_MS;
+  const fade = Math.max(0, Math.min(1, (stepElapsed - HERO_STEP_MS + HERO_FADE_MS) / HERO_FADE_MS));
 
   return (
     <div ref={ref} className={styles.heroSlideshow}>
       {heroSlides.map((slide, index) => {
-        const age = reducedMotion ? 0 : elapsed - index * HERO_STEP_MS;
+        const age = index === active ? stepElapsed + HERO_FADE_MS : index === next ? Math.max(0, stepElapsed - HERO_STEP_MS + HERO_FADE_MS) : 0;
         const progress = Math.max(0, Math.min(1, age / HERO_ZOOM_MS));
         const scale = reducedMotion ? 1 : 1 + 0.05 * (1 - (1 - progress) ** 2);
-        const opacity = reducedMotion ? (index === 0 ? 1 : 0) : index === 0 ? 1 : Math.max(0, Math.min(1, age / HERO_FADE_MS));
+        const opacity = index === active ? 1 : index === next && !reducedMotion ? fade : 0;
         return (
           <div
             key={slide.src}
             className={styles.heroSlide}
             data-slide={index}
             aria-hidden={index !== active}
-            style={{ opacity, zIndex: index }}
+            style={{ opacity, zIndex: index === next ? 2 : index === active ? 1 : 0 }}
           >
             <div className={styles.heroZoom} style={{ transform: `scale(${scale})` }}>
               <Picture {...slide} className={styles.heroSlideImage} />
@@ -105,14 +100,12 @@ function HeroSlideshow({ controlRight, controlBottom }: {
           type="button"
           className={styles.heroPause}
           style={{ right: controlRight, bottom: controlBottom }}
-          onClick={togglePlayback}
-          aria-label={finished ? "Replay hero slideshow" : paused ? "Play hero slideshow" : "Pause hero slideshow"}
+          onClick={() => setPaused(value => !value)}
+          aria-label={paused ? "Play hero slideshow" : "Pause hero slideshow"}
           aria-pressed={paused}
         >
           <svg viewBox="0 0 36 36" aria-hidden="true">
-            {finished ? (
-              <path d="M25 18a7 7 0 1 1-7-7h2m-3-4 4 4-4 4" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
-            ) : paused ? (
+            {paused ? (
               <path d="M14 12.5a1 1 0 0 1 1.5-.86l9 5.5a1 1 0 0 1 0 1.72l-9 5.5A1 1 0 0 1 14 23.5Z" />
             ) : (
               <><rect x="12.5" y="11.5" width="4" height="13" rx="1.3" /><rect x="19.5" y="11.5" width="4" height="13" rx="1.3" /></>
@@ -126,33 +119,37 @@ function HeroSlideshow({ controlRight, controlBottom }: {
 
 const features = [
   {
-    title: "VoiceOver",
-    body: "Hear detailed descriptions of what’s in view, just by asking.",
+    title: "Communication",
+    body: "Express what matters, in your own way.",
     image: "/renewal-reference/morspeak-bedside-group-3.webp",
     small: "/renewal-reference/morspeak-bedside-group-3.webp",
+    alt: "A person in bed communicating through Morspeak on a mounted tablet",
     bg: "#f5f5f7",
     light: false,
   },
   {
-    title: "Generated Subtitles",
-    body: "Get real-time captioning for shared or personal videos.",
+    title: "Home Control",
+    body: "Make everyday spaces work for you.",
     image: "/renewal-reference/morspeak-light-control-illustration-v3.webp",
     small: "/renewal-reference/morspeak-light-control-illustration-v3.webp",
+    alt: "A wheelchair user controlling a light through Morspeak on a mounted tablet",
     bg: "#c9eeff",
     light: false,
   },
   {
-    title: "AirPods Pro 3 + Hearing Health",
-    body: "Set up a clinical-grade Hearing Aid feature.",
+    title: "Safety Alerts",
+    body: "Let someone know when you need help.",
     image: "/renewal-reference/morspeak-sos-home-illustration-v2.webp",
+    alt: "A person using Morspeak to send an SOS alert from home",
     bg: "#673627",
     light: true,
   },
   {
-    title: "Personal Voice",
-    image:
-      pc.imgIPhone17ScreenShowingPersonalVoiceFeatureWithInstructionsOnHowToCreateYourPersonalVoice,
-    bg: "#f5f5f7",
+    title: "Connection",
+    body: "Stay close to the people who matter.",
+    image: "/renewal-reference/morspeak-connection-illustration.webp",
+    alt: "A person using Morspeak to connect with a loved one through messages and video",
+    bg: "#ff4800",
     light: false,
   },
 ];
@@ -510,7 +507,7 @@ export default function Renewal() {
             Through Flexible Solutions
           </h2>
         </div>
-        <Gallery label="Accessibility features">
+        <Gallery label="Morspeak solutions">
           {features.map((card, i) => (
             <article
               className={`${styles.featureCard} ${card.light ? styles.light : ""}`}
@@ -520,15 +517,13 @@ export default function Renewal() {
               <Picture
                 src={card.image}
                 small={card.small}
-                className={`${styles.featureImage} ${i < 3 ? styles.featureArtwork : ""}`}
-                alt={i === 0 ? "A person in bed communicating through Morspeak on a mounted tablet" : i === 1 ? "A wheelchair user controlling a light through Morspeak on a mounted tablet" : i === 2 ? "A person using Morspeak to send an SOS alert from home" : card.title}
+                className={`${styles.featureImage} ${styles.featureArtwork}`}
+                alt={card.alt}
               />
-              {i < 3 && (
-                <div className={styles.featureCopy}>
-                  <p>{card.title}</p>
-                  <h3>{card.body}</h3>
-                </div>
-              )}
+              <div className={styles.featureCopy}>
+                <p>{card.title}</p>
+                <h3>{card.body}</h3>
+              </div>
               <button
                 type="button"
                 className={styles.plus}
@@ -687,16 +682,9 @@ export default function Renewal() {
             <Picture
               src={features[active].image}
               small={features[active].small}
-              alt={features[active].title}
+              alt={features[active].alt}
               className={styles.dialogImage}
             />
-            <a
-              href="https://www.apple.com/accessibility/features/"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Browse all features
-            </a>
           </div>
         )}
       </dialog>

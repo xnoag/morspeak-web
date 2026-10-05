@@ -441,8 +441,10 @@ export default function Renewal() {
       </section>
       <section className={styles.resources}>
         <h2>
-          We don’t limit people to one way.
-          <br />
+          <span className={styles.resourceIntroLine}>
+            We don’t limit people to one way.
+            <br />
+          </span>
           We adapt technology to each individual.
         </h2>
         <Gallery label="Accessibility resources">

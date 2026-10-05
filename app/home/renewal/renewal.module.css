@@ -571,6 +571,9 @@
   }
 }
 @media (max-width: 734px) {
+  .resourceIntroLine {
+    display: none;
+  }
   .page {
     --nav-height: 60px;
   }

@@ -335,6 +335,9 @@
   margin: 0 var(--gutter) 50px;
   max-width: 857.0625px;
 }
+.stories > h2 span {
+  display: block;
+}
 .wideGallery .gallery > article {
   flex-basis: calc(100vw - 2 * var(--gutter));
 }
@@ -725,6 +728,8 @@
   }
   .stories > h2 {
     margin-bottom: 40px;
+    font-size: clamp(18px, 6vw, 28px);
+    line-height: 1.2;
   }
   .storyCard {
     height: 480px;

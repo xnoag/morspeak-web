@@ -469,7 +469,11 @@ export default function Renewal() {
         </Gallery>
       </section>
       <section className={styles.stories}>
-        <h2>Discover how accessible design makes all the&nbsp;difference.</h2>
+        <h2>
+          <span>Discover how Morspeak creates</span>
+          <span>a lasting impact on</span>
+          <span>everyday life.</span>
+        </h2>
         <Gallery label="Accessibility stories" wide>
           {stories.map((card) => (
             <article className={styles.storyCard} key={card.title}>

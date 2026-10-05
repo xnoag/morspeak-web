@@ -445,7 +445,9 @@ export default function Renewal() {
             We don’t limit people to one way.
             <br />
           </span>
-          We adapt technology to each individual.
+          We adapt technology
+          <br className={styles.resourceMobileBreak} />
+          {" "}to each individual.
         </h2>
         <Gallery label="Accessibility resources">
           {resources.map((card) => (

@@ -115,6 +115,9 @@
   height: 100%;
   object-fit: cover;
 }
+.heroSlideshow {
+  isolation: isolate;
+}
 .page .heroPause {
   position: absolute;
   right: calc(var(--gutter) + 16px);

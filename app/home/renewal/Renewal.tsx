@@ -369,7 +369,7 @@ function Gallery({
 }
 
 const introduction =
-  "We discover new possibilities in small movements. Everyone connects with the world in their way. We adapt technology to each individual, opening up ways to express and connect. Through flexible solutions, we expand the possibilities of everyday life.";
+  "We create assistive technology for people with motor disabilities. We discover new possibilities in small movements. Everyone connects with the world in their own way. We adapt technology to each individual, opening up new ways to express and connect.";
 
 function Hero() {
   const scene = useRef<HTMLElement>(null);

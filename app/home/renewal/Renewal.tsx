@@ -137,10 +137,8 @@ const features = [
   {
     title: "Generated Subtitles",
     body: "Get real-time captioning for shared or personal videos.",
-    image:
-      pc.imgIllustrationOfAHandHoldingAnIPhoneShowingAVideoClipOfABoySittingInFrontOfACakeWithCandlesWithCaptionsOnScreen,
-    small:
-      mobile.imgIllustrationOfAHandHoldingAnIPhoneShowingAVideoClipOfABoySittingInFrontOfACakeWithCandlesWithCaptionsOnScreen,
+    image: "/renewal-reference/morspeak-light-control-illustration.webp",
+    small: "/renewal-reference/morspeak-light-control-illustration.webp",
     bg: "#c9eeff",
     light: false,
   },
@@ -524,8 +522,8 @@ export default function Renewal() {
               <Picture
                 src={card.image}
                 small={card.small}
-                className={`${styles.featureImage} ${i === 0 ? styles.featureArtwork : ""}`}
-                alt={i === 0 ? "A person in bed communicating through Morspeak on a mounted tablet" : card.title}
+                className={`${styles.featureImage} ${i < 2 ? styles.featureArtwork : ""}`}
+                alt={i === 0 ? "A person in bed communicating through Morspeak on a mounted tablet" : i === 1 ? "A wheelchair user controlling a light through Morspeak on a mounted tablet" : card.title}
               />
               {i < 3 && (
                 <div className={styles.featureCopy}>

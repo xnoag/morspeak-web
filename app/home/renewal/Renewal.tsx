@@ -471,8 +471,11 @@ export default function Renewal() {
       <section className={styles.stories}>
         <h2>
           <span>Discover how Morspeak creates</span>
-          <span>a lasting impact on</span>
-          <span>everyday life.</span>
+          <span>
+            a lasting impact on
+            <br className={styles.storyMobileBreak} />
+            {" "}everyday life.
+          </span>
         </h2>
         <Gallery label="Accessibility stories" wide>
           {stories.map((card) => (

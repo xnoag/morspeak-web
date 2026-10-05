@@ -49,7 +49,8 @@
 .skip:focus {
   transform: none;
 }
-.resourceMobileBreak {
+.resourceMobileBreak,
+.storyMobileBreak {
   display: none;
 }
 .heroSequence {
@@ -577,7 +578,8 @@
   }
 }
 @media (max-width: 734px) {
-  .resourceMobileBreak {
+  .resourceMobileBreak,
+  .storyMobileBreak {
     display: initial;
   }
   .resourceIntroLine {

@@ -128,8 +128,8 @@ const features = [
   {
     title: "VoiceOver",
     body: "Hear detailed descriptions of what’s in view, just by asking.",
-    image: "/renewal-reference/morspeak-bedside-group-2.webp",
-    small: "/renewal-reference/morspeak-bedside-group-2.webp",
+    image: "/renewal-reference/morspeak-bedside-group-3.webp",
+    small: "/renewal-reference/morspeak-bedside-group-3.webp",
     bg: "#f5f5f7",
     light: false,
   },
@@ -144,8 +144,7 @@ const features = [
   {
     title: "AirPods Pro 3 + Hearing Health",
     body: "Set up a clinical-grade Hearing Aid feature.",
-    image:
-      pc.imgIllustrationOfCloseUpSideProfileOfAManWearingAirPodsPro3InLeftEar,
+    image: "/renewal-reference/morspeak-sos-home-illustration-v2.webp",
     bg: "#673627",
     light: true,
   },
@@ -521,8 +520,8 @@ export default function Renewal() {
               <Picture
                 src={card.image}
                 small={card.small}
-                className={`${styles.featureImage} ${i < 2 ? styles.featureArtwork : ""}`}
-                alt={i === 0 ? "A person in bed communicating through Morspeak on a mounted tablet" : i === 1 ? "A wheelchair user controlling a light through Morspeak on a mounted tablet" : card.title}
+                className={`${styles.featureImage} ${i < 3 ? styles.featureArtwork : ""}`}
+                alt={i === 0 ? "A person in bed communicating through Morspeak on a mounted tablet" : i === 1 ? "A wheelchair user controlling a light through Morspeak on a mounted tablet" : i === 2 ? "A person using Morspeak to send an SOS alert from home" : card.title}
               />
               {i < 3 && (
                 <div className={styles.featureCopy}>

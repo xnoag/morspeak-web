@@ -169,22 +169,51 @@
 }
 .heroCopy {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  width: 70.625%;
-  max-width: 1040px;
+  inset: min(10vw, 10vh);
+  pointer-events: none;
 }
 .heroCopy h1 {
-  font-size: 80px;
-  line-height: 84px;
-  letter-spacing: -1.2px;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  font-size: clamp(36px, 4vw, 58px);
+  line-height: 1;
+  letter-spacing: -0.02em;
   font-weight: 600;
-  margin-top: 0;
 }
 .heroCopy h1 span {
+  position: absolute;
+  z-index: 1;
   white-space: nowrap;
+}
+.heroWordSmall {
+  left: 8%;
+  top: 54%;
+}
+.heroWordYet {
+  left: 41%;
+  top: 74%;
+}
+.heroWordSignificant {
+  left: 62%;
+  top: 16%;
+}
+.heroWordLines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.9;
+}
+.heroWordLines path {
+  vector-effect: non-scaling-stroke;
+}
+.heroWordLinesMobile {
+  display: none;
 }
 .heroIntro {
   position: absolute;
@@ -603,8 +632,7 @@
 }
 @media (min-width: 735px) and (max-width: 1068px) {
   .heroCopy h1 {
-    font-size: 64px;
-    line-height: 68px;
+    font-size: 44px;
   }
   .featureHeading h2 {
     max-width: 70%;
@@ -656,16 +684,29 @@
     top: 4.004%;
   }
   .heroCopy {
-    width: 87.5%;
+    inset: 10vw;
   }
   .heroCopy h1 {
-    font-size: 48px;
-    line-height: 52px;
-    letter-spacing: -0.144px;
-    margin-top: 0;
+    font-size: clamp(26px, 7vw, 32px);
+    letter-spacing: -0.02em;
   }
-  .heroCopy h1 span {
-    display: block;
+  .heroWordSmall {
+    left: 0;
+    top: 50%;
+  }
+  .heroWordYet {
+    left: 39%;
+    top: 74%;
+  }
+  .heroWordSignificant {
+    left: 52%;
+    top: 18%;
+  }
+  .heroWordLinesDesktop {
+    display: none;
+  }
+  .heroWordLinesMobile {
+    display: initial;
   }
   .desktopNav {
     display: none;

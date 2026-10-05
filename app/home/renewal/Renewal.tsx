@@ -180,12 +180,12 @@ const features: Feature[] = [
 type InputKind = "blink" | "mouth" | "frown" | "finger" | "breath" | "personalize";
 
 const resources: { title: string; body: string; icon: InputKind }[] = [
-  { title: "Eye Blink", body: "A blink can become a choice.", icon: "blink" },
-  { title: "Mouth Movement", body: "Open your mouth to make a selection.", icon: "mouth" },
-  { title: "Frown", body: "A small change in expression can move you forward.", icon: "frown" },
-  { title: "Finger Movement", body: "Make a choice with the slightest movement.", icon: "finger" },
-  { title: "Breath", body: "A gentle puff can become an input.", icon: "breath" },
-  { title: "Your Way", body: "Use the movement that works for you.", icon: "personalize" },
+  { title: "Eye Blink", body: "Use a gentle blink to choose what you want to do next.", icon: "blink" },
+  { title: "Mouth Movement", body: "Open your mouth to select and keep things moving.", icon: "mouth" },
+  { title: "Frown", body: "A small frown can help you move through the app.", icon: "frown" },
+  { title: "Finger Movement", body: "Even a tiny finger movement can make a choice.", icon: "finger" },
+  { title: "Breath", body: "A soft puff of air can become your next input.", icon: "breath" },
+  { title: "Your Way", body: "Choose the movement that feels most natural to you.", icon: "personalize" },
 ];
 
 function InputSymbol({ kind }: { kind: InputKind }) {
@@ -429,8 +429,13 @@ function Hero() {
           style={reducedMotion ? undefined : { opacity: titleOpacity }}
         >
           <h1>
-            <span>Small,</span>{" "}
-            <span>Yet Significant</span>
+            <svg className={styles.heroWordLines} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+              <path className={styles.heroWordLinesDesktop} d="M22 61 40 74 M49 73 67 27" />
+              <path className={styles.heroWordLinesMobile} d="M26 57 38 73 M54 73 66 27" />
+            </svg>
+            <span className={styles.heroWordSmall}>Small,</span>{" "}
+            <span className={styles.heroWordYet}>Yet</span>{" "}
+            <span className={styles.heroWordSignificant}>Significant</span>
           </h1>
         </motion.div>
         {!reducedMotion && (

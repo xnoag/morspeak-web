@@ -128,9 +128,8 @@ const features = [
   {
     title: "VoiceOver",
     body: "Hear detailed descriptions of what’s in view, just by asking.",
-    note: "Powered by Apple Intelligence",
-    image: "/renewal-reference/morspeak-bedside-illustration.webp",
-    small: "/renewal-reference/morspeak-bedside-illustration.webp",
+    image: "/renewal-reference/morspeak-bedside-illustration-gray.webp",
+    small: "/renewal-reference/morspeak-bedside-illustration-gray.webp",
     bg: "#f5f5f7",
     light: false,
   },
@@ -529,7 +528,6 @@ export default function Renewal() {
                 <div className={styles.featureCopy}>
                   <p>{card.title}</p>
                   <h3>{card.body}</h3>
-                  {card.note && <p className={styles.callout}>{card.note}</p>}
                 </div>
               )}
               <button

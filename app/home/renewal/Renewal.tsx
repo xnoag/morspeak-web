@@ -117,7 +117,17 @@ function HeroSlideshow({ controlRight, controlBottom }: {
   );
 }
 
-const features = [
+type Feature = {
+  title: string;
+  body: string;
+  image?: string;
+  small?: string;
+  alt?: string;
+  bg: string;
+  light: boolean;
+};
+
+const features: Feature[] = [
   {
     title: "Communication",
     body: "Express what matters, in your own way.",
@@ -150,6 +160,12 @@ const features = [
     image: "/renewal-reference/morspeak-connection-illustration-v2.webp",
     alt: "A person using Morspeak to connect with a loved one through messages and video",
     bg: "#ff4800",
+    light: false,
+  },
+  {
+    title: "Sample Feature",
+    body: "A short description of this feature goes here.",
+    bg: "#cccccc",
     light: false,
   },
 ];
@@ -514,12 +530,14 @@ export default function Renewal() {
               style={{ background: card.bg }}
               key={card.title}
             >
-              <Picture
-                src={card.image}
-                small={card.small}
-                className={`${styles.featureImage} ${styles.featureArtwork}`}
-                alt={card.alt}
-              />
+              {card.image && (
+                <Picture
+                  src={card.image}
+                  small={card.small}
+                  className={`${styles.featureImage} ${styles.featureArtwork}`}
+                  alt={card.alt}
+                />
+              )}
               <div className={styles.featureCopy}>
                 <p>{card.title}</p>
                 <h3>{card.body}</h3>
@@ -679,12 +697,14 @@ export default function Renewal() {
           <div>
             <h2 id="renewal-feature-title">{features[active].title}</h2>
             <p>{features[active].body}</p>
-            <Picture
-              src={features[active].image}
-              small={features[active].small}
-              alt={features[active].alt}
-              className={styles.dialogImage}
-            />
+            {features[active].image && (
+              <Picture
+                src={features[active].image}
+                small={features[active].small}
+                alt={features[active].alt}
+                className={styles.dialogImage}
+              />
+            )}
           </div>
         )}
       </dialog>

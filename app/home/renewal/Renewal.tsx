@@ -177,38 +177,29 @@ const features: Feature[] = [
     light: false,
   },
 ];
-const resources = [
-  {
-    title: "Support Videos",
-    body: "Learn tips and how-tos from Apple Support on YouTube.",
-    icon: pc.imgOriginalSvg4,
-  },
-  {
-    title: "Accessibility Support",
-    body: "Get help with your features or connect with an expert.",
-    icon: pc.imgOriginalSvg6,
-  },
-  {
-    title: "Accessibility Accessories",
-    body: "Shop assistive accessories for your Apple devices.",
-    icon: pc.imgOriginalSvg7,
-  },
-  {
-    title: "Resource 04",
-    body: "Sample description. Content to be added.",
-    number: "04",
-  },
-  {
-    title: "Resource 05",
-    body: "Sample description. Content to be added.",
-    number: "05",
-  },
-  {
-    title: "Resource 06",
-    body: "Sample description. Content to be added.",
-    number: "06",
-  },
+type InputKind = "blink" | "mouth" | "frown" | "finger" | "breath" | "personalize";
+
+const resources: { title: string; body: string; icon: InputKind }[] = [
+  { title: "Eye Blink", body: "A blink can become a choice.", icon: "blink" },
+  { title: "Mouth Movement", body: "Open your mouth to make a selection.", icon: "mouth" },
+  { title: "Frown", body: "A small change in expression can move you forward.", icon: "frown" },
+  { title: "Finger Movement", body: "Make a choice with the slightest movement.", icon: "finger" },
+  { title: "Breath", body: "A gentle puff can become an input.", icon: "breath" },
+  { title: "Your Way", body: "Use the movement that works for you.", icon: "personalize" },
 ];
+
+function InputSymbol({ kind }: { kind: InputKind }) {
+  const paths: Record<InputKind, ReactNode> = {
+    blink: <><path d="M6 28c6-8 13-12 22-12s16 4 22 12c-6 8-13 12-22 12S12 36 6 28Z" /><circle cx="28" cy="28" r="6" /><path d="M13 10l4 5M28 7v7m15-4-4 5" /></>,
+    mouth: <><path d="M13 18c4-6 9-9 15-9s11 3 15 9" /><circle cx="19" cy="23" r="1" fill="currentColor" stroke="none" /><circle cx="37" cy="23" r="1" fill="currentColor" stroke="none" /><ellipse cx="28" cy="38" rx="8" ry="10" /></>,
+    frown: <><path d="M12 21l11-4m21 4-11-4" /><circle cx="20" cy="27" r="2" fill="currentColor" stroke="none" /><circle cx="36" cy="27" r="2" fill="currentColor" stroke="none" /><path d="M18 44c2-7 6-10 10-10s8 3 10 10" /></>,
+    finger: <><path d="M18 48l-6-9a4 4 0 0 1 6-5l5 5V17a4 4 0 0 1 8 0v15l3-2a4 4 0 0 1 5 1 4 4 0 0 1 6 4l-2 13H18Z" /><path d="M17 13c2-5 6-8 11-8s9 3 11 8" /></>,
+    breath: <><path d="M5 19h24c7 0 7-9 1-9-3 0-5 2-5 4M5 28h37c9 0 9 11 2 11-3 0-5-2-5-4M5 37h19c7 0 7 9 1 9-3 0-5-2-5-4" /></>,
+    personalize: <><path d="M8 15h40M8 28h40M8 41h40" /><circle cx="20" cy="15" r="4" fill="var(--surface)" /><circle cx="36" cy="28" r="4" fill="var(--surface)" /><circle cx="25" cy="41" r="4" fill="var(--surface)" /></>,
+  };
+
+  return <svg className={styles.resourceIcon} viewBox="0 0 56 56" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[kind]}</svg>;
+}
 const stories = [
   {
     title: "A bold iPhone accessory that’s fit for every grip.",
@@ -587,17 +578,13 @@ export default function Renewal() {
           <br className={styles.resourceMobileBreak} />
           {" "}to each individual.
         </h2>
-        <Gallery label="Accessibility resources">
+        <Gallery label="Ways to control Morspeak">
           {resources.map((card) => (
             <article
               className={styles.resourceCard}
               key={card.title}
             >
-              {"icon" in card ? (
-                <img className={styles.resourceIcon} src={card.icon} alt="" />
-              ) : (
-                <span className={styles.resourcePlaceholderIcon} aria-hidden="true">{card.number}</span>
-              )}
+              <InputSymbol kind={card.icon} />
               <h3>{card.title}</h3>
               <p>{card.body}</p>
             </article>

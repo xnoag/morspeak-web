@@ -245,6 +245,11 @@
 .gallery::-webkit-scrollbar {
   display: none;
 }
+.features .gallery,
+.resources .gallery {
+  padding-block: 10px;
+  margin-block: -10px;
+}
 .gallery > article,
 .gallery > a {
   flex: 0 0 372px;
@@ -271,6 +276,16 @@
 .controls button:disabled {
   cursor: default;
   opacity: 0.55;
+}
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .featureCard,
+  .resourceCard {
+    transition: transform 0.3s cubic-bezier(0, 0, 0.5, 1);
+  }
+  .featureCard:hover,
+  .resourceCard:hover {
+    transform: scale(1.01613);
+  }
 }
 .featureCard {
   height: 720px;

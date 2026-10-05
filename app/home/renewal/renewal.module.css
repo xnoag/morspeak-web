@@ -730,7 +730,7 @@
   }
   .stories > h2 {
     margin-bottom: 40px;
-    font-size: clamp(18px, 6vw, 28px);
+    font-size: clamp(17px, 5.4vw, 28px);
     line-height: 1.2;
   }
   .storyCard {

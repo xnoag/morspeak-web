@@ -598,7 +598,11 @@ export default function Renewal() {
       </section>
       <section className={styles.stories}>
         <h2>
-          <span>Discover how Morspeak creates</span>
+          <span>
+            Discover how{" "}
+            <span className={styles.storyWordmark} role="img" aria-label="Morspeak" />
+            {" "}creates
+          </span>
           <span>
             a lasting social impact on
             <br className={styles.storyMobileBreak} />

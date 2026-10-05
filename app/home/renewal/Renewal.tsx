@@ -9,6 +9,7 @@ import {
   useInView,
   useScroll,
   useTransform,
+  type MotionValue,
 } from "framer-motion";
 import { pc, mobile } from "./assets";
 import styles from "./renewal.module.css";
@@ -25,12 +26,15 @@ const heroSlides = [
 }));
 
 // Match the reference's subtle 5% push-in, overlapping dissolve, and replay state.
-const HERO_STEP_MS = 2000;
-const HERO_ZOOM_MS = 4000;
-const HERO_FADE_MS = 1500;
+const HERO_STEP_MS = 5000;
+const HERO_ZOOM_MS = 5500;
+const HERO_FADE_MS = 450;
 const HERO_END_MS = (heroSlides.length - 1) * HERO_STEP_MS + HERO_ZOOM_MS;
 
-function HeroSlideshow() {
+function HeroSlideshow({ controlRight, controlBottom }: {
+  controlRight: MotionValue<string>;
+  controlBottom: MotionValue<string>;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const visible = useInView(ref, { amount: 0.2 });
   const reducedMotion = useReducedMotion();
@@ -97,9 +101,10 @@ function HeroSlideshow() {
         );
       })}
       {!reducedMotion && (
-        <button
+        <motion.button
           type="button"
           className={styles.heroPause}
+          style={{ right: controlRight, bottom: controlBottom }}
           onClick={togglePlayback}
           aria-label={finished ? "Replay hero slideshow" : paused ? "Play hero slideshow" : "Pause hero slideshow"}
           aria-pressed={paused}
@@ -113,7 +118,7 @@ function HeroSlideshow() {
               <><rect x="12.5" y="11.5" width="4" height="13" rx="1.3" /><rect x="19.5" y="11.5" width="4" height="13" rx="1.3" /></>
             )}
           </svg>
-        </button>
+        </motion.button>
       )}
     </div>
   );
@@ -383,6 +388,13 @@ function Hero() {
     scrollYProgress,
     (progress) => `translateY(calc(var(--nav-height) * ${progress * 0.5}))`,
   );
+  // The visible 36px icon sits 24px inside the image; the hit target adds 4px.
+  const controlRight = useTransform(scrollYProgress, progress =>
+    `calc(20px + ${progress * 6.25}%)`,
+  );
+  const controlBottom = useTransform(scrollYProgress, progress =>
+    `calc(20px + ${progress * 10}% - var(--nav-height) * ${progress * 0.1})`,
+  );
   return (
     <section
       ref={scene}
@@ -393,7 +405,7 @@ function Hero() {
         className={styles.hero}
         style={reducedMotion ? undefined : { clipPath }}
       >
-        <HeroSlideshow />
+        <HeroSlideshow controlRight={controlRight} controlBottom={controlBottom} />
         <motion.div
           className={styles.heroCopy}
           style={reducedMotion ? undefined : { opacity: titleOpacity }}

@@ -120,8 +120,8 @@
 }
 .page .heroPause {
   position: absolute;
-  right: calc(var(--gutter) + 16px);
-  bottom: calc(10% + 16px);
+  right: 20px;
+  bottom: 20px;
   z-index: 5;
   display: grid;
   place-items: center;

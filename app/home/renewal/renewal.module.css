@@ -245,8 +245,7 @@
 .gallery::-webkit-scrollbar {
   display: none;
 }
-.features .gallery,
-.resources .gallery {
+.features .gallery {
   padding-block: 10px;
   margin-block: -10px;
 }
@@ -278,12 +277,10 @@
   opacity: 0.55;
 }
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  .featureCard,
-  .resourceCard {
+  .featureCard {
     transition: transform 0.3s cubic-bezier(0, 0, 0.5, 1);
   }
-  .featureCard:hover,
-  .resourceCard:hover {
+  .featureCard:hover {
     transform: scale(1.01613);
   }
 }
@@ -369,6 +366,14 @@
   height: 56px;
   max-width: none;
 }
+.resourcePlaceholderIcon {
+  display: block;
+  height: 56px;
+  line-height: 56px;
+  font-size: 32px;
+  font-weight: 600;
+  color: #86868b;
+}
 .resourceCard h3 {
   font-size: 28px;
   line-height: 32px;
@@ -383,18 +388,6 @@
   line-height: 21px;
   letter-spacing: -0.374px;
   margin-top: 11.195px;
-}
-.external {
-  position: absolute;
-  right: 20px;
-  bottom: 20px;
-  background: #000;
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-}
-.external img {
-  display: block;
 }
 .stories {
   padding: 122px 0 122px;

@@ -170,25 +170,43 @@ const features: Feature[] = [
     bg: "#cccccc",
     light: false,
   },
+  {
+    title: "Sample Feature 2",
+    body: "A short description of this feature goes here.",
+    bg: "#c9eeff",
+    light: false,
+  },
 ];
 const resources = [
   {
     title: "Support Videos",
     body: "Learn tips and how-tos from Apple Support on YouTube.",
     icon: pc.imgOriginalSvg4,
-    href: "https://www.youtube.com/applesupport",
   },
   {
     title: "Accessibility Support",
     body: "Get help with your features or connect with an expert.",
     icon: pc.imgOriginalSvg6,
-    href: "https://support.apple.com/accessibility",
   },
   {
     title: "Accessibility Accessories",
     body: "Shop assistive accessories for your Apple devices.",
     icon: pc.imgOriginalSvg7,
-    href: "https://www.apple.com/shop/accessories/all/accessibility",
+  },
+  {
+    title: "Resource 04",
+    body: "Sample description. Content to be added.",
+    number: "04",
+  },
+  {
+    title: "Resource 05",
+    body: "Sample description. Content to be added.",
+    number: "05",
+  },
+  {
+    title: "Resource 06",
+    body: "Sample description. Content to be added.",
+    number: "06",
   },
 ];
 const stories = [
@@ -571,20 +589,18 @@ export default function Renewal() {
         </h2>
         <Gallery label="Accessibility resources">
           {resources.map((card) => (
-            <a
+            <article
               className={styles.resourceCard}
               key={card.title}
-              href={card.href}
-              target="_blank"
-              rel="noreferrer"
             >
-              <img className={styles.resourceIcon} src={card.icon} alt="" />
+              {"icon" in card ? (
+                <img className={styles.resourceIcon} src={card.icon} alt="" />
+              ) : (
+                <span className={styles.resourcePlaceholderIcon} aria-hidden="true">{card.number}</span>
+              )}
               <h3>{card.title}</h3>
               <p>{card.body}</p>
-              <span className={styles.external}>
-                <img src={pc.imgOriginalSvg5} alt="" />
-              </span>
-            </a>
+            </article>
           ))}
         </Gallery>
       </section>

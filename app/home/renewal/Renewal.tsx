@@ -165,6 +165,8 @@ const features: Feature[] = [
   {
     title: "Sample Feature",
     body: "A short description of this feature goes here.",
+    image: "/renewal-reference/morspeak-music-control-illustration.webp",
+    alt: "A wheelchair user listening to music through a mounted Morspeak tablet",
     bg: "#cccccc",
     light: false,
   },

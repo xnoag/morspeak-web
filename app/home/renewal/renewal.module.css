@@ -187,15 +187,16 @@
   white-space: nowrap;
 }
 .heroWordSmall {
-  left: 8%;
+  left: 14%;
   top: 54%;
 }
 .heroWordYet {
-  left: 41%;
+  left: 50%;
   top: 74%;
+  transform: translateX(-50%);
 }
 .heroWordSignificant {
-  left: 62%;
+  right: 14%;
   top: 16%;
 }
 .heroWordLines {
@@ -691,15 +692,14 @@
     letter-spacing: -0.02em;
   }
   .heroWordSmall {
-    left: 0;
+    left: 3%;
     top: 50%;
   }
   .heroWordYet {
-    left: 39%;
     top: 74%;
   }
   .heroWordSignificant {
-    left: 52%;
+    right: 3%;
     top: 18%;
   }
   .heroWordLinesDesktop {

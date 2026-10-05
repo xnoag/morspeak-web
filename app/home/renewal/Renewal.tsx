@@ -430,8 +430,8 @@ function Hero() {
         >
           <h1>
             <svg className={styles.heroWordLines} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-              <path className={styles.heroWordLinesDesktop} d="M22 61 40 74 M49 73 67 27" />
-              <path className={styles.heroWordLinesMobile} d="M26 57 38 73 M54 73 66 27" />
+              <path className={styles.heroWordLinesDesktop} d="M27 61 46 74 M54 73 72 27" />
+              <path className={styles.heroWordLinesMobile} d="M29 57 41 73 M58 73 68 27" />
             </svg>
             <span className={styles.heroWordSmall}>Small,</span>{" "}
             <span className={styles.heroWordYet}>Yet</span>{" "}

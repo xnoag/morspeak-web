@@ -143,7 +143,7 @@ const features: Feature[] = [
     image: "/renewal-reference/morspeak-light-control-illustration-v3.webp",
     small: "/renewal-reference/morspeak-light-control-illustration-v3.webp",
     alt: "A wheelchair user controlling a light through Morspeak on a mounted tablet",
-    bg: "#c9eeff",
+    bg: "#fde7d3",
     light: false,
   },
   {
@@ -173,7 +173,7 @@ const features: Feature[] = [
   {
     title: "Sample Feature 2",
     body: "A short description of this feature goes here.",
-    bg: "#c9eeff",
+    bg: "#fde7d3",
     light: false,
   },
 ];

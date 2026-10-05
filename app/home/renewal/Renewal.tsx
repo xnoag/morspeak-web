@@ -136,8 +136,8 @@ const features = [
   {
     title: "Generated Subtitles",
     body: "Get real-time captioning for shared or personal videos.",
-    image: "/renewal-reference/morspeak-light-control-illustration.webp",
-    small: "/renewal-reference/morspeak-light-control-illustration.webp",
+    image: "/renewal-reference/morspeak-light-control-illustration-v2.webp",
+    small: "/renewal-reference/morspeak-light-control-illustration-v2.webp",
     bg: "#c9eeff",
     light: false,
   },

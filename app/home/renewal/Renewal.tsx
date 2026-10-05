@@ -24,13 +24,22 @@ const heroSlides = [
   alt,
 }));
 
+// Match the reference's subtle 5% push-in, overlapping dissolve, and replay state.
+const HERO_STEP_MS = 2000;
+const HERO_ZOOM_MS = 4000;
+const HERO_FADE_MS = 1500;
+const HERO_END_MS = (heroSlides.length - 1) * HERO_STEP_MS + HERO_ZOOM_MS;
+
 function HeroSlideshow() {
   const ref = useRef<HTMLDivElement>(null);
   const visible = useInView(ref, { amount: 0.2 });
   const reducedMotion = useReducedMotion();
-  const [active, setActive] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
   const [paused, setPaused] = useState(false);
   const [pageVisible, setPageVisible] = useState(true);
+  const elapsedRef = useRef(0);
+  const finished = elapsed >= HERO_END_MS;
+  const playing = !reducedMotion && !paused && visible && pageVisible && !finished;
 
   useEffect(() => {
     const update = () => setPageVisible(!document.hidden);
@@ -40,49 +49,76 @@ function HeroSlideshow() {
   }, []);
 
   useEffect(() => {
-    if (reducedMotion || paused || !visible || !pageVisible) return;
-    const timer = window.setInterval(() => {
-      const next = (active + 1) % heroSlides.length;
-      const image = ref.current?.querySelector<HTMLImageElement>(
-        `[data-slide="${next}"] img`,
-      );
-      if (image?.complete && image.naturalWidth > 0) setActive(next);
-    }, 5000);
-    return () => window.clearInterval(timer);
-  }, [active, paused, visible, pageVisible, reducedMotion]);
+    if (!playing) return;
+    let frame: number;
+    let previous: number | undefined;
+    const tick = (now: number) => {
+      const images = ref.current?.querySelectorAll<HTMLImageElement>("img");
+      const ready = images && Array.from(images).every(image => image.complete && image.naturalWidth > 0);
+      if (ready && previous !== undefined) {
+        elapsedRef.current = Math.min(HERO_END_MS, elapsedRef.current + Math.min(now - previous, 100));
+        setElapsed(elapsedRef.current);
+      }
+      previous = now;
+      if (elapsedRef.current < HERO_END_MS) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [playing]);
+
+  const togglePlayback = () => {
+    if (finished) {
+      elapsedRef.current = 0;
+      setElapsed(0);
+      setPaused(false);
+    } else setPaused(value => !value);
+  };
+  const active = reducedMotion ? 0 : Math.min(heroSlides.length - 1, Math.floor(elapsed / HERO_STEP_MS));
 
   return (
     <div ref={ref} className={styles.heroSlideshow}>
-      {heroSlides.map((slide, index) => (
-        <motion.div
-          key={slide.src}
-          className={styles.heroSlide}
-          data-slide={index}
-          aria-hidden={index !== (reducedMotion ? 0 : active)}
-          initial={false}
-          animate={{
-            opacity: index === (reducedMotion ? 0 : active) ? 1 : 0,
-            x: reducedMotion || index === active ? "0%" : "1.5%",
-          }}
-          transition={{ duration: reducedMotion ? 0 : 1.4, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <Picture {...slide} className={styles.heroSlideImage} />
-        </motion.div>
-      ))}
+      {heroSlides.map((slide, index) => {
+        const age = reducedMotion ? 0 : elapsed - index * HERO_STEP_MS;
+        const progress = Math.max(0, Math.min(1, age / HERO_ZOOM_MS));
+        const scale = reducedMotion ? 1 : 1 + 0.05 * (1 - (1 - progress) ** 2);
+        const opacity = reducedMotion ? (index === 0 ? 1 : 0) : index === 0 ? 1 : Math.max(0, Math.min(1, age / HERO_FADE_MS));
+        return (
+          <div
+            key={slide.src}
+            className={styles.heroSlide}
+            data-slide={index}
+            aria-hidden={index !== active}
+            style={{ opacity, zIndex: index }}
+          >
+            <div className={styles.heroZoom} style={{ transform: `scale(${scale})` }}>
+              <Picture {...slide} className={styles.heroSlideImage} />
+            </div>
+          </div>
+        );
+      })}
       {!reducedMotion && (
         <button
           type="button"
           className={styles.heroPause}
-          onClick={() => setPaused(!paused)}
-          aria-label={paused ? "Play hero slideshow" : "Pause hero slideshow"}
+          onClick={togglePlayback}
+          aria-label={finished ? "Replay hero slideshow" : paused ? "Play hero slideshow" : "Pause hero slideshow"}
           aria-pressed={paused}
         >
-          {paused ? "▶" : "Ⅱ"}
+          <svg viewBox="0 0 36 36" aria-hidden="true">
+            {finished ? (
+              <path d="M25 18a7 7 0 1 1-7-7h2m-3-4 4 4-4 4" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+            ) : paused ? (
+              <path d="M14 12.5a1 1 0 0 1 1.5-.86l9 5.5a1 1 0 0 1 0 1.72l-9 5.5A1 1 0 0 1 14 23.5Z" />
+            ) : (
+              <><rect x="12.5" y="11.5" width="4" height="13" rx="1.3" /><rect x="19.5" y="11.5" width="4" height="13" rx="1.3" /></>
+            )}
+          </svg>
         </button>
       )}
     </div>
   );
 }
+
 const features = [
   {
     title: "VoiceOver",

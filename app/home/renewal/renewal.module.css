@@ -103,6 +103,7 @@
 }
 .heroSlideshow,
 .heroSlide,
+.heroZoom,
 .heroSlideImage {
   position: absolute;
   inset: 0;
@@ -118,13 +119,28 @@
   position: absolute;
   right: calc(var(--gutter) + 16px);
   bottom: calc(10% + 16px);
-  z-index: 2;
+  z-index: 5;
+  display: grid;
+  place-items: center;
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.35);
-  color: white;
-  font-size: 16px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.8);
+}
+.heroPause svg {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #333336;
+  fill: currentColor;
+}
+.heroPause:hover svg {
+  background: #444447;
+}
+.heroPause:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 3px;
 }
 .nav picture,
 .nav img {

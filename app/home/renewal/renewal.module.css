@@ -154,6 +154,7 @@
 }
 .desktopNav {
   display: flex;
+  color: #fff;
   gap: 24px;
   font-size: 12px;
   line-height: 22px;

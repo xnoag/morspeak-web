@@ -600,7 +600,7 @@ export default function Renewal() {
         <h2>
           <span>Discover how Morspeak creates</span>
           <span>
-            a lasting impact on
+            a lasting social impact on
             <br className={styles.storyMobileBreak} />
             {" "}everyday life.
           </span>

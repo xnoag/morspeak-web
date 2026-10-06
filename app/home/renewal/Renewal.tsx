@@ -130,7 +130,7 @@ type Feature = {
 const features: Feature[] = [
   {
     title: "Communication",
-    body: "Say what you want to say, whenever you want.",
+    body: "Have something to say? Start the conversation.",
     image: "/renewal-reference/morspeak-bedside-group-3.webp",
     small: "/renewal-reference/morspeak-bedside-group-3.webp",
     alt: "A person in bed communicating through Morspeak on a mounted tablet",
@@ -139,7 +139,7 @@ const features: Feature[] = [
   },
   {
     title: "Home Control",
-    body: "Turn on the lights yourself when the room gets dark.",
+    body: "Need more light? Turn it on yourself.",
     image: "/renewal-reference/morspeak-light-control-illustration-v3.webp",
     small: "/renewal-reference/morspeak-light-control-illustration-v3.webp",
     alt: "A wheelchair user controlling a light through Morspeak on a mounted tablet",
@@ -148,7 +148,7 @@ const features: Feature[] = [
   },
   {
     title: "Caregiver Support",
-    body: "More time and space for caregivers, too.",
+    body: "Help when you need it. Breathing room for caregivers.",
     image: "/renewal-reference/morspeak-sos-home-illustration-v2.webp",
     alt: "A person using Morspeak to send an SOS alert from home",
     bg: "#673627",
@@ -156,7 +156,7 @@ const features: Feature[] = [
   },
   {
     title: "Connection",
-    body: "Reconnect with the people who matter.",
+    body: "Reconnect, one message at a time.",
     image: "/renewal-reference/morspeak-connection-illustration-v2.webp",
     alt: "A person using Morspeak to connect with a loved one through messages and video",
     bg: "#ff4800",
@@ -164,7 +164,7 @@ const features: Feature[] = [
   },
   {
     title: "Entertainment",
-    body: "Choose the music and videos you love.",
+    body: "Your music. Your videos. Your choice.",
     image: "/renewal-reference/morspeak-music-control-illustration.webp",
     alt: "A wheelchair user listening to music through a mounted Morspeak tablet",
     bg: "#cccccc",
@@ -172,7 +172,7 @@ const features: Feature[] = [
   },
   {
     title: "Possibilities",
-    body: "Imagine what’s possible. Morspeak is with you.",
+    body: "Imagine what’s next. Morspeak is with you.",
     bg: "#fde7d3",
     light: false,
   },

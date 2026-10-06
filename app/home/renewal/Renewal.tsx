@@ -130,7 +130,7 @@ type Feature = {
 const features: Feature[] = [
   {
     title: "Communication",
-    body: "Have something to say? Start the conversation.",
+    body: "One small movement can start a conversation.",
     image: "/renewal-reference/morspeak-bedside-group-3.webp",
     small: "/renewal-reference/morspeak-bedside-group-3.webp",
     alt: "A person in bed communicating through Morspeak on a mounted tablet",

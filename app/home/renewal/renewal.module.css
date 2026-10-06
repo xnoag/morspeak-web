@@ -843,7 +843,7 @@
     position: absolute;
     inset: -24px;
     background: url("/renewal-reference/morspeak-tim-cook-meeting.jpg") center / cover no-repeat;
-    filter: blur(20px) brightness(0.55);
+    filter: blur(12px) brightness(0.95);
   }
   .storyCard:first-child .storyImage img {
     object-fit: contain;
@@ -851,6 +851,9 @@
     transform: scale(1.2);
     -webkit-mask-image: linear-gradient(to bottom, #000 42%, transparent 59%);
     mask-image: linear-gradient(to bottom, #000 42%, transparent 59%);
+  }
+  .storyCard:first-child .scrim {
+    background: linear-gradient(to bottom, transparent 48%, rgba(0, 0, 0, 0.22) 76%, rgba(0, 0, 0, 0.68));
   }
   .storyCopy {
     left: 32px;

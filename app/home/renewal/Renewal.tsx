@@ -130,7 +130,7 @@ type Feature = {
 const features: Feature[] = [
   {
     title: "Communication",
-    body: "Express what matters, in your own way.",
+    body: "Say what you want to say, whenever you want.",
     image: "/renewal-reference/morspeak-bedside-group-3.webp",
     small: "/renewal-reference/morspeak-bedside-group-3.webp",
     alt: "A person in bed communicating through Morspeak on a mounted tablet",
@@ -139,7 +139,7 @@ const features: Feature[] = [
   },
   {
     title: "Home Control",
-    body: "Make everyday spaces work for you.",
+    body: "Turn on the lights yourself when the room gets dark.",
     image: "/renewal-reference/morspeak-light-control-illustration-v3.webp",
     small: "/renewal-reference/morspeak-light-control-illustration-v3.webp",
     alt: "A wheelchair user controlling a light through Morspeak on a mounted tablet",
@@ -147,8 +147,8 @@ const features: Feature[] = [
     light: false,
   },
   {
-    title: "Safety Alerts",
-    body: "Let someone know when you need help.",
+    title: "Caregiver Support",
+    body: "More time and space for caregivers, too.",
     image: "/renewal-reference/morspeak-sos-home-illustration-v2.webp",
     alt: "A person using Morspeak to send an SOS alert from home",
     bg: "#673627",
@@ -156,23 +156,23 @@ const features: Feature[] = [
   },
   {
     title: "Connection",
-    body: "Stay close to the people who matter.",
+    body: "Reconnect with the people who matter.",
     image: "/renewal-reference/morspeak-connection-illustration-v2.webp",
     alt: "A person using Morspeak to connect with a loved one through messages and video",
     bg: "#ff4800",
     light: false,
   },
   {
-    title: "Sample Feature",
-    body: "A short description of this feature goes here.",
+    title: "Entertainment",
+    body: "Choose the music and videos you love.",
     image: "/renewal-reference/morspeak-music-control-illustration.webp",
     alt: "A wheelchair user listening to music through a mounted Morspeak tablet",
     bg: "#cccccc",
     light: false,
   },
   {
-    title: "Sample Feature 2",
-    body: "A short description of this feature goes here.",
+    title: "Possibilities",
+    body: "Imagine what’s possible. Morspeak is with you.",
     bg: "#fde7d3",
     light: false,
   },

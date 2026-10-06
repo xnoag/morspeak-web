@@ -599,7 +599,7 @@ export default function Renewal() {
       </section>
       <section className={styles.stories}>
         <h2>
-          <span>Discover how morspeak creates</span>
+          <span>Discover how Morspeak creates</span>
           <span>
             a lasting social impact on
             <br className={styles.storyMobileBreak} />

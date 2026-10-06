@@ -838,10 +838,14 @@
   .storyCard {
     height: 480px;
   }
+  .storyCard:first-child {
+    clip-path: inset(0 round 28px);
+  }
   .storyCard:first-child::before {
     content: "";
     position: absolute;
     inset: -24px;
+    clip-path: inset(24px round 28px);
     background: url("/renewal-reference/morspeak-tim-cook-meeting.jpg") center / cover no-repeat;
     filter: blur(12px) brightness(0.95);
   }

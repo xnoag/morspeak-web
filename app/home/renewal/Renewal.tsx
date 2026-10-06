@@ -203,8 +203,9 @@ function InputSymbol({ kind }: { kind: InputKind }) {
 const stories = [
   {
     title: "A bold iPhone accessory that’s fit for every grip.",
-    image: pc.imgOriginalVideoPosterHikawa,
-    small: mobile.imgOriginalVideoPosterHikawa,
+    image: "/renewal-reference/morspeak-tim-cook-meeting.jpg",
+    small: "/renewal-reference/morspeak-tim-cook-meeting.jpg",
+    alt: "Two people discussing an iPad outdoors",
     href: "https://www.apple.com/accessibility/",
   },
   {
@@ -612,7 +613,7 @@ export default function Renewal() {
                 className={styles.storyImage}
                 src={card.image}
                 small={card.small}
-                alt={card.title}
+                alt={card.alt ?? card.title}
               />
               <div className={styles.scrim} />
               <div className={styles.storyCopy}>

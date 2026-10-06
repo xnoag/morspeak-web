@@ -139,7 +139,7 @@ const features: Feature[] = [
   },
   {
     title: "Home Control",
-    body: "Need more light? Turn it on yourself.",
+    body: "Need more light?\nTurn it on yourself.",
     image: "/renewal-reference/morspeak-light-control-illustration-v3.webp",
     small: "/renewal-reference/morspeak-light-control-illustration-v3.webp",
     alt: "A wheelchair user controlling a light through Morspeak on a mounted tablet",
@@ -148,7 +148,7 @@ const features: Feature[] = [
   },
   {
     title: "Caregiver Support",
-    body: "Help when you need it. Breathing room for caregivers.",
+    body: "Help when needed. Breathing room for caregivers.",
     image: "/renewal-reference/morspeak-sos-home-illustration-v2.webp",
     alt: "A person using Morspeak to send an SOS alert from home",
     bg: "#673627",

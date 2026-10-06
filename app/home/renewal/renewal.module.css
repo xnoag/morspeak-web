@@ -356,6 +356,7 @@
   font-weight: 600;
   letter-spacing: 0.196px;
   margin-top: 12px;
+  white-space: pre-line;
 }
 .featureCopy .callout {
   font-weight: 400;

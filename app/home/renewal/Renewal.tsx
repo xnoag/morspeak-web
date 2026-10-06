@@ -172,7 +172,9 @@ const features: Feature[] = [
   },
   {
     title: "Possibilities",
-    body: "Imagine what’s next. Morspeak is with you.",
+    body: "Imagine what’s next.\nWe’re with you.",
+    image: "/renewal-reference/morspeak-possibilities-illustration.webp",
+    alt: "A wheelchair user imagining conversations, music, videos, learning, and everyday activities through Morspeak",
     bg: "#fde7d3",
     light: false,
   },

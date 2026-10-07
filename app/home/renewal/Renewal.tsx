@@ -263,21 +263,22 @@ const stories = [
     href: "https://www.apple.com/accessibility/designed-for-students/",
   },
 ];
-const suitabilityCards: { title: string; body: string; icon: "blink" | "personalize" | "people" }[] = [
+const onboardingSteps = [
   {
-    title: "Start with a small movement.",
-    body: "A blink, facial movement, finger press, or gentle breath can be a starting point.",
-    icon: "blink",
+    number: "01",
+    title: "Tell us about your needs.",
+    body: "Apply with a few details about the person, their movements, and how to reach you.",
+    href: "/waitlist",
   },
   {
-    title: "Make it your way.",
-    body: "Choose the movement that feels reliable and adjust the controls to suit you.",
-    icon: "personalize",
+    number: "02",
+    title: "Talk with our team.",
+    body: "We’ll contact you to discuss your goals, available movements, and whether Morspeak may be a fit.",
   },
   {
-    title: "Explore it together.",
-    body: "Everyone moves differently. Try the options with someone who knows your daily routine.",
-    icon: "people",
+    number: "03",
+    title: "Set up your way.",
+    body: "If it’s a good fit, we’ll guide you through setup and help choose a way to control Morspeak.",
   },
 ];
 
@@ -624,15 +625,16 @@ export default function Renewal() {
         </Gallery>
       </section>
       <section className={styles.values}>
-        <h2>Could Morspeak work for you or a loved one?</h2>
-        <Gallery label="Who can use Morspeak">
-          {suitabilityCards.map((card) => (
-            <article className={styles.valueCard} key={card.title}>
+        <h2>How to get started with Morspeak.</h2>
+        <Gallery label="Getting started with Morspeak">
+          {onboardingSteps.map((card) => (
+            <article className={styles.valueCard} key={card.title} aria-label={`Step ${Number(card.number)}: ${card.title}`}>
               <div className={styles.valueIcon}>
-                {card.icon === "people" ? <img src={pc.imgOriginalSvg11} alt="" /> : <InputSymbol kind={card.icon} />}
+                <span className={styles.stepNumber} aria-hidden="true">{card.number}</span>
               </div>
               <h3>{card.title}</h3>
               <p>{card.body}</p>
+              {card.href && <a href={card.href}>Apply now (Korean form)</a>}
             </article>
           ))}
         </Gallery>

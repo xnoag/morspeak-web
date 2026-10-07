@@ -577,9 +577,11 @@
   display: flex;
   align-items: center;
 }
-.valueIcon img {
-  display: block;
-  max-width: none;
+.stepNumber {
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 32px;
+  letter-spacing: 0.196px;
 }
 .valueCard h3 {
   font-size: 28px;
@@ -593,6 +595,15 @@
   line-height: 21px;
   margin-top: 11.195px;
   letter-spacing: -0.374px;
+}
+.valueCard a {
+  display: inline-block;
+  margin-top: 12px;
+  font-size: 17px;
+  line-height: 21px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 .dialog {
   border: 0;
@@ -872,6 +883,11 @@
     line-height: 18px;
     letter-spacing: -0.224px;
     margin-top: 8.398px;
+  }
+  .valueCard a {
+    font-size: 14px;
+    line-height: 18px;
+    margin-top: 11.195px;
   }
   .dialog {
     padding: 56px 24px 32px;

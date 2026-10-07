@@ -49,7 +49,6 @@
 .skip:focus {
   transform: none;
 }
-.resourceMobileBreak,
 .storyMobileBreak {
   display: none;
 }
@@ -669,12 +668,8 @@
   }
 }
 @media (max-width: 734px) {
-  .resourceMobileBreak,
   .storyMobileBreak {
     display: initial;
-  }
-  .resourceIntroLine {
-    display: none;
   }
   .page {
     --nav-height: 60px;

@@ -182,12 +182,12 @@ const features: Feature[] = [
 type InputKind = "blink" | "mouth" | "frown" | "finger" | "breath" | "personalize";
 
 const resources: { title: string; body: string; icon: InputKind }[] = [
-  { title: "Eye Blink", body: "Use a gentle blink to choose what you want to do next.", icon: "blink" },
-  { title: "Mouth Movement", body: "Open your mouth to select and keep things moving.", icon: "mouth" },
-  { title: "Frown", body: "A small frown can help you move through the app.", icon: "frown" },
-  { title: "Finger Movement", body: "Even a tiny finger movement can make a choice.", icon: "finger" },
-  { title: "Breath", body: "A soft puff of air can become your next input.", icon: "breath" },
-  { title: "Your Way", body: "Choose the movement that feels most natural to you.", icon: "personalize" },
+  { title: "Eye Blink", body: "Blink to choose what comes next.", icon: "blink" },
+  { title: "Mouth Movement", body: "Open your mouth to move through the app.", icon: "mouth" },
+  { title: "Frown", body: "A small frown can become a command.", icon: "frown" },
+  { title: "Finger Movement", body: "A tiny press can make your next choice.", icon: "finger" },
+  { title: "Breath", body: "Blow gently to take the next step.", icon: "breath" },
+  { title: "Your Way", body: "Start with the movement that works for you.", icon: "personalize" },
 ];
 
 function InputSymbol({ kind }: { kind: InputKind }) {
@@ -578,13 +578,9 @@ export default function Renewal() {
       </section>
       <section className={styles.resources}>
         <h2>
-          <span className={styles.resourceIntroLine}>
-            We don’t limit people to one way.
-            <br />
-          </span>
-          We adapt technology
-          <br className={styles.resourceMobileBreak} />
-          {" "}to each individual.
+          Your movement.
+          <br />
+          Your way to control Morspeak.
         </h2>
         <Gallery label="Ways to control Morspeak">
           {resources.map((card) => (

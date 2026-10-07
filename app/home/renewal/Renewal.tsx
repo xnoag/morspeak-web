@@ -192,12 +192,39 @@ const resources: { title: string; body: string; icon: InputKind }[] = [
 
 function InputSymbol({ kind }: { kind: InputKind }) {
   const paths: Record<InputKind, ReactNode> = {
-    blink: <><path d="M6 28c6-8 13-12 22-12s16 4 22 12c-6 8-13 12-22 12S12 36 6 28Z" /><circle cx="28" cy="28" r="6" /><path d="M13 10l4 5M28 7v7m15-4-4 5" /></>,
-    mouth: <><path d="M13 18c4-6 9-9 15-9s11 3 15 9" /><circle cx="19" cy="23" r="1" fill="currentColor" stroke="none" /><circle cx="37" cy="23" r="1" fill="currentColor" stroke="none" /><ellipse cx="28" cy="38" rx="8" ry="10" /></>,
-    frown: <><path d="M12 21l11-4m21 4-11-4" /><circle cx="20" cy="27" r="2" fill="currentColor" stroke="none" /><circle cx="36" cy="27" r="2" fill="currentColor" stroke="none" /><path d="M18 44c2-7 6-10 10-10s8 3 10 10" /></>,
-    finger: <><path d="M18 48l-6-9a4 4 0 0 1 6-5l5 5V17a4 4 0 0 1 8 0v15l3-2a4 4 0 0 1 5 1 4 4 0 0 1 6 4l-2 13H18Z" /><path d="M17 13c2-5 6-8 11-8s9 3 11 8" /></>,
-    breath: <><path d="M5 19h24c7 0 7-9 1-9-3 0-5 2-5 4M5 28h37c9 0 9 11 2 11-3 0-5-2-5-4M5 37h19c7 0 7 9 1 9-3 0-5-2-5-4" /></>,
-    personalize: <><path d="M8 15h40M8 28h40M8 41h40" /><circle cx="20" cy="15" r="4" fill="var(--surface)" /><circle cx="36" cy="28" r="4" fill="var(--surface)" /><circle cx="25" cy="41" r="4" fill="var(--surface)" /></>,
+    blink: <>
+      <path d="M7 29c6-8 13-12 21-12s15 4 21 12c-6 8-13 12-21 12S13 37 7 29Z" />
+      <circle cx="28" cy="29" r="5.5" />
+      <path d="M13 12l-3-4m18 5V7m15 5 3-4" />
+      <path d="M13 46c9 5 21 5 30 0" />
+    </>,
+    mouth: <>
+      <path d="M11 23c7 0 10-6 17-6s10 6 17 6" />
+      <ellipse cx="28" cy="34" rx="11" ry="13" />
+      <path d="M18 30c6 3 14 3 20 0" />
+    </>,
+    frown: <>
+      <path d="M8 20c7-1 12 0 17 5m23-5c-7-1-12 0-17 5" />
+      <path d="M26 14l-2-5m6 5 2-5m-4 16v5" />
+      <circle cx="20" cy="32" r="1.7" fill="currentColor" stroke="none" />
+      <circle cx="36" cy="32" r="1.7" fill="currentColor" stroke="none" />
+      <path d="M18 46c2-5 6-7 10-7s8 2 10 7" />
+    </>,
+    finger: <>
+      <path d="M14 48l-5-8a4 4 0 0 1 6-5l6 5V15a4 4 0 0 1 8 0v17l3-2a4 4 0 0 1 6 2 4 4 0 0 1 7 4l-2 12H14Z" />
+      <path d="M17 12c2-4 5-6 8-6s6 2 8 6M37 15l3-3m-2 10h5" />
+    </>,
+    breath: <>
+      <path d="M8 10c8 0 14 7 14 17 0 7-3 12-8 17M8 35c5-1 8-1 13 1" />
+      <path d="M24 25c5-3 10-3 14 0m-13 6c7-1 15 1 20 5m-17-17c4-4 9-5 14-4" />
+      <path d="m40 12 3 3-3 3m4 15 3 3-4 2" />
+    </>,
+    personalize: <>
+      <circle cx="28" cy="28" r="10" />
+      <path d="m23 28 3 3 7-7" />
+      <circle cx="28" cy="7" r="3" /><circle cx="9" cy="39" r="3" /><circle cx="47" cy="39" r="3" />
+      <path d="M28 10v8M12 37l8-5m24 5-8-5" />
+    </>,
   };
 
   return <svg className={styles.resourceIcon} viewBox="0 0 56 56" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[kind]}</svg>;

@@ -396,6 +396,62 @@
   width: 56px;
   height: 56px;
 }
+.symbolMouthOpen {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .symbolBlink {
+    transform-origin: 28px 28px;
+    animation: symbolBlink 4.8s ease-in-out infinite;
+  }
+  .symbolMouthClosed {
+    animation: mouthClosed 3.6s ease-in-out infinite;
+  }
+  .symbolMouthOpen {
+    animation: mouthOpen 3.6s ease-in-out infinite;
+  }
+  .symbolFrownBrows {
+    animation: symbolFrown 4s ease-in-out infinite;
+  }
+  .symbolFinger {
+    animation: symbolPress 3.2s ease-in-out infinite;
+  }
+  .symbolBreath {
+    animation: symbolExhale 3.8s ease-in-out infinite;
+  }
+  .symbolChoice {
+    transform-origin: 28px 28px;
+    animation: symbolChoose 4s ease-in-out infinite;
+  }
+}
+@keyframes symbolBlink {
+  0%, 42%, 50%, 100% { transform: scaleY(1); }
+  46% { transform: scaleY(0.12); }
+}
+@keyframes mouthClosed {
+  0%, 27%, 73%, 100% { opacity: 1; }
+  36%, 64% { opacity: 0; }
+}
+@keyframes mouthOpen {
+  0%, 27%, 73%, 100% { opacity: 0; }
+  36%, 64% { opacity: 1; }
+}
+@keyframes symbolFrown {
+  0%, 30%, 75%, 100% { transform: translateY(0); }
+  43%, 61% { transform: translateY(3px); }
+}
+@keyframes symbolPress {
+  0%, 30%, 75%, 100% { transform: translateY(0); }
+  43%, 61% { transform: translateY(3px); }
+}
+@keyframes symbolExhale {
+  0%, 20%, 85%, 100% { opacity: 0.7; transform: translateX(0); }
+  55% { opacity: 1; transform: translateX(4px); }
+}
+@keyframes symbolChoose {
+  0%, 35%, 75%, 100% { transform: scale(1); }
+  52% { transform: scale(1.16); }
+}
 .resourceCard h3 {
   font-size: 28px;
   line-height: 32px;

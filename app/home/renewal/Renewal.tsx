@@ -192,42 +192,55 @@ const resources: { title: string; body: string; icon: InputKind }[] = [
 
 function InputSymbol({ kind }: { kind: InputKind }) {
   const paths: Record<InputKind, ReactNode> = {
-    blink: <>
+    blink: <g className={styles.symbolBlink}>
       <ellipse cx="17" cy="28" rx="9" ry="18" />
       <ellipse cx="39" cy="28" rx="9" ry="18" />
       <ellipse cx="14" cy="33" rx="4.5" ry="6" fill="currentColor" stroke="none" />
       <ellipse cx="36" cy="33" rx="4.5" ry="6" fill="currentColor" stroke="none" />
-    </>,
+    </g>,
     mouth: <>
-      <path d="M11 23c7 0 10-6 17-6s10 6 17 6" />
-      <ellipse cx="28" cy="34" rx="11" ry="13" />
-      <path d="M18 30c6 3 14 3 20 0" />
+      <g className={styles.symbolMouthClosed}>
+        <path d="M13 23h30" strokeWidth="5" />
+        <path d="M23 40c3 2 7 2 10 0" strokeWidth="4" />
+      </g>
+      <g className={styles.symbolMouthOpen}>
+        <ellipse cx="28" cy="27" rx="14" ry="13" fill="currentColor" stroke="none" />
+        <ellipse cx="28" cy="32" rx="9" ry="5" fill="var(--surface)" stroke="none" />
+        <path d="M23 47c3 2 7 2 10 0" strokeWidth="4" />
+      </g>
     </>,
     frown: <>
-      <path d="M8 20c7-1 12 0 17 5m23-5c-7-1-12 0-17 5" />
-      <path d="M26 14l-2-5m6 5 2-5m-4 16v5" />
-      <circle cx="20" cy="32" r="1.7" fill="currentColor" stroke="none" />
-      <circle cx="36" cy="32" r="1.7" fill="currentColor" stroke="none" />
-      <path d="M18 46c2-5 6-7 10-7s8 2 10 7" />
+      <g className={styles.symbolFrownBrows}>
+        <path d="M9 19c7-1 12 1 16 6m22-6c-7-1-12 1-16 6" />
+        <path d="m25 14-2-5m8 5 2-5" />
+      </g>
+      <circle cx="20" cy="32" r="2" fill="currentColor" stroke="none" />
+      <circle cx="36" cy="32" r="2" fill="currentColor" stroke="none" />
+      <path d="M18 47c2-5 6-7 10-7s8 2 10 7" />
     </>,
     finger: <>
-      <path d="M14 48l-5-8a4 4 0 0 1 6-5l6 5V15a4 4 0 0 1 8 0v17l3-2a4 4 0 0 1 6 2 4 4 0 0 1 7 4l-2 12H14Z" />
-      <path d="M17 12c2-4 5-6 8-6s6 2 8 6M37 15l3-3m-2 10h5" />
+      <g className={styles.symbolFinger}>
+        <path d="M14 48l-5-8a4 4 0 0 1 6-5l6 5V15a4 4 0 0 1 8 0v17l3-2a4 4 0 0 1 6 2 4 4 0 0 1 7 4l-2 12H14Z" />
+      </g>
+      <path d="M17 11c2-4 5-6 8-6s6 2 8 6m5 4 3-3m-3 10h5" />
     </>,
     breath: <>
-      <path d="M8 10c8 0 14 7 14 17 0 7-3 12-8 17M8 35c5-1 8-1 13 1" />
-      <path d="M24 25c5-3 10-3 14 0m-13 6c7-1 15 1 20 5m-17-17c4-4 9-5 14-4" />
-      <path d="m40 12 3 3-3 3m4 15 3 3-4 2" />
+      <path d="M9 11c8 1 13 7 13 16 0 7-3 13-8 17M8 34c5-1 9-1 14 1" />
+      <g className={styles.symbolBreath}>
+        <path d="M26 21c5-4 10-4 15-1M26 29c8-2 15-1 21 2M27 37c5-1 9 0 13 3" />
+      </g>
     </>,
     personalize: <>
-      <circle cx="28" cy="28" r="10" />
-      <path d="m23 28 3 3 7-7" />
-      <circle cx="28" cy="7" r="3" /><circle cx="9" cy="39" r="3" /><circle cx="47" cy="39" r="3" />
-      <path d="M28 10v8M12 37l8-5m24 5-8-5" />
+      <circle cx="28" cy="28" r="13" />
+      <g className={styles.symbolChoice}><path d="m21 28 5 5 10-11" strokeWidth="3.5" /></g>
+      <circle cx="28" cy="6" r="3" fill="currentColor" stroke="none" />
+      <circle cx="8" cy="40" r="3" fill="currentColor" stroke="none" />
+      <circle cx="48" cy="40" r="3" fill="currentColor" stroke="none" />
+      <path d="M28 9v6M11 38l7-4m27 4-7-4" />
     </>,
   };
 
-  return <svg className={styles.resourceIcon} viewBox="0 0 56 56" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[kind]}</svg>;
+  return <svg className={styles.resourceIcon} viewBox="0 0 56 56" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[kind]}</svg>;
 }
 const stories = [
   {

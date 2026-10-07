@@ -266,19 +266,19 @@ const stories = [
 const onboardingSteps = [
   {
     number: "01",
-    title: "Tell us about your needs.",
-    body: "Apply with a few details about the person, their movements, and how to reach you.",
+    title: "Start with a small movement.",
+    body: "Tell us which movements they can repeat, perhaps a blink or a gentle breath.",
     href: "/waitlist",
   },
   {
     number: "02",
-    title: "Talk with our team.",
-    body: "We’ll contact you to discuss your goals, available movements, and whether Morspeak may be a fit.",
+    title: "Explore what works.",
+    body: "We’ll talk through their goals and see which ways of controlling Morspeak may fit.",
   },
   {
     number: "03",
-    title: "Set up your way.",
-    body: "If it’s a good fit, we’ll guide you through setup and help choose a way to control Morspeak.",
+    title: "Set up around them.",
+    body: "If Morspeak is a good fit, we’ll guide setup and help them take the first steps.",
   },
 ];
 
@@ -625,8 +625,9 @@ export default function Renewal() {
         </Gallery>
       </section>
       <section className={styles.values}>
-        <h2>How to get started with Morspeak.</h2>
-        <Gallery label="Getting started with Morspeak">
+        <p className={styles.valuesEyebrow}>For individuals and families</p>
+        <h2>Could Morspeak work for your loved one?</h2>
+        <Gallery label="Exploring Morspeak for personal use">
           {onboardingSteps.map((card) => (
             <article className={styles.valueCard} key={card.title} aria-label={`Step ${Number(card.number)}: ${card.title}`}>
               <div className={styles.valueIcon}>

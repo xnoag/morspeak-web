@@ -564,6 +564,12 @@
   padding: 64px 0 160px;
   background: var(--surface);
 }
+.values > .valuesEyebrow {
+  margin: 0 var(--gutter) 12px;
+  font-size: 17px;
+  line-height: 21px;
+  font-weight: 600;
+}
 .values > h2 {
   margin: 0 var(--gutter) 42px;
 }
@@ -865,6 +871,10 @@
   }
   .values {
     padding: 52px 0 96px;
+  }
+  .valuesEyebrow {
+    font-size: 14px;
+    line-height: 18px;
   }
   .values > h2 {
     margin-bottom: 40px;

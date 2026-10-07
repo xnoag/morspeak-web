@@ -263,56 +263,6 @@ const stories = [
     href: "https://www.apple.com/accessibility/designed-for-students/",
   },
 ];
-const news = [
-  [
-    "UPDATE",
-    "Siri AI, a profoundly more capable and personal assistant, is here",
-    "September 14, 2026",
-    pc.imgImage,
-    mobile.imgImage,
-    "https://www.apple.com/newsroom/2026/09/siri-ai-a-profoundly-more-capable-and-personal-assistant-is-here/",
-  ],
-  [
-    "PRESS RELEASE",
-    "Introducing Apple Watch Series 12, with the all-new Health Sensing System",
-    "September 9, 2026",
-    pc.imgImage1,
-    mobile.imgImage1,
-    "https://www.apple.com/newsroom/2026/09/introducing-apple-watch-series-12-with-the-all-new-health-sensing-system/",
-  ],
-  [
-    "PRESS RELEASE",
-    "Apple Intelligence brings powerful AI capabilities into everyday experiences",
-    "June 8, 2026",
-    pc.imgImage2,
-    mobile.imgImage2,
-    "https://www.apple.com/newsroom/2026/06/apple-intelligence-brings-powerful-ai-capabilities-into-everyday-experiences/",
-  ],
-  [
-    "FEATURE",
-    "Detroit’s rising developers are supported by the Apple Developer Academy",
-    "May 29, 2026",
-    pc.imgImage3,
-    mobile.imgImage3,
-    "https://www.apple.com/newsroom/2026/05/detroits-rising-developers-are-supported-by-the-apple-developer-academy/",
-  ],
-  [
-    "PRESS RELEASE",
-    "Apple unveils new accessibility features, and updates with Apple Intelligence",
-    "May 19, 2026",
-    pc.imgImage4,
-    mobile.imgImage4,
-    "https://www.apple.com/newsroom/2026/05/apple-unveils-new-accessibility-features-and-updates-with-apple-intelligence/",
-  ],
-  [
-    "UPDATE",
-    "AI meets accessibility in this year’s Swift Student Challenge",
-    "May 7, 2026",
-    pc.imgImage5,
-    mobile.imgImage5,
-    "https://www.apple.com/newsroom/2026/05/ai-meets-accessibility-in-this-years-swift-student-challenge/",
-  ],
-];
 const values = [
   {
     title: "Education",
@@ -675,41 +625,6 @@ export default function Renewal() {
             </article>
           ))}
         </Gallery>
-      </section>
-      <section className={styles.news}>
-        <h2>More from Apple on accessibility.</h2>
-        <div className={styles.newsGrid}>
-          {news.map(([type, title, date, image, small, href]) => (
-            <a
-              href={href}
-              className={styles.newsItem}
-              key={title}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <Picture
-                src={image}
-                small={small}
-                className={styles.newsImage}
-                alt=""
-              />
-              <div>
-                <p className={styles.newsType}>{type}</p>
-                <h3>{title}</h3>
-                <p className={styles.date}>{date}</p>
-              </div>
-            </a>
-          ))}
-        </div>
-        <a
-          className={styles.showMore}
-          href="https://www.apple.com/newsroom/"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <img src={pc.imgOriginalSvg9} alt="" />
-          Show more
-        </a>
       </section>
       <section className={styles.values}>
         <h2>Our values lead the way.</h2>

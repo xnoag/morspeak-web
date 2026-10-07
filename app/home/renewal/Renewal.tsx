@@ -263,24 +263,21 @@ const stories = [
     href: "https://www.apple.com/accessibility/designed-for-students/",
   },
 ];
-const values = [
+const suitabilityCards: { title: string; body: string; icon: "blink" | "personalize" | "people" }[] = [
   {
-    title: "Education",
-    body: "We empower students and educators to learn, create, and define their own success.",
-    icon: pc.imgGraduationcapElevatedNp,
-    href: "https://www.apple.com/education/",
+    title: "Start with a small movement.",
+    body: "A blink, facial movement, finger press, or gentle breath can be a starting point.",
+    icon: "blink",
   },
   {
-    title: "Environment",
-    body: "We’re committed to bringing net emissions to zero across our entire carbon footprint by 2030.",
-    icon: pc.imgOriginalSvg10,
-    href: "https://www.apple.com/environment/",
+    title: "Make it your way.",
+    body: "Choose the movement that feels reliable and adjust the controls to suit you.",
+    icon: "personalize",
   },
   {
-    title: "Inclusion and Diversity",
-    body: "We’re holding ourselves accountable for creating a culture where everyone belongs.",
-    icon: pc.imgOriginalSvg11,
-    href: "https://www.apple.com/diversity/",
+    title: "Explore it together.",
+    body: "Everyone moves differently. Try the options with someone who knows your daily routine.",
+    icon: "people",
   },
 ];
 
@@ -627,18 +624,15 @@ export default function Renewal() {
         </Gallery>
       </section>
       <section className={styles.values}>
-        <h2>Our values lead the way.</h2>
-        <Gallery label="Values">
-          {values.map((card) => (
+        <h2>Could Morspeak work for you or a loved one?</h2>
+        <Gallery label="Who can use Morspeak">
+          {suitabilityCards.map((card) => (
             <article className={styles.valueCard} key={card.title}>
               <div className={styles.valueIcon}>
-                <img src={card.icon} alt="" />
+                {card.icon === "people" ? <img src={pc.imgOriginalSvg11} alt="" /> : <InputSymbol kind={card.icon} />}
               </div>
               <h3>{card.title}</h3>
               <p>{card.body}</p>
-              <a href={card.href} target="_blank" rel="noreferrer">
-                Learn more
-              </a>
             </article>
           ))}
         </Gallery>

@@ -594,12 +594,6 @@
   margin-top: 11.195px;
   letter-spacing: -0.374px;
 }
-.valueCard a {
-  display: inline-block;
-  font-size: 17px;
-  line-height: 21px;
-  margin-top: 12px;
-}
 .dialog {
   border: 0;
   border-radius: 28px;
@@ -878,11 +872,6 @@
     line-height: 18px;
     letter-spacing: -0.224px;
     margin-top: 8.398px;
-  }
-  .valueCard a {
-    font-size: 14px;
-    line-height: 18px;
-    margin-top: 11.195px;
   }
   .dialog {
     padding: 56px 24px 32px;

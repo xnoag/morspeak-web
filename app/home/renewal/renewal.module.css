@@ -562,14 +562,14 @@
 }
 .values {
   padding: 64px 0 160px;
-  background: white;
+  background: var(--surface);
 }
 .values > h2 {
   margin: 0 var(--gutter) 42px;
 }
 .valueCard {
   height: 328.789px;
-  background: var(--surface);
+  background: white;
   padding: 32px;
 }
 .valueIcon {

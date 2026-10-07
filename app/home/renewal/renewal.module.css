@@ -399,10 +399,13 @@
 .symbolMouthOpen {
   opacity: 0;
 }
+.symbolFrownRelaxed {
+  opacity: 0;
+}
 @media (prefers-reduced-motion: no-preference) {
   .symbolBlink {
     transform-origin: 28px 28px;
-    animation: symbolBlink 4.8s ease-in-out infinite;
+    animation: symbolBlink 3.6s ease-in-out infinite;
   }
   .symbolMouthClosed {
     animation: mouthClosed 3.6s ease-in-out infinite;
@@ -411,22 +414,28 @@
     animation: mouthOpen 3.6s ease-in-out infinite;
   }
   .symbolFrownBrows {
-    animation: symbolFrown 4s ease-in-out infinite;
+    animation: symbolFrown 3.6s ease-in-out infinite;
+  }
+  .symbolFrownRelaxed {
+    animation: symbolFrownRelax 3.6s ease-in-out infinite;
   }
   .symbolFinger {
-    animation: symbolPress 3.2s ease-in-out infinite;
+    animation: symbolPress 3.6s ease-in-out infinite;
+  }
+  .symbolTapLines {
+    animation: symbolTap 3.6s ease-in-out infinite;
   }
   .symbolBreath {
-    animation: symbolExhale 3.8s ease-in-out infinite;
+    animation: symbolExhale 3.6s ease-in-out infinite;
   }
   .symbolChoice {
     transform-origin: 28px 28px;
-    animation: symbolChoose 4s ease-in-out infinite;
+    animation: symbolChoose 3.6s ease-in-out infinite;
   }
 }
 @keyframes symbolBlink {
-  0%, 42%, 50%, 100% { transform: scaleY(1); }
-  46% { transform: scaleY(0.12); }
+  0%, 28%, 61%, 100% { transform: scaleY(1); }
+  38%, 51% { transform: scaleY(0.08); }
 }
 @keyframes mouthClosed {
   0%, 27%, 73%, 100% { opacity: 1; }
@@ -437,20 +446,29 @@
   36%, 64% { opacity: 1; }
 }
 @keyframes symbolFrown {
-  0%, 30%, 75%, 100% { transform: translateY(0); }
-  43%, 61% { transform: translateY(3px); }
+  0%, 25%, 76%, 100% { opacity: 0; transform: translateY(-2px); }
+  43%, 60% { opacity: 1; transform: translateY(5px); }
+}
+@keyframes symbolFrownRelax {
+  0%, 25%, 76%, 100% { opacity: 1; }
+  43%, 60% { opacity: 0; }
 }
 @keyframes symbolPress {
-  0%, 30%, 75%, 100% { transform: translateY(0); }
-  43%, 61% { transform: translateY(3px); }
+  0%, 25%, 76%, 100% { transform: translateY(0); }
+  43%, 60% { transform: translateY(6px); }
+}
+@keyframes symbolTap {
+  0%, 25%, 76%, 100% { opacity: 0.35; }
+  43%, 60% { opacity: 1; }
 }
 @keyframes symbolExhale {
-  0%, 20%, 85%, 100% { opacity: 0.7; transform: translateX(0); }
-  55% { opacity: 1; transform: translateX(4px); }
+  0%, 20%, 100% { opacity: 0.2; transform: translateX(-4px); }
+  45% { opacity: 1; transform: translateX(2px); }
+  75% { opacity: 0.2; transform: translateX(8px); }
 }
 @keyframes symbolChoose {
-  0%, 35%, 75%, 100% { transform: scale(1); }
-  52% { transform: scale(1.16); }
+  0%, 25%, 76%, 100% { opacity: 0; transform: scale(0.4); }
+  43%, 60% { opacity: 1; transform: scale(1.25); }
 }
 .resourceCard h3 {
   font-size: 28px;

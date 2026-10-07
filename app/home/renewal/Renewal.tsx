@@ -210,6 +210,9 @@ function InputSymbol({ kind }: { kind: InputKind }) {
       </g>
     </>,
     frown: <>
+      <g className={styles.symbolFrownRelaxed}>
+        <path d="M10 22c5-4 10-4 15 0m6 0c5-4 10-4 15 0" />
+      </g>
       <g className={styles.symbolFrownBrows}>
         <path d="M9 19c7-1 12 1 16 6m22-6c-7-1-12 1-16 6" />
         <path d="m25 14-2-5m8 5 2-5" />
@@ -222,7 +225,9 @@ function InputSymbol({ kind }: { kind: InputKind }) {
       <g className={styles.symbolFinger}>
         <path d="M14 48l-5-8a4 4 0 0 1 6-5l6 5V15a4 4 0 0 1 8 0v17l3-2a4 4 0 0 1 6 2 4 4 0 0 1 7 4l-2 12H14Z" />
       </g>
-      <path d="M17 11c2-4 5-6 8-6s6 2 8 6m5 4 3-3m-3 10h5" />
+      <g className={styles.symbolTapLines}>
+        <path d="M17 11c2-4 5-6 8-6s6 2 8 6m5 4 3-3m-3 10h5" />
+      </g>
     </>,
     breath: <>
       <path d="M9 11c8 1 13 7 13 16 0 7-3 13-8 17M8 34c5-1 9-1 14 1" />

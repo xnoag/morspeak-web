@@ -193,10 +193,10 @@ const resources: { title: string; body: string; icon: InputKind }[] = [
 function InputSymbol({ kind }: { kind: InputKind }) {
   const paths: Record<InputKind, ReactNode> = {
     blink: <>
-      <path d="M7 29c6-8 13-12 21-12s15 4 21 12c-6 8-13 12-21 12S13 37 7 29Z" />
-      <circle cx="28" cy="29" r="5.5" />
-      <path d="M13 12l-3-4m18 5V7m15 5 3-4" />
-      <path d="M13 46c9 5 21 5 30 0" />
+      <ellipse cx="17" cy="28" rx="9" ry="18" />
+      <ellipse cx="39" cy="28" rx="9" ry="18" />
+      <ellipse cx="14" cy="33" rx="4.5" ry="6" fill="currentColor" stroke="none" />
+      <ellipse cx="36" cy="33" rx="4.5" ry="6" fill="currentColor" stroke="none" />
     </>,
     mouth: <>
       <path d="M11 23c7 0 10-6 17-6s10 6 17 6" />

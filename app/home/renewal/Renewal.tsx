@@ -236,12 +236,10 @@ function InputSymbol({ kind }: { kind: InputKind }) {
       </g>
     </>,
     personalize: <>
-      <circle cx="28" cy="28" r="13" />
-      <g className={styles.symbolChoice}><path d="m21 28 5 5 10-11" strokeWidth="3.5" /></g>
-      <circle cx="28" cy="6" r="3" fill="currentColor" stroke="none" />
-      <circle cx="8" cy="40" r="3" fill="currentColor" stroke="none" />
-      <circle cx="48" cy="40" r="3" fill="currentColor" stroke="none" />
-      <path d="M28 9v6M11 38l7-4m27 4-7-4" />
+      <path d="M8 15h40M8 28h40M8 41h40" />
+      <circle className={styles.symbolSliderOne} cx="20" cy="15" r="4" fill="var(--surface)" />
+      <circle className={styles.symbolSliderTwo} cx="36" cy="28" r="4" fill="var(--surface)" />
+      <circle className={styles.symbolSliderThree} cx="25" cy="41" r="4" fill="var(--surface)" />
     </>,
   };
 

@@ -148,9 +148,6 @@
 .nav img {
   display: block;
 }
-.menuButton img {
-  filter: invert(1);
-}
 .desktopNav {
   display: flex;
   color: #fff;
@@ -428,10 +425,9 @@
   .symbolBreath {
     animation: symbolExhale 3.6s ease-in-out infinite;
   }
-  .symbolChoice {
-    transform-origin: 28px 28px;
-    animation: symbolChoose 3.6s ease-in-out infinite;
-  }
+  .symbolSliderOne { animation: sliderOne 3.6s ease-in-out infinite; }
+  .symbolSliderTwo { animation: sliderTwo 3.6s ease-in-out infinite; }
+  .symbolSliderThree { animation: sliderThree 3.6s ease-in-out infinite; }
 }
 @keyframes symbolBlink {
   0%, 28%, 61%, 100% { transform: scaleY(1); }
@@ -466,9 +462,17 @@
   45% { opacity: 1; transform: translateX(2px); }
   75% { opacity: 0.2; transform: translateX(8px); }
 }
-@keyframes symbolChoose {
-  0%, 25%, 76%, 100% { opacity: 0; transform: scale(0.4); }
-  43%, 60% { opacity: 1; transform: scale(1.25); }
+@keyframes sliderOne {
+  0%, 25%, 76%, 100% { transform: translateX(0); }
+  43%, 60% { transform: translateX(17px); }
+}
+@keyframes sliderTwo {
+  0%, 25%, 76%, 100% { transform: translateX(0); }
+  43%, 60% { transform: translateX(-17px); }
+}
+@keyframes sliderThree {
+  0%, 25%, 76%, 100% { transform: translateX(0); }
+  43%, 60% { transform: translateX(14px); }
 }
 .resourceCard h3 {
   font-size: 28px;

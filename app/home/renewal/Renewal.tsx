@@ -182,12 +182,12 @@ const features: Feature[] = [
 type InputKind = "blink" | "mouth" | "frown" | "finger" | "breath" | "personalize";
 
 const resources: { title: string; body: string; icon: InputKind }[] = [
-  { title: "Eye Blink", body: "Blink to choose what comes next.", icon: "blink" },
-  { title: "Mouth Movement", body: "Open your mouth to move through the app.", icon: "mouth" },
-  { title: "Frown", body: "A small frown can become a command.", icon: "frown" },
-  { title: "Finger Movement", body: "A tiny press can make your next choice.", icon: "finger" },
-  { title: "Breath", body: "Blow gently to take the next step.", icon: "breath" },
-  { title: "Your Way", body: "Start with the movement that works for you.", icon: "personalize" },
+  { title: "Eye Blink", body: "Blink to choose\nwhat comes next.", icon: "blink" },
+  { title: "Mouth Movement", body: "Open your mouth to\nmove through the app.", icon: "mouth" },
+  { title: "Frown", body: "A small frown\ncan become a command.", icon: "frown" },
+  { title: "Finger Movement", body: "A tiny press can make\nyour next choice.", icon: "finger" },
+  { title: "Breath", body: "Blow gently\nto take the next step.", icon: "breath" },
+  { title: "Your Way", body: "Start with the movement\nthat works for you.", icon: "personalize" },
 ];
 
 function InputSymbol({ kind }: { kind: InputKind }) {

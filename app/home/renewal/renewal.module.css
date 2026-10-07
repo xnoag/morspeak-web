@@ -488,6 +488,7 @@
   line-height: 21px;
   letter-spacing: -0.374px;
   margin-top: 11.195px;
+  white-space: pre-line;
 }
 .stories {
   padding: 122px 0 122px;

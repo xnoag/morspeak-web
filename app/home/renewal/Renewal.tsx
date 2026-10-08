@@ -567,7 +567,7 @@ export default function Renewal() {
       </section>
       <section className={styles.resources}>
         <h2>
-          Your movement.
+          Your tiny movement.
           <br />
           Your way to control Morspeak.
         </h2>

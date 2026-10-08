@@ -847,7 +847,7 @@
   }
   .storyCard:nth-child(2) .storyImage img {
     object-position: right center;
-    transform: scale(1.3);
+    transform: scale(1.75);
     transform-origin: right center;
   }
   .storyCard:first-child .scrim {

@@ -519,12 +519,7 @@
   object-fit: cover;
 }
 .storyCard:first-child .storyImage img {
-  object-position: center 35%;
-}
-@media (min-width: 2200px) {
-  .storyCard:first-child .storyImage img {
-    object-position: center 25%;
-  }
+  object-position: center;
 }
 .scrim {
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.7) 80%);
@@ -843,7 +838,10 @@
     height: 480px;
   }
   .storyCard:first-child .storyImage img {
-    object-position: 65% center;
+    object-fit: contain;
+  }
+  .storyCard:first-child .storyImage {
+    background: #31129a;
   }
   .storyCard:first-child .scrim {
     background: linear-gradient(to bottom, transparent 48%, rgba(0, 0, 0, 0.22) 76%, rgba(0, 0, 0, 0.68));

@@ -247,11 +247,11 @@ function InputSymbol({ kind }: { kind: InputKind }) {
 }
 const stories = [
   {
-    title: "A bold iPhone accessory that’s fit for every grip.",
-    image: "/renewal-reference/morspeak-tim-cook-meeting.jpg",
-    small: "/renewal-reference/morspeak-tim-cook-meeting.jpg",
-    alt: "Two people discussing an iPad outdoors",
-    href: "https://www.apple.com/accessibility/",
+    title: "Morspeak in everyday life.",
+    image: "/renewal-reference/morspeak-everyday-story-20261008.webp",
+    small: "/renewal-reference/morspeak-everyday-story-20261008.webp",
+    alt: "Morspeak in use at a bedside, alongside a person explaining it",
+    href: undefined,
   },
   {
     title:
@@ -607,11 +607,11 @@ export default function Renewal() {
               <div className={styles.scrim} />
               <div className={styles.storyCopy}>
                 <h3>{card.title}</h3>
-                <a href={card.href} target="_blank" rel="noreferrer">
+                {card.href && <a href={card.href} target="_blank" rel="noreferrer">
                   Watch now
-                </a>
+                </a>}
               </div>
-              <a
+              {card.href && <a
                 className={styles.play}
                 href={card.href}
                 target="_blank"
@@ -619,7 +619,7 @@ export default function Renewal() {
                 aria-label={`Watch: ${card.title}`}
               >
                 <img src={pc.imgOriginalSvg8} alt="" />
-              </a>
+              </a>}
             </article>
           ))}
         </Gallery>

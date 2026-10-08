@@ -238,7 +238,7 @@ export default function ScreeningPreview() {
 
   return <div className={styles.page}>
     <header className={styles.nav}>
-      <a href="/home/renewal" aria-label="모스픽 홈페이지"><Image src="/morspeak-logo-nav.svg" alt="Morspeak" width={119} height={30} priority /></a>
+      <a href="/home/renewal" aria-label="모스픽 홈페이지"><Image src="/renewal-reference/4ba84cee3d3722.svg" alt="Morspeak" width={129} height={30} priority /></a>
       <span>움직임 검사</span>
       <a href="/home/renewal">홈으로 <span aria-hidden="true">↗</span></a>
     </header>

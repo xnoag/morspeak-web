@@ -22,7 +22,7 @@
   height: 72px; padding: 0 6.25vw; display: flex; align-items: center; justify-content: space-between;
   background: var(--brand); position: sticky; top: 0; z-index: 20; gap: 24px;
 }
-.nav > span { font-size: 14px; font-weight: 600; }
+.nav > span { font-size: 14px; font-weight: 600; color: #fff; }
 .nav a { display: inline-flex; align-items: center; min-height: 44px; }
 .nav a:last-child { gap: 8px; font-size: 14px; color: #fff; }
 .nav img { display: block; max-width: 100%; }

@@ -259,7 +259,6 @@ const stories = [
     small: "/renewal-reference/morspeak-everyday-story-20261008.webp",
     alt: "Morspeak in use at a bedside, alongside a person explaining it",
     href: undefined,
-    mobileComposite: true,
   },
 ];
 const onboardingSteps = [
@@ -603,12 +602,6 @@ export default function Renewal() {
                 small={card.small}
                 alt={card.alt ?? card.title}
               />
-              {card.mobileComposite && (
-                <div className={styles.storyImageMobile}>
-                  <div className={styles.storyMobileScenes} role="img" aria-label="Morspeak bedside use in four scenes" style={{ backgroundImage: `url("${card.image}")` }} />
-                  <div className={styles.storyMobileSpeaker} role="img" aria-label="A person explaining Morspeak" style={{ backgroundImage: `url("${card.image}")` }} />
-                </div>
-              )}
               <div className={styles.scrim} />
               <div className={styles.storyCopy}>
                 <h3>{card.title}</h3>

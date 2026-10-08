@@ -512,6 +512,9 @@
   position: absolute;
   inset: 0;
 }
+.storyImageMobile {
+  display: none;
+}
 .storyImage img {
   display: block;
   width: 100%;
@@ -846,10 +849,27 @@
     object-position: 65% center;
   }
   .storyCard:nth-child(2) .storyImage {
+    display: none;
+  }
+  .storyImageMobile {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-rows: 58% 42%;
+    overflow: hidden;
     background: #31129a;
   }
-  .storyCard:nth-child(2) .storyImage img {
-    object-fit: contain;
+  .storyMobileScenes,
+  .storyMobileSpeaker {
+    background-repeat: no-repeat;
+  }
+  .storyMobileScenes {
+    background-size: auto 100%;
+    background-position: left top;
+  }
+  .storyMobileSpeaker {
+    background-size: auto 180%;
+    background-position: right 31%;
   }
   .storyCard:first-child .scrim {
     background: linear-gradient(to bottom, transparent 48%, rgba(0, 0, 0, 0.22) 76%, rgba(0, 0, 0, 0.68));

@@ -519,7 +519,12 @@
   object-fit: cover;
 }
 .storyCard:first-child .storyImage img {
-  object-position: center;
+  object-position: center 35%;
+}
+@media (min-width: 2200px) {
+  .storyCard:first-child .storyImage img {
+    object-position: center 25%;
+  }
 }
 .scrim {
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.7) 80%);
@@ -838,10 +843,13 @@
     height: 480px;
   }
   .storyCard:first-child .storyImage img {
-    object-fit: contain;
+    object-position: 65% center;
   }
-  .storyCard:first-child .storyImage {
+  .storyCard:nth-child(2) .storyImage {
     background: #31129a;
+  }
+  .storyCard:nth-child(2) .storyImage img {
+    object-fit: contain;
   }
   .storyCard:first-child .scrim {
     background: linear-gradient(to bottom, transparent 48%, rgba(0, 0, 0, 0.22) 76%, rgba(0, 0, 0, 0.68));

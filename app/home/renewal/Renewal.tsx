@@ -247,20 +247,18 @@ function InputSymbol({ kind }: { kind: InputKind }) {
 }
 const stories = [
   {
+    title: "A bold iPhone accessory that’s fit for every grip.",
+    image: "/renewal-reference/morspeak-tim-cook-meeting.jpg",
+    small: "/renewal-reference/morspeak-tim-cook-meeting.jpg",
+    alt: "Two people discussing an iPad outdoors",
+    href: "https://www.apple.com/accessibility/",
+  },
+  {
     title: "Morspeak in everyday life.",
     image: "/renewal-reference/morspeak-everyday-story-20261008.webp",
     small: "/renewal-reference/morspeak-everyday-story-20261008.webp",
     alt: "Morspeak in use at a bedside, alongside a person explaining it",
     href: undefined,
-  },
-  {
-    title:
-      "Designed for Every Student highlights how accessibility features help all learners excel.",
-    image:
-      pc.imgADiverseGroupOfCollegeStudentsIncludingAWheelchairUserCheeringDancingAndStrikingEnergeticPosesAgainstABlueBackground,
-    small:
-      mobile.imgADiverseGroupOfCollegeStudentsIncludingAWheelchairUserCheeringDancingAndStrikingEnergeticPosesAgainstABlueBackground,
-    href: "https://www.apple.com/accessibility/designed-for-students/",
   },
 ];
 const onboardingSteps = [

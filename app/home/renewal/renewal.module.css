@@ -846,7 +846,7 @@
     object-position: 65% center;
   }
   .storyCard:nth-child(2) .storyImage img {
-    object-position: 86% center;
+    object-position: 78% center;
     transform: scale(1.75);
     transform-origin: right center;
   }

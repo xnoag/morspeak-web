@@ -247,7 +247,7 @@ function InputSymbol({ kind }: { kind: InputKind }) {
 }
 const stories = [
   {
-    source: "WWDC 2025",
+    source: "Apple",
     title: "Invited to WWDC, we introduced Morspeak to Tim Cook.",
     image: "/renewal-reference/morspeak-tim-cook-meeting.jpg",
     small: "/renewal-reference/morspeak-tim-cook-meeting.jpg",

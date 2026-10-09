@@ -268,19 +268,19 @@ const stories = [
 const onboardingSteps = [
   {
     number: "01",
-    title: "Start with a small movement.",
-    body: "Tell us which movements they can repeat, perhaps a blink or a gentle breath.",
+    title: "Assess remaining movement.",
+    body: "Our test program measures which movements remain and how consistently each can be repeated.",
     href: "/waitlist",
   },
   {
     number: "02",
-    title: "Explore what works.",
-    body: "We’ll talk through their goals and see which ways of controlling Morspeak may fit.",
+    title: "Find the right way to use it.",
+    body: "We’ll explore which movements may work and explain the setup needed to get started.",
   },
   {
     number: "03",
-    title: "Set up around them.",
-    body: "If Morspeak is a good fit, we’ll guide setup and help them take the first steps.",
+    title: "Get support as you learn.",
+    body: "We’ll provide training and setup help as needed, so you can use Morspeak with confidence.",
   },
 ];
 

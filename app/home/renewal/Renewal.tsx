@@ -247,18 +247,22 @@ function InputSymbol({ kind }: { kind: InputKind }) {
 }
 const stories = [
   {
-    title: "A bold iPhone accessory that’s fit for every grip.",
+    source: "WWDC 2025",
+    title: "Invited to WWDC, we introduced Morspeak to Tim Cook.",
     image: "/renewal-reference/morspeak-tim-cook-meeting.jpg",
     small: "/renewal-reference/morspeak-tim-cook-meeting.jpg",
-    alt: "Two people discussing an iPad outdoors",
-    href: "https://www.apple.com/accessibility/",
+    alt: "Morspeak founder introducing the app to Apple CEO Tim Cook at WWDC",
+    href: "/articles/250609",
+    external: false,
   },
   {
-    title: "Morspeak in everyday life.",
+    source: "Smilegate Newsroom",
+    title: "Creating Social Impact Through Technology Recognized by Apple",
     image: "/renewal-reference/morspeak-everyday-story-20261008.webp",
     small: "/renewal-reference/morspeak-everyday-story-20261008.webp",
     alt: "Morspeak in use at a bedside, alongside a person explaining it",
-    href: undefined,
+    href: "https://newsroom.smilegate.com/en/lab/morspeak_interview",
+    external: true,
   },
 ];
 const onboardingSteps = [
@@ -604,20 +608,12 @@ export default function Renewal() {
               />
               <div className={styles.scrim} />
               <div className={styles.storyCopy}>
+                <p className={styles.storySource}>{card.source}</p>
                 <h3>{card.title}</h3>
-                {card.href && <a href={card.href} target="_blank" rel="noreferrer">
-                  Watch now
-                </a>}
+                <a href={card.href} target={card.external ? "_blank" : undefined} rel={card.external ? "noreferrer" : undefined}>
+                  Read story
+                </a>
               </div>
-              {card.href && <a
-                className={styles.play}
-                href={card.href}
-                target="_blank"
-                rel="noreferrer"
-                aria-label={`Watch: ${card.title}`}
-              >
-                <img src={pc.imgOriginalSvg8} alt="" />
-              </a>}
             </article>
           ))}
         </Gallery>

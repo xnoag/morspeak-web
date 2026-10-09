@@ -535,6 +535,12 @@
   bottom: 48px;
   max-width: 560px;
 }
+.storySource {
+  margin-bottom: 10px;
+  font-size: 17px;
+  line-height: 21px;
+  font-weight: 600;
+}
 .storyCopy h3 {
   font-size: 28px;
   line-height: 32px;
@@ -546,18 +552,6 @@
   margin-top: 14px;
   font-size: 17px;
   line-height: 21px;
-}
-.play {
-  position: absolute;
-  right: 24px;
-  bottom: 24px;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: #333336;
-}
-.play img {
-  display: block;
 }
 .values {
   padding: 64px 0 160px;
@@ -859,6 +853,11 @@
     bottom: 32px;
     max-width: none;
   }
+  .storySource {
+    margin-bottom: 8px;
+    font-size: 14px;
+    line-height: 18px;
+  }
   .storyCopy h3 {
     font-size: 17px;
     line-height: 21px;
@@ -868,10 +867,6 @@
     font-size: 14px;
     line-height: 18px;
     margin-top: 11.195px;
-  }
-  .play {
-    top: 24px;
-    bottom: auto;
   }
   .values {
     padding: 52px 0 96px;

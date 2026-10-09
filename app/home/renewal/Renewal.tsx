@@ -274,13 +274,23 @@ const onboardingSteps = [
   },
   {
     number: "02",
-    title: "Find the right way to use it.",
-    body: "We’ll explore which movements may work and explain the setup needed to get started.",
+    title: "See which movements may work.",
+    body: "We’ll review the test results to see how Morspeak may fit the movements that remain.",
   },
   {
     number: "03",
-    title: "Get support as you learn.",
+    title: "Plan the setup.",
+    body: "We’ll explain the setup needed to introduce Morspeak in your space.",
+  },
+  {
+    number: "04",
+    title: "Get set up and learn.",
     body: "We’ll provide training and setup help as needed, so you can use Morspeak with confidence.",
+  },
+  {
+    number: "05",
+    title: "Join the Morspeak community.",
+    body: "Stay connected and follow the latest news, updates, and stories from our community.",
   },
 ];
 

@@ -270,7 +270,6 @@ const onboardingSteps = [
     number: "01",
     title: "Assess remaining movement.",
     body: "Our test program measures which movements remain and how consistently each can be repeated.",
-    href: "/waitlist",
   },
   {
     number: "02",
@@ -639,7 +638,6 @@ export default function Renewal() {
               </div>
               <h3>{card.title}</h3>
               <p>{card.body}</p>
-              {card.href && <a href={card.href}>Apply now (Korean form)</a>}
             </article>
           ))}
         </Gallery>

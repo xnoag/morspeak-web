@@ -536,7 +536,7 @@
   max-width: 560px;
 }
 .storySource {
-  margin-bottom: 10px;
+  margin-bottom: 18px;
   font-size: 17px;
   line-height: 21px;
   font-weight: 600;
@@ -854,7 +854,7 @@
     max-width: none;
   }
   .storySource {
-    margin-bottom: 8px;
+    margin-bottom: 14px;
     font-size: 14px;
     line-height: 18px;
   }

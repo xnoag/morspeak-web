@@ -592,7 +592,9 @@
 .valueCard p {
   font-size: 17px;
   line-height: 21px;
-  margin-top: 11.195px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #d2d2d7;
   letter-spacing: -0.374px;
 }
 .valueCard a {
@@ -891,7 +893,8 @@
     font-size: 14px;
     line-height: 18px;
     letter-spacing: -0.224px;
-    margin-top: 8.398px;
+    margin-top: 14px;
+    padding-top: 12px;
   }
   .valueCard a {
     font-size: 14px;

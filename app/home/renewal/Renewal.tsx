@@ -15,15 +15,22 @@ import { pc, mobile } from "./assets";
 import styles from "./renewal.module.css";
 
 const heroSlides = [
-  "A person in bed using Morspeak on a mounted tablet",
-  "A caregiver connecting with a person through Morspeak",
-  "An overhead view of a home connected through Morspeak",
-  "Morspeak connecting small movements with everyday life",
-].map((alt, index) => ({
-  src: `/renewal-reference/hero-pc-${index + 1}${index === 3 ? "-phone" : ""}.webp`,
-  small: `/renewal-reference/hero-mobile-${index + 1}${index === 3 ? "-phone" : ""}.webp`,
-  alt,
-}));
+  {
+    src: "/renewal-reference/hero-bedside-man.webp",
+    small: "/renewal-reference/hero-bedside-man-mobile.webp",
+    alt: "A man in bed looking toward a mounted tablet",
+  },
+  {
+    src: "/renewal-reference/hero-riverside-walk.webp",
+    small: "/renewal-reference/hero-riverside-walk-mobile.webp",
+    alt: "A wheelchair user and companion by the riverside at sunset",
+  },
+  {
+    src: "/renewal-reference/hero-calm-morning.webp",
+    small: "/renewal-reference/hero-calm-morning-mobile.webp",
+    alt: "A person in a hospital bed looking at a mounted tablet on a calm morning",
+  },
+];
 
 // Keep the subtle push-in and dissolve continuous, including the last-to-first transition.
 const HERO_STEP_MS = 5000;

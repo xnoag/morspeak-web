@@ -17,17 +17,17 @@ import styles from "./renewal.module.css";
 const heroSlides = [
   {
     src: "/renewal-reference/hero-bedside-man-2026.webp",
-    small: "/renewal-reference/hero-bedside-man-2026-mobile.webp",
+    small: "/renewal-reference/hero-1M.webp",
     alt: "A man in bed looking toward a mounted tablet",
   },
   {
     src: "/renewal-reference/hero-riverside-walk-2026.webp",
-    small: "/renewal-reference/hero-riverside-walk-2026-mobile.webp",
+    small: "/renewal-reference/hero-2M.webp",
     alt: "A wheelchair user and companion by the riverside at sunset",
   },
   {
     src: "/renewal-reference/hero-calm-morning-2026.webp",
-    small: "/renewal-reference/hero-calm-morning-2026-mobile.webp",
+    small: "/renewal-reference/hero-3M.webp",
     alt: "A person in a hospital bed looking at a mounted tablet on a calm morning",
   },
 ];

@@ -17,7 +17,7 @@ import styles from "./renewal.module.css";
 const heroSlides = [
   {
     src: "/renewal-reference/hero-bedside-man.webp",
-    small: "/renewal-reference/hero-bedside-man-mobile.webp",
+    small: "/renewal-reference/hero-bedside-man-mobile-v2.webp",
     alt: "A man in bed looking toward a mounted tablet",
   },
   {

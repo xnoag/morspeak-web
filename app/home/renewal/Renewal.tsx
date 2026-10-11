@@ -26,8 +26,8 @@ const heroSlides = [
     alt: "A wheelchair user and companion by the riverside at sunset",
   },
   {
-    src: "/renewal-reference/hero-calm-morning-curtains.webp",
-    small: "/renewal-reference/hero-calm-morning-curtains-mobile.webp",
+    src: "/renewal-reference/hero-calm-morning-3-2.webp",
+    small: "/renewal-reference/hero-calm-morning-3-2-mobile.webp",
     alt: "A person in a hospital bed looking at a mounted tablet on a calm morning",
   },
 ];

@@ -33,8 +33,8 @@ const heroSlides = [
 ];
 
 // Keep the subtle push-in and dissolve continuous, including the last-to-first transition.
-const HERO_STEP_MS = 2500;
-const HERO_ZOOM_MS = 3000;
+const HERO_STEP_MS = 3500;
+const HERO_ZOOM_MS = 4000;
 const HERO_FADE_MS = 350;
 const HERO_CYCLE_MS = heroSlides.length * HERO_STEP_MS;
 
@@ -45,7 +45,7 @@ function HeroSlideshow({ controlRight, controlBottom }: {
   const ref = useRef<HTMLDivElement>(null);
   const visible = useInView(ref, { amount: 0.2 });
   const reducedMotion = useReducedMotion();
-  const [elapsed, setElapsed] = useState(0);
+  const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
   const [pageVisible, setPageVisible] = useState(true);
   const elapsedRef = useRef(0);
@@ -62,12 +62,26 @@ function HeroSlideshow({ controlRight, controlBottom }: {
     if (!playing) return;
     let frame: number;
     let previous: number | undefined;
+    const slides = Array.from(ref.current?.querySelectorAll<HTMLElement>("[data-slide]") ?? []);
     const tick = (now: number) => {
       const images = ref.current?.querySelectorAll<HTMLImageElement>("img");
       const ready = images && Array.from(images).every(image => image.complete && image.naturalWidth > 0);
       if (ready && previous !== undefined) {
+        const oldActive = Math.floor(elapsedRef.current / HERO_STEP_MS);
         elapsedRef.current = (elapsedRef.current + Math.min(now - previous, 100)) % HERO_CYCLE_MS;
-        setElapsed(elapsedRef.current);
+        const current = Math.floor(elapsedRef.current / HERO_STEP_MS);
+        const next = (current + 1) % heroSlides.length;
+        const stepElapsed = elapsedRef.current % HERO_STEP_MS;
+        const fade = Math.max(0, Math.min(1, (stepElapsed - HERO_STEP_MS + HERO_FADE_MS) / HERO_FADE_MS));
+        // Animate only compositor properties; React updates once per photo, not every frame.
+        slides.forEach((slide, index) => {
+          const age = index === current ? stepElapsed + HERO_FADE_MS : index === next ? Math.max(0, stepElapsed - HERO_STEP_MS + HERO_FADE_MS) : 0;
+          const progress = Math.min(1, age / HERO_ZOOM_MS);
+          slide.style.opacity = String(index === current ? 1 : index === next ? fade : 0);
+          slide.style.zIndex = String(index === next ? 2 : index === current ? 1 : 0);
+          (slide.firstElementChild as HTMLElement).style.transform = `scale(${1 + 0.05 * (1 - (1 - progress) ** 2)})`;
+        });
+        if (current !== oldActive) setActive(current);
       }
       previous = now;
       frame = requestAnimationFrame(tick);
@@ -76,35 +90,24 @@ function HeroSlideshow({ controlRight, controlBottom }: {
     return () => cancelAnimationFrame(frame);
   }, [playing]);
 
-  const active = reducedMotion ? 0 : Math.floor(elapsed / HERO_STEP_MS);
-  const next = (active + 1) % heroSlides.length;
-  const stepElapsed = elapsed % HERO_STEP_MS;
-  const fade = Math.max(0, Math.min(1, (stepElapsed - HERO_STEP_MS + HERO_FADE_MS) / HERO_FADE_MS));
-
   return (
     <div ref={ref} className={styles.heroSlideshow}>
       {heroSlides.map((slide, index) => {
-        const shouldLoad = index === active || index === next;
-        const age = index === active ? stepElapsed + HERO_FADE_MS : index === next ? Math.max(0, stepElapsed - HERO_STEP_MS + HERO_FADE_MS) : 0;
-        const progress = Math.max(0, Math.min(1, age / HERO_ZOOM_MS));
-        const scale = reducedMotion ? 1 : 1 + 0.05 * (1 - (1 - progress) ** 2);
-        const opacity = index === active ? 1 : index === next && !reducedMotion ? fade : 0;
         return (
           <div
             key={slide.src}
             className={styles.heroSlide}
             data-slide={index}
             aria-hidden={index !== active}
-            style={{ opacity, zIndex: index === next ? 2 : index === active ? 1 : 0 }}
+            style={{ opacity: index === 0 ? 1 : 0 }}
           >
-            <div className={styles.heroZoom} style={{ transform: `scale(${scale})` }}>
-              {shouldLoad && (
+            <div className={styles.heroZoom}>
                 <Picture
                   {...slide}
                   className={styles.heroSlideImage}
-                  fetchPriority={index === active ? "high" : "low"}
+                  fetchPriority={index === 0 ? "high" : "low"}
+                  loading="eager"
                 />
-              )}
             </div>
           </div>
         );
@@ -313,17 +316,19 @@ function Picture({
   alt = "",
   className,
   fetchPriority = "auto",
+  loading = "lazy",
 }: {
   src: string;
   small?: string;
   alt?: string;
   className?: string;
   fetchPriority?: "high" | "low" | "auto";
+  loading?: "eager" | "lazy";
 }) {
   return (
     <picture className={className}>
       {small && <source media="(max-width: 734px)" srcSet={small} />}
-      <img src={src} alt={alt} fetchPriority={fetchPriority} />
+      <img src={src} alt={alt} fetchPriority={fetchPriority} loading={loading} decoding="async" />
     </picture>
   );
 }

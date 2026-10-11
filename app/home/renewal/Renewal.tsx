@@ -33,8 +33,8 @@ const heroSlides = [
 ];
 
 // Keep the subtle push-in and dissolve continuous, including the last-to-first transition.
-const HERO_STEP_MS = 4500;
-const HERO_ZOOM_MS = 5500;
+const HERO_STEP_MS = 2500;
+const HERO_ZOOM_MS = 3000;
 const HERO_FADE_MS = 350;
 const HERO_CYCLE_MS = heroSlides.length * HERO_STEP_MS;
 

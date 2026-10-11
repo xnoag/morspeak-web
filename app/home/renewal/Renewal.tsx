@@ -33,9 +33,9 @@ const heroSlides = [
 ];
 
 // Keep the subtle push-in and dissolve continuous, including the last-to-first transition.
-const HERO_STEP_MS = 5000;
+const HERO_STEP_MS = 4500;
 const HERO_ZOOM_MS = 5500;
-const HERO_FADE_MS = 450;
+const HERO_FADE_MS = 350;
 const HERO_CYCLE_MS = heroSlides.length * HERO_STEP_MS;
 
 function HeroSlideshow({ controlRight, controlBottom }: {
@@ -84,6 +84,7 @@ function HeroSlideshow({ controlRight, controlBottom }: {
   return (
     <div ref={ref} className={styles.heroSlideshow}>
       {heroSlides.map((slide, index) => {
+        const shouldLoad = index === active || index === next;
         const age = index === active ? stepElapsed + HERO_FADE_MS : index === next ? Math.max(0, stepElapsed - HERO_STEP_MS + HERO_FADE_MS) : 0;
         const progress = Math.max(0, Math.min(1, age / HERO_ZOOM_MS));
         const scale = reducedMotion ? 1 : 1 + 0.05 * (1 - (1 - progress) ** 2);
@@ -97,7 +98,13 @@ function HeroSlideshow({ controlRight, controlBottom }: {
             style={{ opacity, zIndex: index === next ? 2 : index === active ? 1 : 0 }}
           >
             <div className={styles.heroZoom} style={{ transform: `scale(${scale})` }}>
-              <Picture {...slide} className={styles.heroSlideImage} />
+              {shouldLoad && (
+                <Picture
+                  {...slide}
+                  className={styles.heroSlideImage}
+                  fetchPriority={index === active ? "high" : "low"}
+                />
+              )}
             </div>
           </div>
         );
@@ -305,16 +312,18 @@ function Picture({
   small,
   alt = "",
   className,
+  fetchPriority = "auto",
 }: {
   src: string;
   small?: string;
   alt?: string;
   className?: string;
+  fetchPriority?: "high" | "low" | "auto";
 }) {
   return (
     <picture className={className}>
       {small && <source media="(max-width: 734px)" srcSet={small} />}
-      <img src={src} alt={alt} />
+      <img src={src} alt={alt} fetchPriority={fetchPriority} />
     </picture>
   );
 }

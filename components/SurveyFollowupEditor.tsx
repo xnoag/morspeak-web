@@ -53,19 +53,19 @@ export default function SurveyFollowupEditor({ source, stage, record, example, o
           void _history;
           history.push(prior);
         }
-        transaction.set(ref, { ...payload, revision: revision + 1, revisionHistory: history, createdAt: previous?.createdAt ?? serverTimestamp(), updatedAt: serverTimestamp() });
+        transaction.set(ref, { ...payload, ...(example ? { questionTimes: previous?.questionTimes ?? payload.questionTimes, deviceType: previous?.deviceType ?? payload.deviceType } : {}), revision: revision + 1, revisionHistory: history, createdAt: previous?.createdAt ?? serverTimestamp(), updatedAt: serverTimestamp() });
       });
       setRevision(revision + 1);
       setDirty(false); onDirtyChange?.(false);
       onSaved({ ...record, ...payload, id, revision: revision + 1 });
-      setMessage(example ? '가상 초안을 저장했습니다. 실제 응답 집계에서 제외됩니다.' : final ? '원답변 확인 기록을 저장했습니다.' : '미완성 기록을 저장했습니다. 실제 응답 집계에서 제외됩니다.');
+      setMessage(example ? '예시 데이터을 저장했습니다. 실제 응답 집계에서 제외됩니다.' : final ? '원답변 확인 기록을 저장했습니다.' : '미완성 기록을 저장했습니다. 실제 응답 집계에서 제외됩니다.');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '저장하지 못했습니다. 입력한 내용은 화면에 남아 있습니다.');
     } finally { setSaving(false); }
   }
 
   return <div style={{ maxWidth: 900 }}>
-    <h2 style={{ fontSize: 18, marginTop: 0 }}>{source.patientName || '환자명 없음'} · {SURVEY_STAGES[stage]} {example ? '가상 초안' : '수기 입력'}</h2>
+    <h2 style={{ fontSize: 18, marginTop: 0 }}>{source.patientName || '환자명 없음'} · {SURVEY_STAGES[stage]} {example ? '예시 데이터' : '수기 입력'}</h2>
     <p style={{ fontSize: 13, color: '#636366', lineHeight: 1.6 }}>{example ? '긍정적 변화 시나리오를 보여주는 가상 답변입니다. 수정·저장해도 실제 성과에 포함되지 않습니다.' : '종이 설문과 인터뷰의 원답변을 옮겨 주세요. 미완성 저장은 집계에서 제외됩니다.'}</p>
     <details style={{ marginBottom: 20 }}><summary style={{ minHeight: 44, cursor: 'pointer' }}>사전 원답변 확인</summary>
       <p style={{ fontSize: 12 }}>사전은 6/29 문항, 이번 입력은 6/24 문항입니다. 점수를 자동 환산하지 않습니다.</p>
@@ -84,7 +84,7 @@ export default function SurveyFollowupEditor({ source, stage, record, example, o
     </label>
     {!example && <label style={{ display: 'flex', gap: 10, alignItems: 'center', minHeight: 44, marginTop: 16, fontSize: 13 }}><input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />수기 원자료와 답변·조사일·인터뷰 원문을 대조했습니다.</label>}
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
-      <button disabled={saving} onClick={() => save(false)} style={button}>{saving ? '저장 중…' : example ? '가상 초안 저장' : '미완성 저장'}</button>
+      <button disabled={saving} onClick={() => save(false)} style={button}>{saving ? '저장 중…' : example ? '예시 데이터 저장' : '미완성 저장'}</button>
       {!example && <button disabled={saving} onClick={() => save(true)} style={{ ...button, background: '#1d1d1f', color: '#fff' }}>실제 응답 확정</button>}
     </div>
     {message && <p role="status" style={{ fontSize: 13, lineHeight: 1.6 }}>{message}</p>}

@@ -55,7 +55,15 @@ export function positiveExample(stage: Exclude<SurveyStage, 'pre'>): SurveyAnswe
   return Object.fromEntries(getStageQuestions(stage).map((q, i) => [q.id, stage === 'mid' || i % 5 === 0 ? '3' : '4']));
 }
 
-export function followupPayload(source: SurveyRow, stage: Exclude<SurveyStage, 'pre'>, answers: SurveyAnswers, date: string, notes: string, status: 'draft' | 'recorded' | 'example') {
+export function exampleMetadata(source: SurveyRow, stage: Exclude<SurveyStage, 'pre'>) {
+  const seed = [...source.id].reduce((sum, c) => sum + c.charCodeAt(0), 0);
+  return {
+    questionTimes: Object.fromEntries(getStageQuestions(stage).map((q, i) => [q.id, (stage === 'mid' ? 28 : 22) + (seed + i * 7) % 25])),
+    deviceType: ['mobile', 'tablet', 'desktop'].includes(source.deviceType ?? '') ? source.deviceType : 'tablet',
+  };
+}
+
+export function followupPayload(source: SurveyRow, stage: Exclude<SurveyStage, 'pre'>, answers: SurveyAnswers, date: string, notes: string, status: 'draft' | 'recorded' | 'example'): Omit<SurveyRow, 'id' | 'createdAt'> {
   if (source.surveyType !== 'pre') throw new Error('사전 응답 참여자를 선택해 주세요.');
   if (status === 'recorded') {
     const error = validateFollowup(answers, stage, date);
@@ -65,6 +73,6 @@ export function followupPayload(source: SurveyRow, stage: Exclude<SurveyStage, '
     surveyType: stage, surveyVersion: FOLLOWUP_VERSION, sourceResponseId: source.id,
     patientName: source.patientName, caregiverName: source.caregiverName, caregiverContact: source.caregiverContact,
     answers: cleanFollowupAnswers(answers, stage), collectedOn: date, interviewNotes: notes.trim(),
-    recordStatus: status, deviceType: 'manual',
+    recordStatus: status, ...(status === 'example' ? exampleMetadata(source, stage) : { deviceType: 'manual' }),
   };
 }

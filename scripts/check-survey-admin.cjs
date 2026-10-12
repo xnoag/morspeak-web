@@ -84,6 +84,7 @@ for(const stage of ['pre','mid','post']) for(const mode of ['questions','detail'
   stateValues = [mobile,fixture,false,'',stage,'',null,null,mode]; stateIndex=0;
   const html = renderToStaticMarkup(React.createElement(page));
   assert.ok(html.includes('설문 단계'));
+  assert.ok(!html.includes('제출일시'));
   assert.ok(!html.includes('가상 기록 제외 검사'));
   assert.ok(!html.includes('미완성 기록 제외 검사'));
   if(mode === 'questions') assert.ok(html.includes(`${schema.SURVEY_STAGES[stage]} 설문지`));
@@ -132,8 +133,8 @@ allowDiscard=false;
     const sheet = workbook.worksheets[0];
     assert.equal(sheet.name, `${schema.SURVEY_STAGES[stage]} 설문 응답`);
     assert.equal(sheet.rowCount, 2);
-    assert.equal(sheet.getRow(1).cellCount, schema.getStageQuestions(stage).length + (stage === 'pre' ? 4 : 9));
-    assert.equal(sheet.getRow(2).getCell(4).value, '검증 환자 1');
+    assert.equal(sheet.getRow(1).cellCount, schema.getStageQuestions(stage).length + (stage === 'pre' ? 3 : 8));
+    assert.equal(sheet.getRow(2).getCell(3).value, '검증 환자 1');
     assert.ok(anchor.download.includes(schema.SURVEY_STAGES[stage]));
   }
   stateValues=[false,fixture,false,'','pre','',null,null,'trend',null,false,false,false];stateIndex=0;
@@ -168,7 +169,7 @@ allowDiscard=false;
   await findExport(page())();
   const draftWorkbook=new ExcelJS.Workbook();await draftWorkbook.xlsx.load(exportBuffer);
   assert.ok(draftWorkbook.worksheets[0].name.includes('예시 데이터'));
-  assert.ok(draftWorkbook.worksheets[0].getRow(2).getCell(29).value.includes('성과 제외'));
+  assert.ok(draftWorkbook.worksheets[0].getRow(2).getCell(28).value.includes('성과 제외'));
   stateValues=[false,exampleRows,false,'','pre','',null,null,'trend',null,false,false,true];stateIndex=0;
   await findExport(page())();
   const exampleWorkbook=new ExcelJS.Workbook();await exampleWorkbook.xlsx.load(exportBuffer);

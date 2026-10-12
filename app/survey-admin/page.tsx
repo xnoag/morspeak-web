@@ -15,11 +15,6 @@ const F = "system-ui,-apple-system,'SF Pro Text',sans-serif";
 const M = "'SF Mono','Fira Mono','Cascadia Mono',monospace";
 
 
-function fmtDate(ts?: Timestamp) {
-  if (!ts) return '—';
-  return ts.toDate().toLocaleString('ko-KR', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
-
 function fmtDuration(sec?: number) {
   if (!sec || sec <= 0) return '—';
   if (sec < 60) return `${sec}초`;
@@ -145,8 +140,6 @@ function DetailPanel({ r, questions, onDelete }: { r: SurveyRow; questions: Surv
             <div style={{ fontSize: 13, color: '#8e8e93', fontFamily: M, marginTop: 3 }}>{r.caregiverContact || '—'}</div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 11, color: '#8e8e93', marginBottom: 3 }}>제출일시</div>
-            <div style={{ fontSize: 13, color: '#1d1d1f', fontFamily: M, marginBottom: 10 }}>{fmtDate(r.createdAt)}</div>
             {onDelete && <button
               onClick={() => onDelete(r)}
               style={{ fontSize: 12, fontWeight: 600, color: '#FF3B30', background: 'rgba(255,59,48,0.08)', border: '1px solid rgba(255,59,48,0.25)', borderRadius: 8, padding: '5px 10px', cursor: 'pointer', fontFamily: F }}
@@ -199,7 +192,6 @@ function TableView({ rows, questions }: { rows: SurveyRow[]; questions: SurveyQu
       <table style={{ borderCollapse: 'collapse', width: '100%' }}>
         <thead>
           <tr>
-            <th style={headStyle}>제출일시</th>
             <th style={headStyle}>보호자명</th>
             <th style={headStyle}>연락처</th>
             <th style={headStyle}>환자명</th>
@@ -214,7 +206,6 @@ function TableView({ rows, questions }: { rows: SurveyRow[]; questions: SurveyQu
         <tbody>
           {rows.map((r) => (
             <tr key={r.id}>
-              <td style={{ ...cellStyle, fontFamily: M, color: '#8e8e93', whiteSpace: 'nowrap' }}>{fmtDate(r.createdAt)}</td>
               <td style={{ ...cellStyle, fontWeight: 600, whiteSpace: 'nowrap' }}>{r.caregiverName || '—'}</td>
               <td style={{ ...cellStyle, fontFamily: M, whiteSpace: 'nowrap' }}>{r.caregiverContact || '—'}</td>
               <td style={{ ...cellStyle, whiteSpace: 'nowrap' }}>{r.patientName || '—'}</td>
@@ -341,7 +332,7 @@ export default function SurveyAdminPage() {
   const selectedParticipant = listRows.find((r) => r.id === selectedId) ?? listRows.find((r) => r.id === sourceId) ?? listRows[0];
   const selectedFollowup = selectedParticipant && stage !== 'pre' ? visibleFollowup(rows, selectedParticipant.id, stage) : undefined;
   function participantStatus(person: SurveyRow) {
-    if (stage === 'pre') return fmtDate(person.createdAt).replace(/^\d+\. /, '');
+    if (stage === 'pre') return '입력 완료';
     const record = visibleFollowup(rows, person.id, stage);
     return record ? record.recordStatus === 'recorded' ? record.collectedOn || '응답 완료' : record.recordStatus === 'example' ? '입력 완료' : '작성 중' : '미입력';
   }
@@ -380,11 +371,10 @@ export default function SurveyAdminPage() {
     } else {
     const hasExamples = filtered.some((r) => r.recordStatus === 'example');
     const ws = wb.addWorksheet(`${SURVEY_STAGES[stage]} ${hasExamples ? '예시 데이터 포함' : '설문 응답'}`);
-    const headers = ['제출일시', '보호자명', '연락처', '환자명', ...questions.map((q) => q.id), ...(stage === 'pre' ? [] : ['사전 응답 ID', '조사일', '인터뷰 원문', '문항 버전', '기록 구분'])];
+    const headers = ['보호자명', '연락처', '환자명', ...questions.map((q) => q.id), ...(stage === 'pre' ? [] : ['사전 응답 ID', '조사일', '인터뷰 원문', '문항 버전', '기록 구분'])];
     ws.addRow(headers);
     filtered.forEach((r) => {
       ws.addRow([
-        fmtDate(r.createdAt),
         r.caregiverName ?? '',
         r.caregiverContact ?? '',
         r.patientName ?? '',

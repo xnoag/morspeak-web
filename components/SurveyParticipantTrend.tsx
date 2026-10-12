@@ -15,7 +15,7 @@ export default function SurveyParticipantTrend({ source, rows, example, onExampl
     <h1 style={{ fontSize: 20, marginTop: 0 }}>{source.patientName || '환자명 없음'} · 개인별 답변 추이</h1>
     <p style={{ fontSize: 13, color: '#636366', lineHeight: 1.6 }}>보호자 {source.caregiverName || '—'} · 사전 원답변과 중간·사후 답변을 함께 확인합니다. 사전은 문항과 척도가 달라 관련 원문만 표시하며 점수를 환산하지 않습니다.</p>
     <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 13, padding: '12px 0' }}>
-      <span>사전: {source.createdAt?.toDate().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' }) || '기록 있음'}</span><span>중간: {mid ? mid.collectedOn || '기록 있음' : '미입력'}</span><span>사후: {post ? post.collectedOn || '기록 있음' : '미입력'}</span>
+      <span>사전: 기록 있음</span><span>중간: {mid ? mid.collectedOn || '기록 있음' : '미입력'}</span><span>사후: {post ? post.collectedOn || '기록 있음' : '미입력'}</span>
     </div>
     {changes.length > 0 && <p style={{ fontSize: 13 }}>중간 → 사후 · 점수 상승 {changes.filter((v) => v > 0).length}문항 · 동일 {changes.filter((v) => v === 0).length}문항 · 하락 {changes.filter((v) => v < 0).length}문항</p>}
     <p style={{ fontSize: 12, color: '#636366' }}>좁은 화면에서는 표를 좌우로 움직여 사전·중간·사후 답변을 확인할 수 있습니다.</p>

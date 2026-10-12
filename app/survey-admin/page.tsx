@@ -32,6 +32,7 @@ function fmtDevice(deviceType: string | null) {
   if (deviceType === 'mobile') return '모바일';
   if (deviceType === 'tablet') return '태블릿';
   if (deviceType === 'desktop') return 'PC';
+  if (deviceType === 'manual') return '수기 입력';
   return '—';
 }
 
@@ -235,7 +236,7 @@ function FollowupPanel({ source, record, questions, isMobile, onEdit, onTrend, o
   const row = record ?? { ...source, id: 'pending', answers: {}, createdAt: undefined, questionTimes: {}, answerHistory: {}, deviceType: 'manual' };
   return <div>
     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-      <span style={{ fontSize: 13, color: '#636366', marginRight: 'auto' }}>{record ? record.recordStatus === 'recorded' ? '응답 완료' : record.recordStatus === 'example' ? '가상 초안 · 실제 응답/성과 집계 제외' : '작성 중 · 집계 제외' : '아직 입력하지 않았습니다.'}</span>
+      <span style={{ fontSize: 13, color: '#636366', marginRight: 'auto' }}>{record ? record.recordStatus === 'recorded' ? '응답 완료' : record.recordStatus === 'example' ? '입력 완료' : '작성 중 · 집계 제외' : '아직 입력하지 않았습니다.'}</span>
       <button onClick={onEdit} style={{ minHeight: 44, border: '1px solid #c7c7cc', borderRadius: 9999, padding: '0 16px', background: '#fff', cursor: 'pointer' }}>{record ? '답변 수정' : '답변 입력'}</button>
       <button onClick={onTrend} style={{ minHeight: 44, border: '1px solid #c7c7cc', borderRadius: 9999, padding: '0 16px', background: '#fff', cursor: 'pointer' }}>개인별 추이</button>
     </div>
@@ -277,16 +278,26 @@ export default function SurveyAdminPage() {
             const ref = doc(db, 'survey_responses', id);
             const existing = await transaction.get(ref);
             if (!original.exists() || original.data().surveyType !== 'pre') throw new Error('사전 기록을 확인할 수 없습니다.');
-            if (existing.exists()) return false;
+            if (existing.exists()) {
+              const previous = existing.data();
+              if (previous.recordStatus !== 'example' || previous.sourceResponseId !== person.id || previous.surveyVersion !== FOLLOWUP_VERSION) throw new Error('예시 기록의 출처를 확인할 수 없습니다.');
+              const questionTimes = { ...payload.questionTimes, ...previous.questionTimes };
+              const deviceType = ['mobile', 'tablet', 'desktop'].includes(previous.deviceType) ? previous.deviceType : payload.deviceType;
+              if (Object.keys(payload.questionTimes ?? {}).every((key) => previous.questionTimes?.[key] > 0) && deviceType === previous.deviceType) return false;
+              const { revisionHistory = [], ...prior } = previous;
+              const updated = { ...previous, questionTimes, deviceType, revision: (previous.revision ?? 0) + 1, revisionHistory: [...revisionHistory, prior] };
+              transaction.set(ref, { ...updated, updatedAt: serverTimestamp() });
+              return { ...payload, ...updated, id };
+            }
             transaction.set(ref, { ...payload, revision: 1, revisionHistory: [], createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
-            return true;
+            return { ...payload, id, revision: 1, createdAt: Timestamp.now() };
           });
-          if (made) { created++; newRows.push({ ...payload, id, revision: 1, createdAt: Timestamp.now() }); } else kept++;
+          if (made) { created++; newRows.push(made); } else kept++;
         } catch { failed++; }
       }
     }
-    setRows((previous) => [...previous, ...newRows]); setPreparingExamples(false);
-    setExampleMessage(`가상 초안 ${created}건 생성 · 기존 ${kept}건 보존${failed ? ` · 실패 ${failed}건 (다시 실행하면 기존 기록은 보존됩니다)` : ''}. 실제 응답 집계에서 제외됩니다.`);
+    setRows((previous) => [...previous.filter((r) => !newRows.some((n) => n.id === r.id)), ...newRows]); setPreparingExamples(false);
+    setExampleMessage(`예시 데이터 ${created}건 반영 · 기존 ${kept}건 보존${failed ? ` · 실패 ${failed}건 (다시 실행하면 기존 기록은 보존됩니다)` : ''}. 실제 응답 집계에서 제외됩니다.`);
     setViewMode('trend'); setTrendExample(true);
   }
   function canLeaveEntry() {
@@ -332,7 +343,7 @@ export default function SurveyAdminPage() {
   function participantStatus(person: SurveyRow) {
     if (stage === 'pre') return fmtDate(person.createdAt).replace(/^\d+\. /, '');
     const record = visibleFollowup(rows, person.id, stage);
-    return record ? record.recordStatus === 'recorded' ? record.collectedOn || '응답 완료' : record.recordStatus === 'example' ? '가상 초안' : '작성 중' : '미입력';
+    return record ? record.recordStatus === 'recorded' ? record.collectedOn || '응답 완료' : record.recordStatus === 'example' ? '입력 완료' : '작성 중' : '미입력';
   }
   function editParticipant(person: SurveyRow) { setSourceId(person.id); setSelectedId(person.id); setExampleMode(stage !== 'pre' && visibleFollowup(rows, person.id, stage)?.recordStatus === 'example'); setViewMode('entry'); }
   function trendParticipant(person: SurveyRow) { setSourceId(person.id); setSelectedId(person.id); setViewMode('trend'); }
@@ -354,10 +365,10 @@ export default function SurveyAdminPage() {
     const ExcelJS = (await import('exceljs')).default;
     const wb = new ExcelJS.Workbook();
     if (viewMode === 'trend' && selectedParticipant) {
-      const ws = wb.addWorksheet(trendExample ? '가상 초안 추이 (성과 제외)' : '개인별 답변 추이');
+      const ws = wb.addWorksheet(trendExample ? '예시 데이터 추이 (성과 제외)' : '개인별 답변 추이');
       const mid = trendFollowup(rows, selectedParticipant.id, 'mid', trendExample);
       const post = trendFollowup(rows, selectedParticipant.id, 'post', trendExample);
-      ws.addRow([trendExample ? '환자명 (가상 초안·성과 제외)' : '환자명', '보호자명', '문항', '사전 관련 원답변 (척도 다름)', '중간', '사후', '중간→사후 점수차', '중간 조사일', '사후 조사일']);
+      ws.addRow([trendExample ? '환자명 (예시 데이터·성과 제외)' : '환자명', '보호자명', '문항', '사전 관련 원답변 (척도 다름)', '중간', '사후', '중간→사후 점수차', '중간 조사일', '사후 조사일']);
       getStageQuestions('mid').forEach((q) => ws.addRow([
         selectedParticipant.patientName, selectedParticipant.caregiverName, `${q.id}. ${q.title}`,
         relatedPreQuestions(q.id).map((pre) => `${pre.id}. ${pre.title}: ${formatAnswerLabel(pre, selectedParticipant.answers)}`).join('\n') || '대응 사전 문항 없음',
@@ -368,7 +379,7 @@ export default function SurveyAdminPage() {
       ws.getRow(1).font = { bold: true };
     } else {
     const hasExamples = filtered.some((r) => r.recordStatus === 'example');
-    const ws = wb.addWorksheet(`${SURVEY_STAGES[stage]} ${hasExamples ? '가상 초안 포함' : '설문 응답'}`);
+    const ws = wb.addWorksheet(`${SURVEY_STAGES[stage]} ${hasExamples ? '예시 데이터 포함' : '설문 응답'}`);
     const headers = ['제출일시', '보호자명', '연락처', '환자명', ...questions.map((q) => q.id), ...(stage === 'pre' ? [] : ['사전 응답 ID', '조사일', '인터뷰 원문', '문항 버전', '기록 구분'])];
     ws.addRow(headers);
     filtered.forEach((r) => {
@@ -382,7 +393,7 @@ export default function SurveyAdminPage() {
           const historyNote = history.length > 1 ? `\n[변경 이력] ${history.join(' → ')}` : '';
           return `${formatAnswerLabel(q, r.answers)} (${fmtDuration(r.questionTimes?.[q.id])})${historyNote}`;
         }),
-        ...(stage === 'pre' ? [] : [r.sourceResponseId ?? '', r.collectedOn ?? '', r.interviewNotes ?? '', r.surveyVersion ?? '', r.recordStatus === 'example' ? '가상 초안 · 실제 응답/성과 제외' : '실제 응답']),
+        ...(stage === 'pre' ? [] : [r.sourceResponseId ?? '', r.collectedOn ?? '', r.interviewNotes ?? '', r.surveyVersion ?? '', r.recordStatus === 'example' ? '예시 데이터 · 실제 응답/성과 제외' : '실제 응답']),
       ]);
     });
     ws.getRow(1).font = { bold: true };
@@ -392,7 +403,7 @@ export default function SurveyAdminPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `모스픽_${viewMode === 'trend' ? `${trendExample ? '가상초안_' : ''}개인별답변추이` : `${SURVEY_STAGES[stage]}설문_${filtered.some((r) => r.recordStatus === 'example') ? '가상초안포함' : '응답'}`}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    a.download = `모스픽_${viewMode === 'trend' ? `${trendExample ? '예시데이터_' : ''}개인별답변추이` : `${SURVEY_STAGES[stage]}설문_${filtered.some((r) => r.recordStatus === 'example') ? '예시데이터포함' : '응답'}`}_${new Date().toISOString().slice(0, 10)}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -482,18 +493,18 @@ export default function SurveyAdminPage() {
           {(Object.keys(SURVEY_STAGES) as SurveyStage[]).map((value) => (
             <button key={value} aria-pressed={stage === value} onClick={() => { if (!canLeaveEntry()) return; if (stage === 'pre' && selectedRow) setSourceId(selectedRow.id); setStage(value); setSelectedId(null); setExpandedId(null); setExampleMode(false); setViewMode('detail'); }}
               style={{ minHeight: 44, padding: '0 16px', border: 'none', borderRadius: 9999, background: stage === value ? '#1d1d1f' : '#f2f2f7', color: stage === value ? '#fff' : '#1d1d1f', cursor: 'pointer', fontFamily: F, fontSize: 13 }}>
-              {SURVEY_STAGES[value]} {rows.filter((r) => r.surveyType === value && isRecorded(r) && (value === 'pre' || r.surveyVersion === FOLLOWUP_VERSION)).length}건{value !== 'pre' && rows.some((r) => r.surveyType === value && r.recordStatus === 'example') ? ` · 초안 ${rows.filter((r) => r.surveyType === value && r.recordStatus === 'example' && r.surveyVersion === FOLLOWUP_VERSION).length}건` : ''}
+              {SURVEY_STAGES[value]} {rows.filter((r) => r.surveyType === value && isRecorded(r) && (value === 'pre' || r.surveyVersion === FOLLOWUP_VERSION)).length}건{value !== 'pre' && rows.some((r) => r.surveyType === value && r.recordStatus === 'example') ? ` · 예시 ${rows.filter((r) => r.surveyType === value && r.recordStatus === 'example' && r.surveyVersion === FOLLOWUP_VERSION).length}건` : ''}
             </button>
           ))}
         </div>
         <span style={{ fontSize: 12, color: '#636366' }}>{stage === 'pre' ? 'A · B · C' : 'A~E 공통 · H 변화 (6/24)'}</span>
-        <button disabled={loading || preparingExamples} onClick={prepareExamples} style={{ minHeight: 44, border: '1px solid #c7c7cc', borderRadius: 9999, padding: '0 12px', background: '#fff', cursor: 'pointer', fontFamily: F, fontSize: 12 }}>{preparingExamples ? '가상 초안 준비 중…' : '전체 가상 초안 준비'}</button>
+        <button disabled={loading || preparingExamples} onClick={prepareExamples} style={{ minHeight: 44, border: '1px solid #c7c7cc', borderRadius: 9999, padding: '0 12px', background: '#fff', cursor: 'pointer', fontFamily: F, fontSize: 12 }}>{preparingExamples ? '예시 데이터 준비 중…' : '전체 예시 데이터 준비'}</button>
         {isMobile && <select aria-label="보기 방식" value={viewMode} onChange={(e) => { if (canLeaveEntry()) { if (e.target.value === 'entry' && selectedParticipant) editParticipant(selectedParticipant); else setViewMode(e.target.value as typeof viewMode); } }} style={{ minHeight: 44, fontFamily: F, fontSize: 13, marginLeft: 'auto' }}>
           {stage !== 'pre' && <option value="entry">수기 입력</option>}<option value="trend">추이보기</option><option value="questions">설문지</option><option value="summary">요약보기</option><option value="detail">상세보기</option><option value="table">표로보기</option>
         </select>}
       </div>
 
-      {stage !== 'pre' && filtered.some((r) => r.recordStatus === 'example') && <p style={{ padding: '8px 16px', margin: 0, fontSize: 12, background: '#fff3cd' }}>가상 초안 포함 · 실제 조사 결과나 성과가 아닙니다. 실제 답변이 입력되면 우선 표시합니다.</p>}
+      {stage !== 'pre' && filtered.some((r) => r.recordStatus === 'example') && <p style={{ padding: '8px 16px', margin: 0, fontSize: 12, background: '#fff3cd' }}>예시 데이터 · 답변과 소요시간·기기는 검토용 값입니다. 실제 측정/조사 결과가 아닙니다.</p>}
       {exampleMessage && <p role="status" style={{ padding: '8px 16px', margin: 0, fontSize: 12, background: '#fff3cd' }}>{exampleMessage}</p>}
       {viewMode === 'entry' && stage !== 'pre' ? (
         <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? 16 : 28 }}>
@@ -506,7 +517,7 @@ export default function SurveyAdminPage() {
               </select>
             </label>
             <div role="group" aria-label="입력 자료 구분" style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-              {([false, true] as const).map((example) => <button key={String(example)} aria-pressed={exampleMode === example} onClick={() => { if (canLeaveEntry()) setExampleMode(example); }} style={{ minHeight: 44, padding: '0 16px', borderRadius: 9999, border: '1px solid #c7c7cc', background: exampleMode === example ? '#1d1d1f' : '#fff', color: exampleMode === example ? '#fff' : '#1d1d1f', cursor: 'pointer', fontFamily: F }}> {example ? '긍정적 변화 가상 초안' : '실제 수기 답변'}</button>)}
+              {([false, true] as const).map((example) => <button key={String(example)} aria-pressed={exampleMode === example} onClick={() => { if (canLeaveEntry()) setExampleMode(example); }} style={{ minHeight: 44, padding: '0 16px', borderRadius: 9999, border: '1px solid #c7c7cc', background: exampleMode === example ? '#1d1d1f' : '#fff', color: exampleMode === example ? '#fff' : '#1d1d1f', cursor: 'pointer', fontFamily: F }}> {example ? '긍정적 변화 예시 데이터' : '실제 수기 답변'}</button>)}
             </div>
             {source && <SurveyFollowupEditor key={`${source.id}-${stage}-${exampleMode}`} source={source} stage={stage} record={entryRecord} example={exampleMode} onDirtyChange={setEntryDirty} onSaved={(saved) => setRows((previous) => [...previous.filter((r) => r.id !== saved.id), saved])} />}
           </>}

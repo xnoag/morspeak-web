@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { collection, deleteDoc, doc, getDocs, orderBy, query, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { SURVEY_QUESTIONS, SurveyAnswers, SurveyQuestion, formatAnswerLabel } from '@/lib/survey-questions';
-import SurveyMindMap from '@/components/SurveyMindMap';
+import { SurveyAnswers, SurveyQuestion, formatAnswerLabel } from '@/lib/survey-questions';
+import SurveyMindMap, { SummaryQuestion } from '@/components/SurveyMindMap';
+import { SURVEY_STAGES, getStageQuestions, type SurveyStage } from '@/lib/survey-stages';
 
 const F = "system-ui,-apple-system,'SF Pro Text',sans-serif";
 const M = "'SF Mono','Fira Mono','Cascadia Mono',monospace";
@@ -59,16 +60,16 @@ const SECTION_LABELS: Record<string, string> = {
   A: '기존 의사소통 방식 및 돌봄 상황',
   B: '의사소통 및 일상 참여 범위',
   C: '니즈 및 기대사항',
+  D: '모스픽 도입 과정',
 };
 
 interface QuestionGroup { label: string | null; questions: SurveyQuestion[] }
 interface QuestionSection { key: string; label: string; groups: QuestionGroup[] }
 
-// SURVEY_QUESTIONS는 이미 A1~A8, B1~B17(측면별로 연속), C1~C3 순으로 정렬돼 있어서
-// 한 번 훑으면서 section/group이 바뀔 때마다 새 묶음을 만들면 된다.
-const GROUPED_QUESTIONS: QuestionSection[] = (() => {
+// 선택한 단계의 문항을 섹션과 주제별로 묶는다.
+function groupQuestions(questions: SurveyQuestion[]): QuestionSection[] {
   const sections: QuestionSection[] = [];
-  for (const q of SURVEY_QUESTIONS) {
+  for (const q of questions) {
     let section = sections[sections.length - 1];
     if (!section || section.key !== q.section) {
       section = { key: q.section, label: SECTION_LABELS[q.section] ?? q.section, groups: [] };
@@ -83,13 +84,13 @@ const GROUPED_QUESTIONS: QuestionSection[] = (() => {
     group.questions.push(q);
   }
   return sections;
-})();
+}
 
 function totalDurationSec(r: SurveyRow) {
   return Object.values(r.questionTimes ?? {}).reduce((sum, v) => sum + (v || 0), 0);
 }
 function totalChanges(r: SurveyRow) {
-  return SURVEY_QUESTIONS.reduce((sum, q) => sum + Math.max(0, (r.answerHistory?.[q.id]?.length ?? 0) - 1), 0);
+  return Object.values(r.answerHistory ?? {}).reduce((sum, history) => sum + Math.max(0, history.length - 1), 0);
 }
 
 function Stat({ label, value, color }: { label: string; value: string; color?: string }) {
@@ -141,7 +142,7 @@ function QuestionRow({ q, r, isMobile }: { q: SurveyQuestion; r: SurveyRow; isMo
 
 // PC 상세 패널: 요약 바 + [A]/[B]/[C] 섹션(B는 측면별 소그룹)으로 나눠서 보여준다 —
 // 28개 문항을 한 줄로 쭉 나열하는 대신 주제별로 묶어야 훑어보기 쉬워진다.
-function DetailPanel({ r, onDelete }: { r: SurveyRow; onDelete: (r: SurveyRow) => void }) {
+function DetailPanel({ r, questions, onDelete }: { r: SurveyRow; questions: SurveyQuestion[]; onDelete: (r: SurveyRow) => void }) {
   return (
     <div>
       <div style={{ background: '#fff', borderRadius: 14, border: '1px solid rgba(0,0,0,0.07)', padding: '20px 24px', marginBottom: 20 }}>
@@ -169,7 +170,7 @@ function DetailPanel({ r, onDelete }: { r: SurveyRow; onDelete: (r: SurveyRow) =
         </div>
       </div>
 
-      {GROUPED_QUESTIONS.map((section) => (
+      {groupQuestions(questions).map((section) => (
         <div key={section.key} style={{ marginBottom: 26 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#007AFF', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '.04em' }}>
             [{section.key}] {section.label}
@@ -194,7 +195,7 @@ function DetailPanel({ r, onDelete }: { r: SurveyRow; onDelete: (r: SurveyRow) =
 
 // 응답자가 행, 문항이 열인 표 형태로 전체 응답을 한 화면에서 훑어볼 수 있게 한다 —
 // 엑셀 내보내기와 같은 데이터 구조를 화면에서 그대로 보여주는 버전.
-function TableView({ rows }: { rows: SurveyRow[] }) {
+function TableView({ rows, questions }: { rows: SurveyRow[]; questions: SurveyQuestion[] }) {
   const cellStyle = { padding: '10px 14px', fontSize: 12.5, color: '#1d1d1f', whiteSpace: 'nowrap' as const, borderBottom: '1px solid #f2f2f7', verticalAlign: 'top' as const };
   const headStyle = { padding: '10px 14px', fontSize: 11, fontWeight: 700, color: '#636366', textAlign: 'left' as const, whiteSpace: 'nowrap' as const, borderBottom: '2px solid #e5e5ea', position: 'sticky' as const, top: 0, background: '#fafafa', verticalAlign: 'top' as const };
   const questionHeadStyle = { ...headStyle, whiteSpace: 'normal' as const, minWidth: 180, maxWidth: 260, lineHeight: 1.4 };
@@ -207,7 +208,7 @@ function TableView({ rows }: { rows: SurveyRow[] }) {
             <th style={headStyle}>보호자명</th>
             <th style={headStyle}>연락처</th>
             <th style={headStyle}>환자명</th>
-            {SURVEY_QUESTIONS.map((q) => (
+            {questions.map((q) => (
               <th key={q.id} style={questionHeadStyle}>
                 <div style={{ color: '#007AFF', fontSize: 10, marginBottom: 3 }}>{q.id}</div>
                 <div style={{ fontWeight: 600, color: '#1d1d1f' }}>{q.title}</div>
@@ -222,7 +223,7 @@ function TableView({ rows }: { rows: SurveyRow[] }) {
               <td style={{ ...cellStyle, fontWeight: 600, whiteSpace: 'nowrap' }}>{r.caregiverName || '—'}</td>
               <td style={{ ...cellStyle, fontFamily: M, whiteSpace: 'nowrap' }}>{r.caregiverContact || '—'}</td>
               <td style={{ ...cellStyle, whiteSpace: 'nowrap' }}>{r.patientName || '—'}</td>
-              {SURVEY_QUESTIONS.map((q) => (
+              {questions.map((q) => (
                 <td key={q.id} style={cellStyle}>{formatAnswerLabel(q, r.answers)}</td>
               ))}
             </tr>
@@ -238,10 +239,13 @@ export default function SurveyAdminPage() {
   const [rows, setRows] = useState<SurveyRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [stage, setStage] = useState<SurveyStage>('pre');
+  const questions = useMemo(() => getStageQuestions(stage), [stage]);
+  const stageRows = useMemo(() => rows.filter((r) => r.surveyType === stage), [rows, stage]);
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null); // 모바일: 펼친 카드 id
   const [selectedId, setSelectedId] = useState<string | null>(null); // PC: 선택된 응답 id
-  const [viewMode, setViewMode] = useState<'detail' | 'table' | 'summary'>('detail'); // PC: 목록+상세 / 전체 표 / 문항별 요약
+  const [viewMode, setViewMode] = useState<'detail' | 'table' | 'summary' | 'questions'>('detail'); // PC: 목록+상세 / 전체 표 / 문항별 요약
 
   useEffect(() => {
     // surveyType은 클라이언트에서 필터링한다 — where+orderBy 조합은 Firestore 복합 인덱스가
@@ -250,9 +254,7 @@ export default function SurveyAdminPage() {
     getDocs(q)
       .then((snap) =>
         setRows(
-          snap.docs
-            .map((d) => ({ id: d.id, ...d.data() } as SurveyRow))
-            .filter((r) => r.surveyType === 'pre')
+          snap.docs.map((d) => ({ id: d.id, ...d.data() } as SurveyRow))
         )
       )
       .catch((e) => { console.error('[survey-admin]', e); setError('응답을 불러오는 중 오류가 발생했습니다.'); })
@@ -261,21 +263,17 @@ export default function SurveyAdminPage() {
 
   const filtered = useMemo(
     () =>
-      rows.filter(
+      stageRows.filter(
         (r) =>
           !search ||
           r.caregiverName?.includes(search) ||
           r.caregiverContact?.includes(search) ||
           r.patientName?.includes(search)
       ),
-    [rows, search]
+    [stageRows, search]
   );
 
-  // PC에서 목록만 보고 아무것도 못 고른 상태로 비어있지 않게, 로드되면 첫 응답을 자동으로 선택한다.
-  useEffect(() => {
-    if (!selectedId && filtered.length > 0) setSelectedId(filtered[0].id);
-  }, [filtered, selectedId]);
-  const selectedRow = filtered.find((r) => r.id === selectedId) ?? null;
+  const selectedRow = filtered.find((r) => r.id === selectedId) ?? filtered[0] ?? null;
 
   async function handleDelete(r: SurveyRow) {
     if (!confirm(`${r.caregiverName || '이름 없음'}님의 응답을 삭제할까요? 이 작업은 되돌릴 수 없습니다.`)) return;
@@ -286,13 +284,13 @@ export default function SurveyAdminPage() {
   }
 
   const today = new Date().toDateString();
-  const todayCount = rows.filter((r) => r.createdAt?.toDate().toDateString() === today).length;
+  const todayCount = stageRows.filter((r) => r.createdAt?.toDate().toDateString() === today).length;
 
   async function exportExcel() {
     const ExcelJS = (await import('exceljs')).default;
     const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet('사전 설문 응답');
-    const headers = ['제출일시', '보호자명', '연락처', '환자명', ...SURVEY_QUESTIONS.map((q) => q.id)];
+    const ws = wb.addWorksheet(`${SURVEY_STAGES[stage]} 설문 응답`);
+    const headers = ['제출일시', '보호자명', '연락처', '환자명', ...questions.map((q) => q.id)];
     ws.addRow(headers);
     filtered.forEach((r) => {
       ws.addRow([
@@ -300,7 +298,7 @@ export default function SurveyAdminPage() {
         r.caregiverName ?? '',
         r.caregiverContact ?? '',
         r.patientName ?? '',
-        ...SURVEY_QUESTIONS.map((q) => {
+        ...questions.map((q) => {
           const history = r.answerHistory?.[q.id] ?? [];
           const historyNote = history.length > 1 ? `\n[변경 이력] ${history.join(' → ')}` : '';
           return `${formatAnswerLabel(q, r.answers)} (${fmtDuration(r.questionTimes?.[q.id])})${historyNote}`;
@@ -313,7 +311,7 @@ export default function SurveyAdminPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `모스픽_사전설문_응답_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    a.download = `모스픽_${SURVEY_STAGES[stage]}설문_응답_${new Date().toISOString().slice(0, 10)}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -360,6 +358,7 @@ export default function SurveyAdminPage() {
           {!isMobile && (
             <div style={{ display: 'flex', gap: 2, background: 'rgba(255,255,255,0.1)', borderRadius: 8, padding: 2, flexShrink: 0 }}>
               {([
+                ['questions', '설문지'],
                 ['summary', '요약보기'],
                 ['detail', '상세보기'],
                 ['table', '표로보기'],
@@ -394,16 +393,54 @@ export default function SurveyAdminPage() {
         </div>
       </div>
 
-      {loading ? (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', flexWrap: 'wrap', borderBottom: '1px solid #e5e5ea', background: '#fff' }}>
+        <div role="group" aria-label="설문 단계" style={{ display: 'flex', gap: 4 }}>
+          {(Object.keys(SURVEY_STAGES) as SurveyStage[]).map((value) => (
+            <button key={value} aria-pressed={stage === value} onClick={() => { setStage(value); setSelectedId(null); setExpandedId(null); }}
+              style={{ minHeight: 44, padding: '0 16px', border: 'none', borderRadius: 9999, background: stage === value ? '#1d1d1f' : '#f2f2f7', color: stage === value ? '#fff' : '#1d1d1f', cursor: 'pointer', fontFamily: F, fontSize: 13 }}>
+              {SURVEY_STAGES[value]} {rows.filter((r) => r.surveyType === value).length}건
+            </button>
+          ))}
+        </div>
+        <span style={{ fontSize: 12, color: '#636366' }}>{stage === 'pre' ? 'A · B · C' : stage === 'mid' ? 'B 공통 문항' : 'B 공통 · D 도입 과정'}</span>
+        {isMobile && <select aria-label="보기 방식" value={viewMode} onChange={(e) => setViewMode(e.target.value as typeof viewMode)} style={{ minHeight: 44, fontFamily: F, fontSize: 13, marginLeft: 'auto' }}>
+          <option value="questions">설문지</option><option value="summary">요약보기</option><option value="detail">상세보기</option><option value="table">표로보기</option>
+        </select>}
+      </div>
+
+      {viewMode === 'questions' ? (
+        <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? 16 : 28 }}>
+          <h1 style={{ fontSize: 20, margin: '0 0 20px' }}>{SURVEY_STAGES[stage]} 설문지</h1>
+          {groupQuestions(questions).map((section) => <section key={section.key} style={{ maxWidth: 800, marginBottom: 24 }}>
+            <h2 style={{ fontSize: 15 }}>[{section.key}] {section.label}</h2>
+            {section.groups.flatMap((group) => group.questions).map((q) => <div key={q.id} style={{ background: '#fff', borderRadius: 12, padding: 16, marginBottom: 8 }}>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>{q.id}. {q.title}</div>
+              {q.helperNote && <p style={{ fontSize: 12, color: '#636366' }}>{q.helperNote}</p>}
+              <div style={{ fontSize: 12, color: '#636366', marginTop: 8 }}>{q.type === 'text' ? '직접 입력' : q.type === 'multiRanked' ? '중요한 순서대로 선택' : q.type === 'multi' ? '복수 선택' : '단일 선택'}</div>
+              {q.options && <ol style={{ fontSize: 13, lineHeight: 1.8, marginBottom: 0 }}>{q.options.map((o) => <li key={o.value}>{o.label}</li>)}</ol>}
+            </div>)}
+          </section>)}
+        </div>
+      ) : loading ? (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8e8e93', fontSize: 13 }}>불러오는 중...</div>
       ) : error ? (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FF3B30', fontSize: 13 }}>{error}</div>
+      ) : viewMode === 'table' ? (
+        <TableView rows={filtered} questions={questions} />
+      ) : viewMode === 'summary' && stage !== 'pre' ? (
+        <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? 16 : 28 }}>
+          <h1 style={{ fontSize: 20 }}>{SURVEY_STAGES[stage]} 설문 요약 · {filtered.length}건</h1>
+          {filtered.length === 0 ? <p style={{ color: '#636366' }}>응답이 없습니다. 설문지에서 문항을 확인할 수 있습니다.</p> :
+            questions.map((q) => <div key={q.id} style={{ maxWidth: 800, background: '#fff', borderRadius: 12, marginBottom: 12, overflowX: 'auto' }}><div style={{ minWidth: 420 }}><SummaryQuestion q={q} rows={filtered} /></div></div>)}
+        </div>
+      ) : viewMode === 'summary' ? (
+        <SurveyMindMap rows={filtered} />
       ) : isMobile ? (
         <div style={{ flex: 1, overflow: 'auto', padding: '16px 12px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10, marginBottom: 16 }}>
             <div style={{ background: '#fff', borderRadius: 14, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.06)' }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: '#8e8e93', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.05em' }}>총 응답</div>
-              <div style={{ fontSize: 22, fontWeight: 700, color: '#007AFF', letterSpacing: '-.5px' }}>{rows.length}건</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#007AFF', letterSpacing: '-.5px' }}>{stageRows.length}건</div>
             </div>
             <div style={{ background: '#fff', borderRadius: 14, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.06)' }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: '#8e8e93', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '.05em' }}>오늘 응답</div>
@@ -412,7 +449,7 @@ export default function SurveyAdminPage() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <span style={{ fontWeight: 700, fontSize: 15, color: '#1d1d1f' }}>사전 설문 응답</span>
+            <span style={{ fontWeight: 700, fontSize: 15, color: '#1d1d1f' }}>{SURVEY_STAGES[stage]} 설문 응답</span>
             <span style={{ fontSize: 12, color: '#8e8e93', background: '#e5e5ea', padding: '2px 8px', borderRadius: 20 }}>{filtered.length}건</span>
           </div>
 
@@ -441,7 +478,7 @@ export default function SurveyAdminPage() {
                     {expanded && (
                       <div style={{ padding: '4px 12px 14px', background: '#fafafa', borderTop: '1px solid #f2f2f7' }}>
                         <div style={{ display: 'grid', gap: 14 }}>
-                          {SURVEY_QUESTIONS.map((q) => <QuestionRow key={q.id} q={q} r={r} isMobile />)}
+                          {questions.map((q) => <QuestionRow key={q.id} q={q} r={r} isMobile />)}
                         </div>
                       </div>
                     )}
@@ -451,12 +488,6 @@ export default function SurveyAdminPage() {
             </div>
           )}
         </div>
-      ) : viewMode === 'table' ? (
-        // 응답자가 행, 문항이 열인 표로 전체 응답을 한 화면에서 훑어보는 모드.
-        <TableView rows={filtered} />
-      ) : viewMode === 'summary' ? (
-        // 문항별 답변 분포를 막대그래프로 보여주는 요약 모드.
-        <SurveyMindMap rows={filtered} />
       ) : (
         // PC: 좌측 응답 목록 + 우측 선택된 응답의 상세(요약 바 + 섹션별 문항)를 같이 보여주는
         // 2단 레이아웃. 아코디언 방식(행 펼치기)보다 여러 응답을 빠르게 훑어보기에 낫다.
@@ -466,21 +497,21 @@ export default function SurveyAdminPage() {
               <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 10, fontWeight: 600, color: '#8e8e93', textTransform: 'uppercase', letterSpacing: '.05em' }}>총 응답</div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: '#007AFF' }}>{rows.length}건</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#007AFF' }}>{stageRows.length}건</div>
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 10, fontWeight: 600, color: '#8e8e93', textTransform: 'uppercase', letterSpacing: '.05em' }}>오늘 응답</div>
                   <div style={{ fontSize: 18, fontWeight: 700, color: '#34c759' }}>{todayCount}건</div>
                 </div>
               </div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#1d1d1f' }}>사전 설문 응답 <span style={{ color: '#8e8e93', fontWeight: 500 }}>{filtered.length}건</span></div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#1d1d1f' }}>{SURVEY_STAGES[stage]} 설문 응답 <span style={{ color: '#8e8e93', fontWeight: 500 }}>{filtered.length}건</span></div>
             </div>
             <div style={{ flex: 1, overflow: 'auto' }}>
               {filtered.length === 0 ? (
                 <div style={{ padding: 40, textAlign: 'center', color: '#8e8e93', fontSize: 13 }}>응답이 없습니다.</div>
               ) : (
                 filtered.map((r) => {
-                  const selected = r.id === selectedId;
+                  const selected = r.id === selectedRow?.id;
                   return (
                     <button
                       key={r.id}
@@ -505,7 +536,7 @@ export default function SurveyAdminPage() {
           </div>
           <div style={{ flex: 1, overflow: 'auto', padding: '24px 28px' }}>
             {selectedRow ? (
-              <DetailPanel r={selectedRow} onDelete={handleDelete} />
+              <DetailPanel r={selectedRow} questions={questions} onDelete={handleDelete} />
             ) : (
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8e8e93', fontSize: 13 }}>
                 왼쪽에서 응답을 선택해주세요.

@@ -14,7 +14,7 @@ export type SurveyAnswers = Record<string, string | string[] | undefined>;
 
 export interface SurveyQuestion {
   id: string;
-  section: 'A' | 'B' | 'C';
+  section: 'A' | 'B' | 'C' | 'D';
   group?: string;
   title: string;
   helperNote?: string;

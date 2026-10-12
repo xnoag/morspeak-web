@@ -3,25 +3,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { collection, deleteDoc, doc, getDocs, orderBy, query, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { SurveyAnswers, SurveyQuestion, formatAnswerLabel } from '@/lib/survey-questions';
+import { SurveyQuestion, formatAnswerLabel } from '@/lib/survey-questions';
 import SurveyMindMap, { SummaryQuestion } from '@/components/SurveyMindMap';
-import { SURVEY_STAGES, getStageQuestions, type SurveyStage } from '@/lib/survey-stages';
+import { SURVEY_STAGES, getStageQuestions, FOLLOWUP_VERSION, FOLLOWUP_SECTION_LABELS, type SurveyStage } from '@/lib/survey-stages';
+import { followupId, isRecorded, type SurveyRow } from '@/lib/survey-records';
+import SurveyFollowupEditor from '@/components/SurveyFollowupEditor';
 
 const F = "system-ui,-apple-system,'SF Pro Text',sans-serif";
 const M = "'SF Mono','Fira Mono','Cascadia Mono',monospace";
 
-interface SurveyRow {
-  id: string;
-  createdAt?: Timestamp;
-  surveyType: string;
-  patientName: string | null;
-  caregiverName: string | null;
-  caregiverContact: string | null;
-  answers: SurveyAnswers;
-  questionTimes?: Record<string, number>;
-  answerHistory?: Record<string, string[]>;
-  deviceType: string | null;
-}
 
 function fmtDate(ts?: Timestamp) {
   if (!ts) return '—';
@@ -72,7 +62,7 @@ function groupQuestions(questions: SurveyQuestion[]): QuestionSection[] {
   for (const q of questions) {
     let section = sections[sections.length - 1];
     if (!section || section.key !== q.section) {
-      section = { key: q.section, label: SECTION_LABELS[q.section] ?? q.section, groups: [] };
+      section = { key: q.section, label: (q.id.includes('-') ? FOLLOWUP_SECTION_LABELS[q.section] : SECTION_LABELS[q.section]) ?? q.section, groups: [] };
       sections.push(section);
     }
     const groupLabel = q.group ?? null;
@@ -170,6 +160,8 @@ function DetailPanel({ r, questions, onDelete }: { r: SurveyRow; questions: Surv
         </div>
       </div>
 
+      {r.collectedOn && <p style={{ fontSize: 13 }}>조사일: {r.collectedOn}</p>}
+      {r.interviewNotes && <div style={{ padding: 16, background: '#fff', borderRadius: 12, marginBottom: 20, whiteSpace: 'pre-wrap', fontSize: 13 }}>인터뷰 원문·기록 메모<br />{r.interviewNotes}</div>}
       {groupQuestions(questions).map((section) => (
         <div key={section.key} style={{ marginBottom: 26 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#007AFF', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '.04em' }}>
@@ -241,11 +233,21 @@ export default function SurveyAdminPage() {
   const [error, setError] = useState('');
   const [stage, setStage] = useState<SurveyStage>('pre');
   const questions = useMemo(() => getStageQuestions(stage), [stage]);
-  const stageRows = useMemo(() => rows.filter((r) => r.surveyType === stage), [rows, stage]);
+  const stageRows = useMemo(() => rows.filter((r) => r.surveyType === stage && isRecorded(r) && (stage === 'pre' || r.surveyVersion === FOLLOWUP_VERSION)), [rows, stage]);
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null); // 모바일: 펼친 카드 id
   const [selectedId, setSelectedId] = useState<string | null>(null); // PC: 선택된 응답 id
-  const [viewMode, setViewMode] = useState<'detail' | 'table' | 'summary' | 'questions'>('detail'); // PC: 목록+상세 / 전체 표 / 문항별 요약
+  const [viewMode, setViewMode] = useState<'detail' | 'table' | 'summary' | 'questions' | 'entry'>('detail'); // PC: 목록+상세 / 전체 표 / 문항별 요약
+
+  const [sourceId, setSourceId] = useState<string | null>(null);
+  const [exampleMode, setExampleMode] = useState(false);
+  const [entryDirty, setEntryDirty] = useState(false);
+  function canLeaveEntry() {
+    if (!entryDirty) return true;
+    if (!confirm('저장하지 않은 입력이 있습니다. 저장하지 않고 이동할까요?')) return false;
+    setEntryDirty(false);
+    return true;
+  }
 
   useEffect(() => {
     // surveyType은 클라이언트에서 필터링한다 — where+orderBy 조합은 Firestore 복합 인덱스가
@@ -273,6 +275,10 @@ export default function SurveyAdminPage() {
     [stageRows, search]
   );
 
+  const participants = rows.filter((r) => r.surveyType === 'pre' && (!search || r.patientName?.includes(search) || r.caregiverName?.includes(search) || r.caregiverContact?.includes(search)));
+  const source = participants.find((r) => r.id === sourceId) ?? participants[0];
+  const entryRecord = source && stage !== 'pre' ? rows.find((r) => r.id === followupId(source.id, stage, exampleMode)) : undefined;
+
   const selectedRow = filtered.find((r) => r.id === selectedId) ?? filtered[0] ?? null;
 
   async function handleDelete(r: SurveyRow) {
@@ -290,7 +296,7 @@ export default function SurveyAdminPage() {
     const ExcelJS = (await import('exceljs')).default;
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet(`${SURVEY_STAGES[stage]} 설문 응답`);
-    const headers = ['제출일시', '보호자명', '연락처', '환자명', ...questions.map((q) => q.id)];
+    const headers = ['제출일시', '보호자명', '연락처', '환자명', ...questions.map((q) => q.id), ...(stage === 'pre' ? [] : ['사전 응답 ID', '조사일', '인터뷰 원문', '문항 버전'])];
     ws.addRow(headers);
     filtered.forEach((r) => {
       ws.addRow([
@@ -303,6 +309,7 @@ export default function SurveyAdminPage() {
           const historyNote = history.length > 1 ? `\n[변경 이력] ${history.join(' → ')}` : '';
           return `${formatAnswerLabel(q, r.answers)} (${fmtDuration(r.questionTimes?.[q.id])})${historyNote}`;
         }),
+        ...(stage === 'pre' ? [] : [r.sourceResponseId ?? '', r.collectedOn ?? '', r.interviewNotes ?? '', r.surveyVersion ?? '']),
       ]);
     });
     ws.getRow(1).font = { bold: true };
@@ -330,8 +337,9 @@ export default function SurveyAdminPage() {
           display: 'flex',
           flexDirection: isMobile ? 'column' : 'row',
           alignItems: isMobile ? 'stretch' : 'center',
-          padding: isMobile ? '10px 14px' : '0 24px',
-          height: isMobile ? undefined : 56,
+          padding: isMobile ? '10px 14px' : '8px 24px',
+          minHeight: 56,
+          flexWrap: 'wrap',
           gap: isMobile ? 8 : 16,
           flexShrink: 0,
         }}
@@ -340,7 +348,7 @@ export default function SurveyAdminPage() {
           <span style={{ color: '#fff', fontWeight: 700, fontSize: 15, letterSpacing: '-.3px', flex: isMobile ? 1 : undefined }}>모스픽 설문 관리</span>
           {isMobile && (
             <button
-              onClick={async () => { await fetch('/api/admin/logout', { method: 'POST' }); location.href = '/tracking/login'; }}
+              onClick={async () => { if (!canLeaveEntry()) return; await fetch('/api/admin/logout', { method: 'POST' }); location.href = '/tracking/login'; }}
               style={iconBtn}
             >
               로그아웃
@@ -348,16 +356,17 @@ export default function SurveyAdminPage() {
           )}
         </div>
         {!isMobile && <div style={{ flex: 1 }} />}
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', minWidth: 0 }}>
           <input
             placeholder="이름·연락처 검색..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { if (canLeaveEntry()) setSearch(e.target.value); }}
             style={{ paddingLeft: 12, paddingRight: 12, height: 32, borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.1)', fontSize: 13, outline: 'none', fontFamily: F, flex: isMobile ? 1 : undefined, width: isMobile ? undefined : 200, color: '#fff' }}
           />
           {!isMobile && (
             <div style={{ display: 'flex', gap: 2, background: 'rgba(255,255,255,0.1)', borderRadius: 8, padding: 2, flexShrink: 0 }}>
               {([
+                ...(stage === 'pre' ? [] : [['entry', '수기 입력']] as const),
                 ['questions', '설문지'],
                 ['summary', '요약보기'],
                 ['detail', '상세보기'],
@@ -365,7 +374,7 @@ export default function SurveyAdminPage() {
               ] as const).map(([mode, label]) => (
                 <button
                   key={mode}
-                  onClick={() => setViewMode(mode)}
+                  onClick={() => { if (canLeaveEntry()) setViewMode(mode); }}
                   style={{
                     height: 28, padding: '0 10px', borderRadius: 6, border: 'none',
                     background: viewMode === mode ? '#fff' : 'transparent',
@@ -384,7 +393,7 @@ export default function SurveyAdminPage() {
           </button>
           {!isMobile && (
             <button
-              onClick={async () => { await fetch('/api/admin/logout', { method: 'POST' }); location.href = '/tracking/login'; }}
+              onClick={async () => { if (!canLeaveEntry()) return; await fetch('/api/admin/logout', { method: 'POST' }); location.href = '/tracking/login'; }}
               style={{ ...iconBtn, color: 'rgba(255,255,255,0.7)' }}
             >
               로그아웃
@@ -396,19 +405,35 @@ export default function SurveyAdminPage() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', flexWrap: 'wrap', borderBottom: '1px solid #e5e5ea', background: '#fff' }}>
         <div role="group" aria-label="설문 단계" style={{ display: 'flex', gap: 4 }}>
           {(Object.keys(SURVEY_STAGES) as SurveyStage[]).map((value) => (
-            <button key={value} aria-pressed={stage === value} onClick={() => { setStage(value); setSelectedId(null); setExpandedId(null); }}
+            <button key={value} aria-pressed={stage === value} onClick={() => { if (!canLeaveEntry()) return; if (stage === 'pre' && selectedRow) setSourceId(selectedRow.id); setStage(value); setSelectedId(null); setExpandedId(null); setExampleMode(false); setViewMode(value === 'pre' ? 'detail' : 'entry'); }}
               style={{ minHeight: 44, padding: '0 16px', border: 'none', borderRadius: 9999, background: stage === value ? '#1d1d1f' : '#f2f2f7', color: stage === value ? '#fff' : '#1d1d1f', cursor: 'pointer', fontFamily: F, fontSize: 13 }}>
-              {SURVEY_STAGES[value]} {rows.filter((r) => r.surveyType === value).length}건
+              {SURVEY_STAGES[value]} {rows.filter((r) => r.surveyType === value && isRecorded(r) && (value === 'pre' || r.surveyVersion === FOLLOWUP_VERSION)).length}건
             </button>
           ))}
         </div>
-        <span style={{ fontSize: 12, color: '#636366' }}>{stage === 'pre' ? 'A · B · C' : stage === 'mid' ? 'B 공통 문항' : 'B 공통 · D 도입 과정'}</span>
-        {isMobile && <select aria-label="보기 방식" value={viewMode} onChange={(e) => setViewMode(e.target.value as typeof viewMode)} style={{ minHeight: 44, fontFamily: F, fontSize: 13, marginLeft: 'auto' }}>
-          <option value="questions">설문지</option><option value="summary">요약보기</option><option value="detail">상세보기</option><option value="table">표로보기</option>
+        <span style={{ fontSize: 12, color: '#636366' }}>{stage === 'pre' ? 'A · B · C' : 'A~E 공통 · H 변화 (6/24)'}</span>
+        {isMobile && <select aria-label="보기 방식" value={viewMode} onChange={(e) => { if (canLeaveEntry()) setViewMode(e.target.value as typeof viewMode); }} style={{ minHeight: 44, fontFamily: F, fontSize: 13, marginLeft: 'auto' }}>
+          {stage !== 'pre' && <option value="entry">수기 입력</option>}<option value="questions">설문지</option><option value="summary">요약보기</option><option value="detail">상세보기</option><option value="table">표로보기</option>
         </select>}
       </div>
 
-      {viewMode === 'questions' ? (
+      {viewMode === 'entry' && stage !== 'pre' ? (
+        <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? 16 : 28 }}>
+          <h1 style={{ fontSize: 20, marginTop: 0 }}>{SURVEY_STAGES[stage]} 수기 입력</h1>
+          <p style={{ fontSize: 13, color: '#636366' }}>사전 참여자를 선택해 이어서 기록합니다. F·G·S는 사전 전용이며 중간·사후에는 A~E와 H만 포함됩니다.</p>
+          {loading ? <p>사전 참여자를 불러오는 중입니다.</p> : error ? <p role="alert">{error}</p> : participants.length === 0 ? <p>선택할 사전 참여자가 없습니다.</p> : <>
+            <label style={{ display: 'block', fontSize: 13, maxWidth: 900 }}>사전 참여자
+              <select value={source?.id ?? ''} onChange={(e) => { if (!canLeaveEntry()) return; setSourceId(e.target.value); setExampleMode(false); }} style={{ width: '100%', minHeight: 44, marginTop: 8, marginBottom: 16, padding: 8, fontFamily: F, fontSize: 14 }}>
+                {participants.map((p) => <option key={p.id} value={p.id}>{p.patientName || '환자명 없음'} · 보호자 {p.caregiverName || '이름 없음'} · 중간 {rows.find((r) => r.id === followupId(p.id, 'mid'))?.recordStatus === 'recorded' ? '완료' : rows.some((r) => r.id === followupId(p.id, 'mid')) ? '작성 중' : '미입력'} · 사후 {rows.find((r) => r.id === followupId(p.id, 'post'))?.recordStatus === 'recorded' ? '완료' : rows.some((r) => r.id === followupId(p.id, 'post')) ? '작성 중' : '미입력'}</option>)}
+              </select>
+            </label>
+            <div role="group" aria-label="입력 자료 구분" style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+              {([false, true] as const).map((example) => <button key={String(example)} aria-pressed={exampleMode === example} onClick={() => { if (canLeaveEntry()) setExampleMode(example); }} style={{ minHeight: 44, padding: '0 16px', borderRadius: 9999, border: '1px solid #c7c7cc', background: exampleMode === example ? '#1d1d1f' : '#fff', color: exampleMode === example ? '#fff' : '#1d1d1f', cursor: 'pointer', fontFamily: F }}> {example ? '긍정적 변화 가상 초안' : '실제 수기 답변'}</button>)}
+            </div>
+            {source && <SurveyFollowupEditor key={`${source.id}-${stage}-${exampleMode}`} source={source} stage={stage} record={entryRecord} example={exampleMode} onDirtyChange={setEntryDirty} onSaved={(saved) => setRows((previous) => [...previous.filter((r) => r.id !== saved.id), saved])} />}
+          </>}
+        </div>
+      ) : viewMode === 'questions' ? (
         <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? 16 : 28 }}>
           <h1 style={{ fontSize: 20, margin: '0 0 20px' }}>{SURVEY_STAGES[stage]} 설문지</h1>
           {groupQuestions(questions).map((section) => <section key={section.key} style={{ maxWidth: 800, marginBottom: 24 }}>

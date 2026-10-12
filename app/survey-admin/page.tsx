@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { collection, deleteDoc, doc, getDocs, orderBy, query, Timestamp } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDocs, orderBy, query, Timestamp, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { SurveyQuestion, formatAnswerLabel } from '@/lib/survey-questions';
 import SurveyMindMap, { SummaryQuestion } from '@/components/SurveyMindMap';
 import { SURVEY_STAGES, getStageQuestions, FOLLOWUP_VERSION, FOLLOWUP_SECTION_LABELS, type SurveyStage } from '@/lib/survey-stages';
-import { followupId, isRecorded, type SurveyRow } from '@/lib/survey-records';
-import { relatedPreQuestions, recordedFollowup, scoreChange } from '@/lib/survey-trends';
+import { followupId, followupPayload, positiveExample, isRecorded, type SurveyRow } from '@/lib/survey-records';
+import { relatedPreQuestions, trendFollowup, scoreChange } from '@/lib/survey-trends';
 import SurveyParticipantTrend from '@/components/SurveyParticipantTrend';
 import SurveyFollowupEditor from '@/components/SurveyFollowupEditor';
 
@@ -259,6 +259,36 @@ export default function SurveyAdminPage() {
   const [sourceId, setSourceId] = useState<string | null>(null);
   const [exampleMode, setExampleMode] = useState(false);
   const [entryDirty, setEntryDirty] = useState(false);
+  const [trendExample, setTrendExample] = useState(false);
+  const [preparingExamples, setPreparingExamples] = useState(false);
+  const [exampleMessage, setExampleMessage] = useState('');
+  async function prepareExamples() {
+    if (!canLeaveEntry()) return;
+    setPreparingExamples(true); setExampleMessage('');
+    let created = 0, kept = 0, failed = 0;
+    const newRows: SurveyRow[] = [];
+    for (const person of rows.filter((r) => r.surveyType === 'pre')) {
+      for (const phase of ['mid', 'post'] as const) {
+        const id = followupId(person.id, phase, true);
+        const payload = followupPayload(person, phase, positiveExample(phase), '', '가상 검토 시나리오: 중간보다 사후에 대부분의 항목이 좋아지고 일부는 같은 상태입니다. 실제 인터뷰 원문이 아닙니다.', 'example');
+        try {
+          const made = await runTransaction(db, async (transaction) => {
+            const original = await transaction.get(doc(db, 'survey_responses', person.id));
+            const ref = doc(db, 'survey_responses', id);
+            const existing = await transaction.get(ref);
+            if (!original.exists() || original.data().surveyType !== 'pre') throw new Error('사전 기록을 확인할 수 없습니다.');
+            if (existing.exists()) return false;
+            transaction.set(ref, { ...payload, revision: 1, revisionHistory: [], createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+            return true;
+          });
+          if (made) { created++; newRows.push({ ...payload, id, revision: 1, createdAt: Timestamp.now() }); } else kept++;
+        } catch { failed++; }
+      }
+    }
+    setRows((previous) => [...previous, ...newRows]); setPreparingExamples(false);
+    setExampleMessage(`가상 초안 ${created}건 생성 · 기존 ${kept}건 보존${failed ? ` · 실패 ${failed}건 (다시 실행하면 기존 기록은 보존됩니다)` : ''}. 실제 응답 집계에서 제외됩니다.`);
+    setViewMode('trend'); setTrendExample(true);
+  }
   function canLeaveEntry() {
     if (!entryDirty) return true;
     if (!confirm('저장하지 않은 입력이 있습니다. 저장하지 않고 이동할까요?')) return false;
@@ -324,15 +354,15 @@ export default function SurveyAdminPage() {
     const ExcelJS = (await import('exceljs')).default;
     const wb = new ExcelJS.Workbook();
     if (viewMode === 'trend' && selectedParticipant) {
-      const ws = wb.addWorksheet('개인별 답변 추이');
-      const mid = recordedFollowup(rows, selectedParticipant.id, 'mid');
-      const post = recordedFollowup(rows, selectedParticipant.id, 'post');
-      ws.addRow(['환자명', '보호자명', '문항', '사전 관련 원답변 (척도 다름)', '중간', '사후', '중간→사후 점수차', '중간 조사일', '사후 조사일']);
+      const ws = wb.addWorksheet(trendExample ? '가상 초안 추이 (성과 제외)' : '개인별 답변 추이');
+      const mid = trendFollowup(rows, selectedParticipant.id, 'mid', trendExample);
+      const post = trendFollowup(rows, selectedParticipant.id, 'post', trendExample);
+      ws.addRow([trendExample ? '환자명 (가상 초안·성과 제외)' : '환자명', '보호자명', '문항', '사전 관련 원답변 (척도 다름)', '중간', '사후', '중간→사후 점수차', '중간 조사일', '사후 조사일']);
       getStageQuestions('mid').forEach((q) => ws.addRow([
         selectedParticipant.patientName, selectedParticipant.caregiverName, `${q.id}. ${q.title}`,
         relatedPreQuestions(q.id).map((pre) => `${pre.id}. ${pre.title}: ${formatAnswerLabel(pre, selectedParticipant.answers)}`).join('\n') || '대응 사전 문항 없음',
         mid ? formatAnswerLabel(q, mid.answers) : '미입력', post ? formatAnswerLabel(q, post.answers) : '미입력',
-        scoreChange(q, mid, post), mid?.collectedOn ?? '', post?.collectedOn ?? '',
+        scoreChange(q, mid, post, trendExample), mid?.collectedOn ?? '', post?.collectedOn ?? '',
       ]));
       ws.addRow(['인터뷰 원문', '', '', '', mid?.interviewNotes ?? '', post?.interviewNotes ?? '']);
       ws.getRow(1).font = { bold: true };
@@ -361,7 +391,7 @@ export default function SurveyAdminPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `모스픽_${viewMode === 'trend' ? '개인별답변추이' : `${SURVEY_STAGES[stage]}설문_응답`}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    a.download = `모스픽_${viewMode === 'trend' ? `${trendExample ? '가상초안_' : ''}개인별답변추이` : `${SURVEY_STAGES[stage]}설문_응답`}_${new Date().toISOString().slice(0, 10)}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -456,11 +486,13 @@ export default function SurveyAdminPage() {
           ))}
         </div>
         <span style={{ fontSize: 12, color: '#636366' }}>{stage === 'pre' ? 'A · B · C' : 'A~E 공통 · H 변화 (6/24)'}</span>
+        <button disabled={loading || preparingExamples} onClick={prepareExamples} style={{ minHeight: 44, border: '1px solid #c7c7cc', borderRadius: 9999, padding: '0 12px', background: '#fff', cursor: 'pointer', fontFamily: F, fontSize: 12 }}>{preparingExamples ? '가상 초안 준비 중…' : '전체 가상 초안 준비'}</button>
         {isMobile && <select aria-label="보기 방식" value={viewMode} onChange={(e) => { if (canLeaveEntry()) setViewMode(e.target.value as typeof viewMode); }} style={{ minHeight: 44, fontFamily: F, fontSize: 13, marginLeft: 'auto' }}>
           {stage !== 'pre' && <option value="entry">수기 입력</option>}<option value="trend">추이보기</option><option value="questions">설문지</option><option value="summary">요약보기</option><option value="detail">상세보기</option><option value="table">표로보기</option>
         </select>}
       </div>
 
+      {exampleMessage && <p role="status" style={{ padding: '8px 16px', margin: 0, fontSize: 12, background: '#fff3cd' }}>{exampleMessage}</p>}
       {viewMode === 'entry' && stage !== 'pre' ? (
         <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? 16 : 28 }}>
           <h1 style={{ fontSize: 20, marginTop: 0 }}>{SURVEY_STAGES[stage]} 수기 입력</h1>
@@ -509,7 +541,7 @@ export default function SurveyAdminPage() {
           <select aria-label="추이 참여자" value={selectedParticipant?.id ?? ''} onChange={(e) => { setSelectedId(e.target.value); setSourceId(e.target.value); }} style={{ minHeight: 44, width: '100%', marginBottom: 16 }}>
             {participants.map((p) => <option key={p.id} value={p.id}>{p.patientName} · 보호자 {p.caregiverName}</option>)}
           </select>
-          {selectedParticipant ? <SurveyParticipantTrend source={selectedParticipant} rows={rows} /> : <p>사전 참여자가 없습니다.</p>}
+          {selectedParticipant ? <SurveyParticipantTrend source={selectedParticipant} rows={rows} example={trendExample} onExampleChange={setTrendExample} /> : <p>사전 참여자가 없습니다.</p>}
         </div>
       ) : isMobile ? (
         <div style={{ flex: 1, overflow: 'auto', padding: '16px 12px' }}>
@@ -610,7 +642,7 @@ export default function SurveyAdminPage() {
             </div>
           </div>
           <div style={{ flex: 1, overflow: 'auto', padding: '24px 28px' }}>
-            {viewMode === 'trend' && selectedParticipant ? <SurveyParticipantTrend source={selectedParticipant} rows={rows} /> : stage !== 'pre' && selectedParticipant ? <FollowupPanel source={selectedParticipant} record={selectedFollowup} questions={questions} isMobile={false} onEdit={() => editParticipant(selectedParticipant)} onTrend={() => trendParticipant(selectedParticipant)} onDelete={handleDelete} /> : selectedRow ? (
+            {viewMode === 'trend' && selectedParticipant ? <SurveyParticipantTrend source={selectedParticipant} rows={rows} example={trendExample} onExampleChange={setTrendExample} /> : stage !== 'pre' && selectedParticipant ? <FollowupPanel source={selectedParticipant} record={selectedFollowup} questions={questions} isMobile={false} onEdit={() => editParticipant(selectedParticipant)} onTrend={() => trendParticipant(selectedParticipant)} onDelete={handleDelete} /> : selectedRow ? (
               <><button onClick={() => trendParticipant(selectedRow)} style={{ minHeight: 44, marginBottom: 16, border: '1px solid #c7c7cc', borderRadius: 9999, padding: '0 16px', background: '#fff', cursor: 'pointer' }}>개인별 추이</button><DetailPanel r={selectedRow} questions={questions} onDelete={handleDelete} /></>
             ) : (
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8e8e93', fontSize: 13 }}>

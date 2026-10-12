@@ -29,6 +29,11 @@ export function isRecorded(row: SurveyRow) {
   return row.recordStatus !== 'draft' && row.recordStatus !== 'example';
 }
 
+export function visibleFollowup(rows: SurveyRow[], sourceId: string, stage: Exclude<SurveyStage, 'pre'>) {
+  const matching = rows.filter((r) => r.sourceResponseId === sourceId && r.surveyType === stage && r.surveyVersion === FOLLOWUP_VERSION);
+  return matching.find((r) => r.recordStatus !== 'example') ?? matching.find((r) => r.recordStatus === 'example');
+}
+
 export function cleanFollowupAnswers(answers: SurveyAnswers, stage: Exclude<SurveyStage, 'pre'>) {
   const clean: SurveyAnswers = {};
   for (const q of getStageQuestions(stage)) {

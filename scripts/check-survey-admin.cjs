@@ -129,11 +129,11 @@ allowDiscard=false;
     const sheet = workbook.worksheets[0];
     assert.equal(sheet.name, `${schema.SURVEY_STAGES[stage]} 설문 응답`);
     assert.equal(sheet.rowCount, 2);
-    assert.equal(sheet.getRow(1).cellCount, schema.getStageQuestions(stage).length + (stage === 'pre' ? 4 : 8));
+    assert.equal(sheet.getRow(1).cellCount, schema.getStageQuestions(stage).length + (stage === 'pre' ? 4 : 9));
     assert.equal(sheet.getRow(2).getCell(4).value, '검증 환자 1');
     assert.ok(anchor.download.includes(schema.SURVEY_STAGES[stage]));
   }
-  stateValues=[false,fixture,false,'','pre','',null,null,'trend'];stateIndex=0;
+  stateValues=[false,fixture,false,'','pre','',null,null,'trend',null,false,false,false];stateIndex=0;
   await findExport(page())();
   const trendWorkbook=new ExcelJS.Workbook();await trendWorkbook.xlsx.load(exportBuffer);
   const trendSheet=trendWorkbook.worksheets[0];
@@ -147,6 +147,24 @@ allowDiscard=false;
   assert.ok(pendingHtml.includes('검증 환자 1'));
   assert.ok(pendingHtml.includes('답변 입력'));
   const exampleRows=[fixture[0], {...fixture[1],recordStatus:'example',answers:records.positiveExample('mid')},{...fixture[2],recordStatus:'example',answers:records.positiveExample('post')}];
+  assert.equal(records.visibleFollowup(exampleRows,'pre','mid').recordStatus,'example');
+  assert.equal(records.visibleFollowup([...exampleRows,fixture[1]],'pre','mid').recordStatus,'recorded');
+  assert.equal(records.visibleFollowup(exampleRows,'other','mid'),undefined);
+  for(const stage of ['mid','post']) for(const mode of ['detail','table','summary']) {
+    stateValues=[false,exampleRows,false,'',stage,'',null,null,mode];stateIndex=0;
+    const html=renderToStaticMarkup(React.createElement(page));
+    assert.ok(html.includes('가상 초안 포함'));
+    assert.ok(!html.includes('(응답 없음)'));
+    assert.ok(!html.includes('아직 입력하지 않았습니다.'));
+  }
+  stateValues=[false,exampleRows,false,'','post','',null,null,'detail'];stateIndex=0;stateUpdates=[];
+  findElement(page(),e=>typeof e.props?.onEdit === 'function').props.onEdit();
+  assert.ok(stateUpdates.some(u=>u.slot===10 && u.value===true));
+  stateValues=[false,exampleRows,false,'','post','',null,null,'table'];stateIndex=0;
+  await findExport(page())();
+  const draftWorkbook=new ExcelJS.Workbook();await draftWorkbook.xlsx.load(exportBuffer);
+  assert.ok(draftWorkbook.worksheets[0].name.includes('가상 초안'));
+  assert.ok(draftWorkbook.worksheets[0].getRow(2).getCell(29).value.includes('성과 제외'));
   stateValues=[false,exampleRows,false,'','pre','',null,null,'trend',null,false,false,true];stateIndex=0;
   await findExport(page())();
   const exampleWorkbook=new ExcelJS.Workbook();await exampleWorkbook.xlsx.load(exportBuffer);

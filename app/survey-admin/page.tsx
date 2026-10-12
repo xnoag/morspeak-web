@@ -493,7 +493,7 @@ export default function SurveyAdminPage() {
           {(Object.keys(SURVEY_STAGES) as SurveyStage[]).map((value) => (
             <button key={value} aria-pressed={stage === value} onClick={() => { if (!canLeaveEntry()) return; if (stage === 'pre' && selectedRow) setSourceId(selectedRow.id); setStage(value); setSelectedId(null); setExpandedId(null); setExampleMode(false); setViewMode('detail'); }}
               style={{ minHeight: 44, padding: '0 16px', border: 'none', borderRadius: 9999, background: stage === value ? '#1d1d1f' : '#f2f2f7', color: stage === value ? '#fff' : '#1d1d1f', cursor: 'pointer', fontFamily: F, fontSize: 13 }}>
-              {SURVEY_STAGES[value]} {rows.filter((r) => r.surveyType === value && isRecorded(r) && (value === 'pre' || r.surveyVersion === FOLLOWUP_VERSION)).length}건{value !== 'pre' && rows.some((r) => r.surveyType === value && r.recordStatus === 'example') ? ` · 예시 ${rows.filter((r) => r.surveyType === value && r.recordStatus === 'example' && r.surveyVersion === FOLLOWUP_VERSION).length}건` : ''}
+              {SURVEY_STAGES[value]} {value === 'pre' ? rows.filter((r) => r.surveyType === 'pre' && isRecorded(r)).length : rows.filter((r) => r.surveyType === 'pre' && visibleFollowup(rows, r.id, value)).length}건
             </button>
           ))}
         </div>

@@ -38,6 +38,9 @@ assert.equal(schema.getStageQuestions('post').slice(-5).map(q=>q.id).join(','), 
 for(const q of schema.getStageQuestions('mid')) assert.equal(q.options.map(o=>o.value).join(','), '0,1,2,3,4');
 assert.equal(original.formatAnswerLabel(schema.getStageQuestions('post').find(q=>q.id==='H-1'), {'H-1':'4'}), '환자분의 의사를 파악하는 과정이 전반적으로 훨씬 수월해졌다');
 const records = load(path.join(root, 'lib/survey-records.ts'));
+assert.equal(records.interviewText({recordStatus:'example',interviewNotes:'가상 검토 시나리오: 기본 안내'}),'');
+assert.equal(records.interviewText({recordStatus:'example',interviewNotes:'직접 입력한 메모'}),'직접 입력한 메모');
+assert.equal(records.interviewText({recordStatus:'recorded',interviewNotes:'가상 검토 시나리오: 원문'}),'가상 검토 시나리오: 원문');
 assert.equal(records.isRecorded({recordStatus:'example'}),false);
 assert.equal(records.isRecorded({recordStatus:'draft'}),false);
 assert.equal(records.isRecorded({recordStatus:'recorded'}),true);
@@ -153,7 +156,8 @@ allowDiscard=false;
   for(const stage of ['mid','post']) for(const mode of ['detail','table','summary']) {
     stateValues=[false,exampleRows,false,'',stage,'',null,null,mode];stateIndex=0;
     const html=renderToStaticMarkup(React.createElement(page));
-    assert.ok(html.includes('예시 데이터 · 답변'));
+    assert.ok(!html.includes('예시 데이터 · 답변'));
+    assert.ok(!html.includes('실제 조사 결과나 성과가 아닙니다'));
     assert.ok(!html.includes('(응답 없음)'));
     assert.ok(!html.includes('아직 입력하지 않았습니다.'));
   }
@@ -176,20 +180,20 @@ allowDiscard=false;
   assert.ok(anchor.download.includes('예시데이터'));
   previousRecord=undefined;lastWrite=undefined;
   stateValues=[false,[fixture[0]],false,'','pre','',null,null,'detail'];stateIndex=0;
-  await findExport(page(),'전체 예시 데이터 준비')();
+  await findExport(page(),'전체 기록 준비')();
   assert.equal(lastWrite.recordStatus,'example');assert.equal(lastWrite.surveyType,'post');
   assert.equal(lastWrite.sourceResponseId,'pre');
   assert.equal(Object.values(lastWrite.answers).filter(v=>v==='4').length,16);
   previousRecord={recordStatus:'example',sourceResponseId:'pre',surveyVersion:schema.FOLLOWUP_VERSION,answers:{'A-1':'1'},deviceType:'manual'};lastWrite=undefined;
   stateValues=[false,[fixture[0]],false,'','pre','',null,null,'detail'];stateIndex=0;
-  await findExport(page(),'전체 예시 데이터 준비')();
+  await findExport(page(),'전체 기록 준비')();
   assert.equal(lastWrite.answers['A-1'],'1');
   assert.equal(Object.keys(lastWrite.questionTimes).length,20);
   assert.ok(['mobile','tablet','desktop'].includes(lastWrite.deviceType));
   assert.equal(lastWrite.revisionHistory[0].deviceType,'manual');
   previousRecord=lastWrite;lastWrite=undefined;
   stateValues=[false,[fixture[0]],false,'','pre','',null,null,'detail'];stateIndex=0;
-  await findExport(page(),'전체 예시 데이터 준비')();
+  await findExport(page(),'전체 기록 준비')();
   assert.equal(lastWrite,undefined); // 이미 기입된 값과 답변은 보존한다.
   previousRecord=undefined;
   const Editor = load(path.join(root,'components/SurveyFollowupEditor.tsx')).default;
@@ -210,7 +214,7 @@ allowDiscard=false;
   await findExport(Editor({source:fixture[0],stage:'mid',example:false,onSaved:()=>{}}), '실제 응답 확정')();
   assert.equal(lastWrite,undefined); // 원답변 확인 없이 실제 기록을 확정하지 않는다.
   previousRecord=undefined;stateValues=[records.positiveExample('mid'),'','가상 예시',false,false,'',0];stateIndex=0;
-  await findExport(Editor({source:fixture[0],stage:'mid',example:true,onSaved: row=>{saved=row;}}), '예시 데이터 저장')();
+  await findExport(Editor({source:fixture[0],stage:'mid',example:true,onSaved: row=>{saved=row;}}), '저장')();
   assert.equal(lastWrite.recordStatus,'example');assert.equal(records.isRecorded(saved),false);
   console.log('문항 원본·참여자 연결·가상/미완성 제외·32개 렌더링·엑셀 재열기·입력 검증·수정 이력·동시 수정 검사 통과');
 })().catch(error => { console.error(error); process.exitCode=1; });

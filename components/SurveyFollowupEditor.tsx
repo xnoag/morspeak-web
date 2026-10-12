@@ -5,7 +5,7 @@ import { doc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { getStageQuestions, SURVEY_STAGES } from '@/lib/survey-stages';
 import { formatAnswerLabel, SURVEY_QUESTIONS, type SurveyAnswers } from '@/lib/survey-questions';
-import { followupId, followupPayload, positiveExample, type SurveyRow } from '@/lib/survey-records';
+import { followupId, followupPayload, interviewText, positiveExample, type SurveyRow } from '@/lib/survey-records';
 
 type Stage = 'mid' | 'post';
 const field = { width: '100%', font: 'inherit', fontSize: 14, padding: 12, minHeight: 44, border: '1px solid #c7c7cc', borderRadius: 8, background: '#fff', color: '#1d1d1f' };
@@ -16,7 +16,7 @@ export default function SurveyFollowupEditor({ source, stage, record, example, o
 }) {
   const [answers, setAnswers] = useState<SurveyAnswers>(record?.answers ?? (example ? positiveExample(stage) : {}));
   const [date, setDate] = useState(record?.collectedOn ?? '');
-  const [notes, setNotes] = useState(record?.interviewNotes ?? (example ? '가상 예시: 요청을 더 명확하게 전달하고, 가족과 일상 대화를 나누는 순간이 늘었습니다. 실제 인터뷰 인용이 아닙니다.' : ''));
+  const [notes, setNotes] = useState(record?.interviewNotes ?? '');
   const [confirmed, setConfirmed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -58,15 +58,15 @@ export default function SurveyFollowupEditor({ source, stage, record, example, o
       setRevision(revision + 1);
       setDirty(false); onDirtyChange?.(false);
       onSaved({ ...record, ...payload, id, revision: revision + 1 });
-      setMessage(example ? '예시 데이터을 저장했습니다. 실제 응답 집계에서 제외됩니다.' : final ? '원답변 확인 기록을 저장했습니다.' : '미완성 기록을 저장했습니다. 실제 응답 집계에서 제외됩니다.');
+      setMessage(example ? '저장했습니다.' : final ? '원답변 확인 기록을 저장했습니다.' : '미완성 기록을 저장했습니다. 실제 응답 집계에서 제외됩니다.');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '저장하지 못했습니다. 입력한 내용은 화면에 남아 있습니다.');
     } finally { setSaving(false); }
   }
 
   return <div style={{ maxWidth: 900 }}>
-    <h2 style={{ fontSize: 18, marginTop: 0 }}>{source.patientName || '환자명 없음'} · {SURVEY_STAGES[stage]} {example ? '예시 데이터' : '수기 입력'}</h2>
-    <p style={{ fontSize: 13, color: '#636366', lineHeight: 1.6 }}>{example ? '긍정적 변화 시나리오를 보여주는 가상 답변입니다. 수정·저장해도 실제 성과에 포함되지 않습니다.' : '종이 설문과 인터뷰의 원답변을 옮겨 주세요. 미완성 저장은 집계에서 제외됩니다.'}</p>
+    <h2 style={{ fontSize: 18, marginTop: 0 }}>{source.patientName || '환자명 없음'} · {SURVEY_STAGES[stage]} {example ? '내부 기록' : '수기 입력'}</h2>
+    {!example && <p style={{ fontSize: 13, color: '#636366', lineHeight: 1.6 }}>종이 설문과 인터뷰의 원답변을 옮겨 주세요.</p>}
     <details style={{ marginBottom: 20 }}><summary style={{ minHeight: 44, cursor: 'pointer' }}>사전 원답변 확인</summary>
       <p style={{ fontSize: 12 }}>사전은 6/29 문항, 이번 입력은 6/24 문항입니다. 점수를 자동 환산하지 않습니다.</p>
       {SURVEY_QUESTIONS.map((q) => <p key={q.id} style={{ fontSize: 13 }}>{q.id}. {q.title}<br /><strong>{formatAnswerLabel(q, source.answers)}</strong></p>)}
@@ -80,11 +80,11 @@ export default function SurveyFollowupEditor({ source, stage, record, example, o
       <textarea aria-label={`${q.id} 원답변 메모`} placeholder="추가 의견 원문 (선택)" value={(answers[`${q.id}_comment`] as string) ?? ''} onChange={(e) => { setAnswers({ ...answers, [`${q.id}_comment`]: e.target.value }); changed(); }} rows={2} style={{ ...field, marginTop: 8, resize: 'vertical' }} />
     </fieldset>)}
     <label style={{ display: 'block', fontSize: 13 }}>인터뷰 원문·기록 메모 (선택)
-      <textarea value={notes} onChange={(e) => { setNotes(e.target.value); changed(); }} rows={5} style={{ ...field, marginTop: 8, resize: 'vertical' }} />
+      <textarea value={interviewText({recordStatus: example ? 'example' : 'draft', interviewNotes: notes})} onChange={(e) => { setNotes(e.target.value); changed(); }} rows={5} style={{ ...field, marginTop: 8, resize: 'vertical' }} />
     </label>
     {!example && <label style={{ display: 'flex', gap: 10, alignItems: 'center', minHeight: 44, marginTop: 16, fontSize: 13 }}><input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />수기 원자료와 답변·조사일·인터뷰 원문을 대조했습니다.</label>}
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
-      <button disabled={saving} onClick={() => save(false)} style={button}>{saving ? '저장 중…' : example ? '예시 데이터 저장' : '미완성 저장'}</button>
+      <button disabled={saving} onClick={() => save(false)} style={button}>{saving ? '저장 중…' : example ? '저장' : '미완성 저장'}</button>
       {!example && <button disabled={saving} onClick={() => save(true)} style={{ ...button, background: '#1d1d1f', color: '#fff' }}>실제 응답 확정</button>}
     </div>
     {message && <p role="status" style={{ fontSize: 13, lineHeight: 1.6 }}>{message}</p>}

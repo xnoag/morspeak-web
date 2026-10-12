@@ -34,6 +34,11 @@ export function visibleFollowup(rows: SurveyRow[], sourceId: string, stage: Excl
   return matching.find((r) => r.recordStatus !== 'example') ?? matching.find((r) => r.recordStatus === 'example');
 }
 
+export function interviewText(row?: Pick<SurveyRow, 'recordStatus' | 'interviewNotes'>) {
+  const notes = row?.interviewNotes ?? '';
+  return row?.recordStatus === 'example' && /^(가상 검토 시나리오:|가상 예시:)/.test(notes) ? '' : notes;
+}
+
 export function cleanFollowupAnswers(answers: SurveyAnswers, stage: Exclude<SurveyStage, 'pre'>) {
   const clean: SurveyAnswers = {};
   for (const q of getStageQuestions(stage)) {

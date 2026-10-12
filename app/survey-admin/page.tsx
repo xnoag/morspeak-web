@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase';
 import { SurveyQuestion, formatAnswerLabel } from '@/lib/survey-questions';
 import SurveyMindMap, { SummaryQuestion } from '@/components/SurveyMindMap';
 import { SURVEY_STAGES, getStageQuestions, FOLLOWUP_VERSION, FOLLOWUP_SECTION_LABELS, type SurveyStage } from '@/lib/survey-stages';
-import { followupId, followupPayload, positiveExample, isRecorded, visibleFollowup, type SurveyRow } from '@/lib/survey-records';
+import { followupId, followupPayload, positiveExample, isRecorded, visibleFollowup, interviewText, type SurveyRow } from '@/lib/survey-records';
 import { relatedPreQuestions, trendFollowup, scoreChange } from '@/lib/survey-trends';
 import SurveyParticipantTrend from '@/components/SurveyParticipantTrend';
 import SurveyFollowupEditor from '@/components/SurveyFollowupEditor';
@@ -164,7 +164,7 @@ function DetailPanel({ r, questions, onDelete }: { r: SurveyRow; questions: Surv
       </div>
 
       {r.collectedOn && <p style={{ fontSize: 13 }}>조사일: {r.collectedOn}</p>}
-      {r.interviewNotes && <div style={{ padding: 16, background: '#fff', borderRadius: 12, marginBottom: 20, whiteSpace: 'pre-wrap', fontSize: 13 }}>인터뷰 원문·기록 메모<br />{r.interviewNotes}</div>}
+      {interviewText(r) && <div style={{ padding: 16, background: '#fff', borderRadius: 12, marginBottom: 20, whiteSpace: 'pre-wrap', fontSize: 13 }}>인터뷰 원문·기록 메모<br />{interviewText(r)}</div>}
       {groupQuestions(questions).map((section) => (
         <div key={section.key} style={{ marginBottom: 26 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#007AFF', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '.04em' }}>
@@ -297,7 +297,7 @@ export default function SurveyAdminPage() {
       }
     }
     setRows((previous) => [...previous.filter((r) => !newRows.some((n) => n.id === r.id)), ...newRows]); setPreparingExamples(false);
-    setExampleMessage(`예시 데이터 ${created}건 반영 · 기존 ${kept}건 보존${failed ? ` · 실패 ${failed}건 (다시 실행하면 기존 기록은 보존됩니다)` : ''}. 실제 응답 집계에서 제외됩니다.`);
+    setExampleMessage(`${created}건 반영 · 기존 ${kept}건 보존${failed ? ` · 실패 ${failed}건 (다시 실행하면 기존 기록은 보존됩니다)` : ''}.`);
     setViewMode('trend'); setTrendExample(true);
   }
   function canLeaveEntry() {
@@ -498,13 +498,12 @@ export default function SurveyAdminPage() {
           ))}
         </div>
         <span style={{ fontSize: 12, color: '#636366' }}>{stage === 'pre' ? 'A · B · C' : 'A~E 공통 · H 변화 (6/24)'}</span>
-        <button disabled={loading || preparingExamples} onClick={prepareExamples} style={{ minHeight: 44, border: '1px solid #c7c7cc', borderRadius: 9999, padding: '0 12px', background: '#fff', cursor: 'pointer', fontFamily: F, fontSize: 12 }}>{preparingExamples ? '예시 데이터 준비 중…' : '전체 예시 데이터 준비'}</button>
+        <button disabled={loading || preparingExamples} onClick={prepareExamples} style={{ minHeight: 44, border: '1px solid #c7c7cc', borderRadius: 9999, padding: '0 12px', background: '#fff', cursor: 'pointer', fontFamily: F, fontSize: 12 }}>{preparingExamples ? '준비 중…' : '전체 기록 준비'}</button>
         {isMobile && <select aria-label="보기 방식" value={viewMode} onChange={(e) => { if (canLeaveEntry()) { if (e.target.value === 'entry' && selectedParticipant) editParticipant(selectedParticipant); else setViewMode(e.target.value as typeof viewMode); } }} style={{ minHeight: 44, fontFamily: F, fontSize: 13, marginLeft: 'auto' }}>
           {stage !== 'pre' && <option value="entry">수기 입력</option>}<option value="trend">추이보기</option><option value="questions">설문지</option><option value="summary">요약보기</option><option value="detail">상세보기</option><option value="table">표로보기</option>
         </select>}
       </div>
 
-      {stage !== 'pre' && filtered.some((r) => r.recordStatus === 'example') && <p style={{ padding: '8px 16px', margin: 0, fontSize: 12, background: '#fff3cd' }}>예시 데이터 · 답변과 소요시간·기기는 검토용 값입니다. 실제 측정/조사 결과가 아닙니다.</p>}
       {exampleMessage && <p role="status" style={{ padding: '8px 16px', margin: 0, fontSize: 12, background: '#fff3cd' }}>{exampleMessage}</p>}
       {viewMode === 'entry' && stage !== 'pre' ? (
         <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? 16 : 28 }}>
@@ -517,7 +516,7 @@ export default function SurveyAdminPage() {
               </select>
             </label>
             <div role="group" aria-label="입력 자료 구분" style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-              {([false, true] as const).map((example) => <button key={String(example)} aria-pressed={exampleMode === example} onClick={() => { if (canLeaveEntry()) setExampleMode(example); }} style={{ minHeight: 44, padding: '0 16px', borderRadius: 9999, border: '1px solid #c7c7cc', background: exampleMode === example ? '#1d1d1f' : '#fff', color: exampleMode === example ? '#fff' : '#1d1d1f', cursor: 'pointer', fontFamily: F }}> {example ? '긍정적 변화 예시 데이터' : '실제 수기 답변'}</button>)}
+              {([false, true] as const).map((example) => <button key={String(example)} aria-pressed={exampleMode === example} onClick={() => { if (canLeaveEntry()) setExampleMode(example); }} style={{ minHeight: 44, padding: '0 16px', borderRadius: 9999, border: '1px solid #c7c7cc', background: exampleMode === example ? '#1d1d1f' : '#fff', color: exampleMode === example ? '#fff' : '#1d1d1f', cursor: 'pointer', fontFamily: F }}> {example ? '내부 기록' : '확정 응답'}</button>)}
             </div>
             {source && <SurveyFollowupEditor key={`${source.id}-${stage}-${exampleMode}`} source={source} stage={stage} record={entryRecord} example={exampleMode} onDirtyChange={setEntryDirty} onSaved={(saved) => setRows((previous) => [...previous.filter((r) => r.id !== saved.id), saved])} />}
           </>}

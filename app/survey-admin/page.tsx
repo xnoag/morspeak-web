@@ -7,6 +7,8 @@ import { SurveyQuestion, formatAnswerLabel } from '@/lib/survey-questions';
 import SurveyMindMap, { SummaryQuestion } from '@/components/SurveyMindMap';
 import { SURVEY_STAGES, getStageQuestions, FOLLOWUP_VERSION, FOLLOWUP_SECTION_LABELS, type SurveyStage } from '@/lib/survey-stages';
 import { followupId, isRecorded, type SurveyRow } from '@/lib/survey-records';
+import { relatedPreQuestions, recordedFollowup, scoreChange } from '@/lib/survey-trends';
+import SurveyParticipantTrend from '@/components/SurveyParticipantTrend';
 import SurveyFollowupEditor from '@/components/SurveyFollowupEditor';
 
 const F = "system-ui,-apple-system,'SF Pro Text',sans-serif";
@@ -132,7 +134,7 @@ function QuestionRow({ q, r, isMobile }: { q: SurveyQuestion; r: SurveyRow; isMo
 
 // PC 상세 패널: 요약 바 + [A]/[B]/[C] 섹션(B는 측면별 소그룹)으로 나눠서 보여준다 —
 // 28개 문항을 한 줄로 쭉 나열하는 대신 주제별로 묶어야 훑어보기 쉬워진다.
-function DetailPanel({ r, questions, onDelete }: { r: SurveyRow; questions: SurveyQuestion[]; onDelete: (r: SurveyRow) => void }) {
+function DetailPanel({ r, questions, onDelete }: { r: SurveyRow; questions: SurveyQuestion[]; onDelete?: (r: SurveyRow) => void }) {
   return (
     <div>
       <div style={{ background: '#fff', borderRadius: 14, border: '1px solid rgba(0,0,0,0.07)', padding: '20px 24px', marginBottom: 20 }}>
@@ -144,12 +146,12 @@ function DetailPanel({ r, questions, onDelete }: { r: SurveyRow; questions: Surv
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 11, color: '#8e8e93', marginBottom: 3 }}>제출일시</div>
             <div style={{ fontSize: 13, color: '#1d1d1f', fontFamily: M, marginBottom: 10 }}>{fmtDate(r.createdAt)}</div>
-            <button
+            {onDelete && <button
               onClick={() => onDelete(r)}
               style={{ fontSize: 12, fontWeight: 600, color: '#FF3B30', background: 'rgba(255,59,48,0.08)', border: '1px solid rgba(255,59,48,0.25)', borderRadius: 8, padding: '5px 10px', cursor: 'pointer', fontFamily: F }}
             >
               이 응답 삭제
-            </button>
+            </button>}
           </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, paddingTop: 16, borderTop: '1px solid #f2f2f7' }}>
@@ -226,6 +228,21 @@ function TableView({ rows, questions }: { rows: SurveyRow[]; questions: SurveyQu
   );
 }
 
+function FollowupPanel({ source, record, questions, isMobile, onEdit, onTrend, onDelete }: {
+  source: SurveyRow; record?: SurveyRow; questions: SurveyQuestion[]; isMobile: boolean;
+  onEdit: () => void; onTrend: () => void; onDelete: (r: SurveyRow) => void;
+}) {
+  const row = record ?? { ...source, id: 'pending', answers: {}, createdAt: undefined, questionTimes: {}, answerHistory: {}, deviceType: 'manual' };
+  return <div>
+    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+      <span style={{ fontSize: 13, color: '#636366', marginRight: 'auto' }}>{record ? record.recordStatus === 'recorded' ? '응답 완료' : '작성 중 · 집계 제외' : '아직 입력하지 않았습니다.'}</span>
+      <button onClick={onEdit} style={{ minHeight: 44, border: '1px solid #c7c7cc', borderRadius: 9999, padding: '0 16px', background: '#fff', cursor: 'pointer' }}>{record ? '답변 수정' : '답변 입력'}</button>
+      <button onClick={onTrend} style={{ minHeight: 44, border: '1px solid #c7c7cc', borderRadius: 9999, padding: '0 16px', background: '#fff', cursor: 'pointer' }}>개인별 추이</button>
+    </div>
+    {isMobile ? <div style={{ display: 'grid', gap: 8 }}>{questions.map((q) => <QuestionRow key={q.id} q={q} r={row} isMobile />)}</div> : <DetailPanel r={row} questions={questions} onDelete={record ? onDelete : undefined} />}
+  </div>;
+}
+
 export default function SurveyAdminPage() {
   const isMobile = useIsMobile();
   const [rows, setRows] = useState<SurveyRow[]>([]);
@@ -237,7 +254,7 @@ export default function SurveyAdminPage() {
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null); // 모바일: 펼친 카드 id
   const [selectedId, setSelectedId] = useState<string | null>(null); // PC: 선택된 응답 id
-  const [viewMode, setViewMode] = useState<'detail' | 'table' | 'summary' | 'questions' | 'entry'>('detail'); // PC: 목록+상세 / 전체 표 / 문항별 요약
+  const [viewMode, setViewMode] = useState<'detail' | 'table' | 'summary' | 'questions' | 'entry' | 'trend'>('detail'); // PC: 목록+상세 / 전체 표 / 문항별 요약
 
   const [sourceId, setSourceId] = useState<string | null>(null);
   const [exampleMode, setExampleMode] = useState(false);
@@ -279,7 +296,18 @@ export default function SurveyAdminPage() {
   const source = participants.find((r) => r.id === sourceId) ?? participants[0];
   const entryRecord = source && stage !== 'pre' ? rows.find((r) => r.id === followupId(source.id, stage, exampleMode)) : undefined;
 
-  const selectedRow = filtered.find((r) => r.id === selectedId) ?? filtered[0] ?? null;
+  const listRows = viewMode === 'trend' || stage !== 'pre' ? participants : filtered;
+  const selectedParticipant = listRows.find((r) => r.id === selectedId) ?? listRows.find((r) => r.id === sourceId) ?? listRows[0];
+  const selectedFollowup = selectedParticipant && stage !== 'pre' ? rows.find((r) => r.sourceResponseId === selectedParticipant.id && r.surveyType === stage && r.recordStatus !== 'example' && r.surveyVersion === FOLLOWUP_VERSION) : undefined;
+  function participantStatus(person: SurveyRow) {
+    if (stage === 'pre') return fmtDate(person.createdAt).replace(/^\d+\. /, '');
+    const record = rows.find((r) => r.sourceResponseId === person.id && r.surveyType === stage && r.recordStatus !== 'example' && r.surveyVersion === FOLLOWUP_VERSION);
+    return record ? record.recordStatus === 'recorded' ? record.collectedOn || '응답 완료' : '작성 중' : '미입력';
+  }
+  function editParticipant(person: SurveyRow) { setSourceId(person.id); setSelectedId(person.id); setExampleMode(false); setViewMode('entry'); }
+  function trendParticipant(person: SurveyRow) { setSourceId(person.id); setSelectedId(person.id); setViewMode('trend'); }
+
+  const selectedRow = filtered.find((r) => r.id === selectedId) ?? filtered.find((r) => r.id === sourceId) ?? filtered[0] ?? null;
 
   async function handleDelete(r: SurveyRow) {
     if (!confirm(`${r.caregiverName || '이름 없음'}님의 응답을 삭제할까요? 이 작업은 되돌릴 수 없습니다.`)) return;
@@ -295,6 +323,20 @@ export default function SurveyAdminPage() {
   async function exportExcel() {
     const ExcelJS = (await import('exceljs')).default;
     const wb = new ExcelJS.Workbook();
+    if (viewMode === 'trend' && selectedParticipant) {
+      const ws = wb.addWorksheet('개인별 답변 추이');
+      const mid = recordedFollowup(rows, selectedParticipant.id, 'mid');
+      const post = recordedFollowup(rows, selectedParticipant.id, 'post');
+      ws.addRow(['환자명', '보호자명', '문항', '사전 관련 원답변 (척도 다름)', '중간', '사후', '중간→사후 점수차', '중간 조사일', '사후 조사일']);
+      getStageQuestions('mid').forEach((q) => ws.addRow([
+        selectedParticipant.patientName, selectedParticipant.caregiverName, `${q.id}. ${q.title}`,
+        relatedPreQuestions(q.id).map((pre) => `${pre.id}. ${pre.title}: ${formatAnswerLabel(pre, selectedParticipant.answers)}`).join('\n') || '대응 사전 문항 없음',
+        mid ? formatAnswerLabel(q, mid.answers) : '미입력', post ? formatAnswerLabel(q, post.answers) : '미입력',
+        scoreChange(q, mid, post), mid?.collectedOn ?? '', post?.collectedOn ?? '',
+      ]));
+      ws.addRow(['인터뷰 원문', '', '', '', mid?.interviewNotes ?? '', post?.interviewNotes ?? '']);
+      ws.getRow(1).font = { bold: true };
+    } else {
     const ws = wb.addWorksheet(`${SURVEY_STAGES[stage]} 설문 응답`);
     const headers = ['제출일시', '보호자명', '연락처', '환자명', ...questions.map((q) => q.id), ...(stage === 'pre' ? [] : ['사전 응답 ID', '조사일', '인터뷰 원문', '문항 버전'])];
     ws.addRow(headers);
@@ -313,12 +355,13 @@ export default function SurveyAdminPage() {
       ]);
     });
     ws.getRow(1).font = { bold: true };
+    }
     const buf = await wb.xlsx.writeBuffer();
     const blob = new Blob([buf], { type: 'application/octet-stream' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `모스픽_${SURVEY_STAGES[stage]}설문_응답_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    a.download = `모스픽_${viewMode === 'trend' ? '개인별답변추이' : `${SURVEY_STAGES[stage]}설문_응답`}_${new Date().toISOString().slice(0, 10)}.xlsx`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -367,6 +410,7 @@ export default function SurveyAdminPage() {
             <div style={{ display: 'flex', gap: 2, background: 'rgba(255,255,255,0.1)', borderRadius: 8, padding: 2, flexShrink: 0 }}>
               {([
                 ...(stage === 'pre' ? [] : [['entry', '수기 입력']] as const),
+                ['trend', '추이보기'],
                 ['questions', '설문지'],
                 ['summary', '요약보기'],
                 ['detail', '상세보기'],
@@ -405,7 +449,7 @@ export default function SurveyAdminPage() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', flexWrap: 'wrap', borderBottom: '1px solid #e5e5ea', background: '#fff' }}>
         <div role="group" aria-label="설문 단계" style={{ display: 'flex', gap: 4 }}>
           {(Object.keys(SURVEY_STAGES) as SurveyStage[]).map((value) => (
-            <button key={value} aria-pressed={stage === value} onClick={() => { if (!canLeaveEntry()) return; if (stage === 'pre' && selectedRow) setSourceId(selectedRow.id); setStage(value); setSelectedId(null); setExpandedId(null); setExampleMode(false); setViewMode(value === 'pre' ? 'detail' : 'entry'); }}
+            <button key={value} aria-pressed={stage === value} onClick={() => { if (!canLeaveEntry()) return; if (stage === 'pre' && selectedRow) setSourceId(selectedRow.id); setStage(value); setSelectedId(null); setExpandedId(null); setExampleMode(false); setViewMode('detail'); }}
               style={{ minHeight: 44, padding: '0 16px', border: 'none', borderRadius: 9999, background: stage === value ? '#1d1d1f' : '#f2f2f7', color: stage === value ? '#fff' : '#1d1d1f', cursor: 'pointer', fontFamily: F, fontSize: 13 }}>
               {SURVEY_STAGES[value]} {rows.filter((r) => r.surveyType === value && isRecorded(r) && (value === 'pre' || r.surveyVersion === FOLLOWUP_VERSION)).length}건
             </button>
@@ -413,7 +457,7 @@ export default function SurveyAdminPage() {
         </div>
         <span style={{ fontSize: 12, color: '#636366' }}>{stage === 'pre' ? 'A · B · C' : 'A~E 공통 · H 변화 (6/24)'}</span>
         {isMobile && <select aria-label="보기 방식" value={viewMode} onChange={(e) => { if (canLeaveEntry()) setViewMode(e.target.value as typeof viewMode); }} style={{ minHeight: 44, fontFamily: F, fontSize: 13, marginLeft: 'auto' }}>
-          {stage !== 'pre' && <option value="entry">수기 입력</option>}<option value="questions">설문지</option><option value="summary">요약보기</option><option value="detail">상세보기</option><option value="table">표로보기</option>
+          {stage !== 'pre' && <option value="entry">수기 입력</option>}<option value="trend">추이보기</option><option value="questions">설문지</option><option value="summary">요약보기</option><option value="detail">상세보기</option><option value="table">표로보기</option>
         </select>}
       </div>
 
@@ -460,6 +504,13 @@ export default function SurveyAdminPage() {
         </div>
       ) : viewMode === 'summary' ? (
         <SurveyMindMap rows={filtered} />
+      ) : isMobile && viewMode === 'trend' ? (
+        <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
+          <select aria-label="추이 참여자" value={selectedParticipant?.id ?? ''} onChange={(e) => { setSelectedId(e.target.value); setSourceId(e.target.value); }} style={{ minHeight: 44, width: '100%', marginBottom: 16 }}>
+            {participants.map((p) => <option key={p.id} value={p.id}>{p.patientName} · 보호자 {p.caregiverName}</option>)}
+          </select>
+          {selectedParticipant ? <SurveyParticipantTrend source={selectedParticipant} rows={rows} /> : <p>사전 참여자가 없습니다.</p>}
+        </div>
       ) : isMobile ? (
         <div style={{ flex: 1, overflow: 'auto', padding: '16px 12px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10, marginBottom: 16 }}>
@@ -478,21 +529,21 @@ export default function SurveyAdminPage() {
             <span style={{ fontSize: 12, color: '#8e8e93', background: '#e5e5ea', padding: '2px 8px', borderRadius: 20 }}>{filtered.length}건</span>
           </div>
 
-          {filtered.length === 0 ? (
+          {listRows.length === 0 ? (
             <div style={{ padding: 56, textAlign: 'center', color: '#8e8e93', fontSize: 13 }}>응답이 없습니다.</div>
           ) : (
             <div style={{ display: 'grid', gap: 10 }}>
-              {filtered.map((r) => {
+              {listRows.map((r) => {
                 const expanded = expandedId === r.id;
                 return (
                   <div key={r.id} style={{ background: '#fff', borderRadius: 14, border: '1px solid rgba(0,0,0,0.07)', overflow: 'hidden' }}>
                     <button
-                      onClick={() => setExpandedId((id) => (id === r.id ? null : r.id))}
+                      onClick={() => { setSourceId(r.id); setSelectedId(r.id); setExpandedId((id) => (id === r.id ? null : r.id)); }}
                       style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: '14px 16px', fontFamily: F, cursor: 'pointer' }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
                         <span style={{ fontSize: 15, fontWeight: 700, color: '#1d1d1f' }}>{r.caregiverName || '—'}</span>
-                        <span style={{ fontSize: 11, color: '#aeaeb2', fontFamily: M }}>{fmtDate(r.createdAt)}</span>
+                        <span style={{ fontSize: 11, color: '#aeaeb2', fontFamily: M }}>{participantStatus(r)}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                         <span style={{ fontSize: 13, color: '#636366', fontFamily: M }}>{r.caregiverContact || '—'}</span>
@@ -502,9 +553,7 @@ export default function SurveyAdminPage() {
                     </button>
                     {expanded && (
                       <div style={{ padding: '4px 12px 14px', background: '#fafafa', borderTop: '1px solid #f2f2f7' }}>
-                        <div style={{ display: 'grid', gap: 14 }}>
-                          {questions.map((q) => <QuestionRow key={q.id} q={q} r={r} isMobile />)}
-                        </div>
+                        {stage === 'pre' ? <div style={{ display: 'grid', gap: 14 }}>{questions.map((q) => <QuestionRow key={q.id} q={q} r={r} isMobile />)}<button onClick={() => trendParticipant(r)} style={{ minHeight: 44 }}>개인별 추이</button></div> : <FollowupPanel source={r} record={rows.find((row) => row.sourceResponseId === r.id && row.surveyType === stage && row.recordStatus !== 'example' && row.surveyVersion === FOLLOWUP_VERSION)} questions={questions} isMobile onEdit={() => editParticipant(r)} onTrend={() => trendParticipant(r)} onDelete={handleDelete} />}
                       </div>
                     )}
                   </div>
@@ -529,18 +578,19 @@ export default function SurveyAdminPage() {
                   <div style={{ fontSize: 18, fontWeight: 700, color: '#34c759' }}>{todayCount}건</div>
                 </div>
               </div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#1d1d1f' }}>{SURVEY_STAGES[stage]} 설문 응답 <span style={{ color: '#8e8e93', fontWeight: 500 }}>{filtered.length}건</span></div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#1d1d1f' }}>{viewMode === 'trend' ? '개인별 답변 추이' : `${SURVEY_STAGES[stage]} 설문 응답`} <span style={{ color: '#8e8e93', fontWeight: 500 }}>{viewMode === 'trend' ? `${participants.length}명` : `${filtered.length}건`}</span></div>
             </div>
             <div style={{ flex: 1, overflow: 'auto' }}>
-              {filtered.length === 0 ? (
+              {stage !== 'pre' && viewMode !== 'trend' && <p style={{ padding: '0 18px', fontSize: 12, color: '#636366' }}>사전 참여자 {participants.length}명 · 선택 후 답변 입력</p>}
+              {listRows.length === 0 ? (
                 <div style={{ padding: 40, textAlign: 'center', color: '#8e8e93', fontSize: 13 }}>응답이 없습니다.</div>
               ) : (
-                filtered.map((r) => {
-                  const selected = r.id === selectedRow?.id;
+                listRows.map((r) => {
+                  const selected = r.id === selectedParticipant?.id;
                   return (
                     <button
                       key={r.id}
-                      onClick={() => setSelectedId(r.id)}
+                      onClick={() => { setSelectedId(r.id); setSourceId(r.id); }}
                       style={{
                         display: 'block', width: '100%', textAlign: 'left', padding: '14px 18px',
                         border: 'none', borderBottom: '1px solid #f2f2f7', borderLeft: selected ? '3px solid #007AFF' : '3px solid transparent',
@@ -549,7 +599,7 @@ export default function SurveyAdminPage() {
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                         <span style={{ fontSize: 14, fontWeight: 700, color: selected ? '#007AFF' : '#1d1d1f' }}>{r.caregiverName || '이름 없음'}</span>
-                        <span style={{ fontSize: 11, color: '#aeaeb2', fontFamily: M }}>{fmtDate(r.createdAt).replace(/^\d+\. /, '')}</span>
+                        <span style={{ fontSize: 11, color: '#aeaeb2', fontFamily: M }}>{participantStatus(r)}</span>
                       </div>
                       <div style={{ fontSize: 12, color: '#8e8e93', fontFamily: M }}>{r.caregiverContact || '—'}</div>
                       <div style={{ fontSize: 12, color: '#8e8e93', marginTop: 2 }}>환자: {r.patientName || '—'}</div>
@@ -560,8 +610,8 @@ export default function SurveyAdminPage() {
             </div>
           </div>
           <div style={{ flex: 1, overflow: 'auto', padding: '24px 28px' }}>
-            {selectedRow ? (
-              <DetailPanel r={selectedRow} questions={questions} onDelete={handleDelete} />
+            {viewMode === 'trend' && selectedParticipant ? <SurveyParticipantTrend source={selectedParticipant} rows={rows} /> : stage !== 'pre' && selectedParticipant ? <FollowupPanel source={selectedParticipant} record={selectedFollowup} questions={questions} isMobile={false} onEdit={() => editParticipant(selectedParticipant)} onTrend={() => trendParticipant(selectedParticipant)} onDelete={handleDelete} /> : selectedRow ? (
+              <><button onClick={() => trendParticipant(selectedRow)} style={{ minHeight: 44, marginBottom: 16, border: '1px solid #c7c7cc', borderRadius: 9999, padding: '0 16px', background: '#fff', cursor: 'pointer' }}>개인별 추이</button><DetailPanel r={selectedRow} questions={questions} onDelete={handleDelete} /></>
             ) : (
               <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8e8e93', fontSize: 13 }}>
                 왼쪽에서 응답을 선택해주세요.

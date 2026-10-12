@@ -49,14 +49,30 @@ assert.ok(Object.values(records.positiveExample('post')).every(v=>v==='4'));
 assert.equal(records.cleanFollowupAnswers({'A-1':'99', 'S-1':'사전 인터뷰'},'mid')['A-1'],undefined);
 assert.equal(records.followupId('pre_person','mid'), 'mid_pre_person');
 assert.equal(records.followupId('pre_person','mid',true), 'example_mid_pre_person');
+const trends=load(path.join(root,'lib/survey-trends.ts'));
 const page = load(path.join(root, 'app/survey-admin/page.tsx')).default;
-const fixture = ['pre','mid','post'].map((surveyType, i) => ({id:surveyType, surveyType, surveyVersion: surveyType === 'pre' ? 'v1' : schema.FOLLOWUP_VERSION, recordStatus: 'recorded', sourceResponseId: surveyType === 'pre' ? undefined : 'pre', caregiverName:`검증 보호자 ${i+1}`, patientName:`검증 환자 ${i+1}`, caregiverContact:null, deviceType:'mobile', answers:Object.fromEntries(schema.getStageQuestions(surveyType).map(q=>[q.id,q.type==='multi'?['a']:surveyType === 'pre' ? 'd' : '3']))}));
+const fixture = ['pre','mid','post'].map((surveyType) => ({id:surveyType === 'pre' ? 'pre' : `${surveyType}_pre`, surveyType, surveyVersion: surveyType === 'pre' ? 'v1' : schema.FOLLOWUP_VERSION, recordStatus: 'recorded', sourceResponseId: surveyType === 'pre' ? undefined : 'pre', caregiverName:'검증 보호자 1', patientName:'검증 환자 1', caregiverContact:null, deviceType:'mobile', answers:Object.fromEntries(schema.getStageQuestions(surveyType).map(q=>[q.id,q.type==='multi'?['a']:surveyType === 'pre' ? 'd' : '3']))}));
+const q=schema.getStageQuestions('mid')[0];
+assert.equal(trends.scoreChange(q,fixture[1],{...fixture[2],answers:{...fixture[2].answers,[q.id]:'4'}}),1);
+assert.equal(trends.scoreChange(q,fixture[1],{...fixture[2],answers:{...fixture[2].answers,[q.id]:'2'}}),-1);
+assert.equal(trends.scoreChange(q,fixture[1],fixture[2]),0);
+assert.equal(trends.scoreChange(q,fixture[1],{...fixture[2],recordStatus:'example'}),null);
+assert.equal(trends.scoreChange(q,fixture[1],{...fixture[2],recordStatus:'draft'}),null);
+assert.equal(trends.scoreChange(q,fixture[1],{...fixture[2],surveyVersion:'different'}),null);
+assert.equal(trends.scoreChange(q,undefined,fixture[2]),null);
+assert.equal(trends.relatedPreQuestions('A-1')[0].id,'B1');
+assert.equal(trends.relatedPreQuestions('H-1')[0].id,'B1');
+assert.equal(trends.relatedPreQuestions('D-2').length,0);
+assert.equal(trends.recordedFollowup(fixture,'another-person','mid'),undefined);
+assert.equal(trends.recordedFollowup(fixture,'pre','mid').id,'mid_pre');
 fixture.push({...fixture[1],id:'example_mid_pre',recordStatus:'example',patientName:'가상 기록 제외 검사'});
 fixture.push({...fixture[1],id:'draft_mid_pre',recordStatus:'draft',patientName:'미완성 기록 제외 검사'});
 assert.equal(records.followupPayload(fixture[0],'mid',{},'','', 'draft').sourceResponseId,'pre');
 assert.throws(()=>records.followupPayload(fixture[0],'mid',{},'','', 'recorded'));
 assert.throws(()=>records.followupPayload(fixture[1],'mid',{},'','', 'draft'));
-for(const stage of ['pre','mid','post']) for(const mode of ['questions','detail','table','summary', ...(stage === 'pre' ? [] : ['entry'])]) for(const mobile of [false,true]) {
+fixture[1].collectedOn='2026-08-20';fixture[2].collectedOn='2026-10-10';
+fixture[2].answers=Object.fromEntries(schema.getStageQuestions('post').map((q,i)=>[q.id,i===0?'2':i===1?'3':'4']));
+for(const stage of ['pre','mid','post']) for(const mode of ['questions','detail','table','summary','trend', ...(stage === 'pre' ? [] : ['entry'])]) for(const mobile of [false,true]) {
   if(stage==='pre' && mode==='summary') continue;
   stateValues = [mobile,fixture,false,'',stage,'',null,null,mode]; stateIndex=0;
   const html = renderToStaticMarkup(React.createElement(page));
@@ -65,10 +81,10 @@ for(const stage of ['pre','mid','post']) for(const mode of ['questions','detail'
   assert.ok(!html.includes('미완성 기록 제외 검사'));
   if(mode === 'questions') assert.ok(html.includes(`${schema.SURVEY_STAGES[stage]} 설문지`));
   if(mode==='detail'||mode==='table') {
-    assert.ok(html.includes(`검증 환자 ${['pre','mid','post'].indexOf(stage)+1}`));
-    for(const other of ['pre','mid','post'].filter(x=>x!==stage)) assert.ok(!html.includes(`검증 환자 ${['pre','mid','post'].indexOf(other)+1}`));
+    assert.ok(html.includes('검증 환자 1'));
+
   }
-  if(stage!=='pre' && mode !== 'entry') assert.ok(!html.includes('A1.'));
+  if(stage!=='pre' && mode !== 'entry' && mode !== 'trend') assert.ok(!html.includes('A1.'));
   const name=`${stage}-${mode}-${mobile?'mobile':'desktop'}.html`;
   if(process.argv[2]) fs.writeFileSync(path.join(process.argv[2],name),`<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0}*{box-sizing:border-box}</style>${html}</html>`);
 }
@@ -110,9 +126,22 @@ allowDiscard=false;
     assert.equal(sheet.name, `${schema.SURVEY_STAGES[stage]} 설문 응답`);
     assert.equal(sheet.rowCount, 2);
     assert.equal(sheet.getRow(1).cellCount, schema.getStageQuestions(stage).length + (stage === 'pre' ? 4 : 8));
-    assert.equal(sheet.getRow(2).getCell(4).value, `검증 환자 ${['pre','mid','post'].indexOf(stage)+1}`);
+    assert.equal(sheet.getRow(2).getCell(4).value, '검증 환자 1');
     assert.ok(anchor.download.includes(schema.SURVEY_STAGES[stage]));
   }
+  stateValues=[false,fixture,false,'','pre','',null,null,'trend'];stateIndex=0;
+  await findExport(page())();
+  const trendWorkbook=new ExcelJS.Workbook();await trendWorkbook.xlsx.load(exportBuffer);
+  const trendSheet=trendWorkbook.worksheets[0];
+  assert.equal(trendSheet.name,'개인별 답변 추이');assert.equal(trendSheet.rowCount,22);
+  assert.equal(trendSheet.getRow(2).getCell(7).value,-1);
+  assert.equal(trendSheet.getRow(3).getCell(7).value,0);
+  assert.equal(trendSheet.getRow(4).getCell(7).value,1);
+  stateValues=[false,[fixture[0]],false,'','mid','',null,null,'detail'];stateIndex=0;
+  const pendingHtml=renderToStaticMarkup(React.createElement(page));
+  assert.ok(pendingHtml.includes('아직 입력하지 않았습니다.'));
+  assert.ok(pendingHtml.includes('검증 환자 1'));
+  assert.ok(pendingHtml.includes('답변 입력'));
   const Editor = load(path.join(root,'components/SurveyFollowupEditor.tsx')).default;
   let saved;
   stateValues=[records.positiveExample('mid'),'2026-08-01','종이 원문',true,false,'',0];stateIndex=0;
@@ -133,5 +162,5 @@ allowDiscard=false;
   previousRecord=undefined;stateValues=[records.positiveExample('mid'),'','가상 예시',false,false,'',0];stateIndex=0;
   await findExport(Editor({source:fixture[0],stage:'mid',example:true,onSaved: row=>{saved=row;}}), '가상 초안 저장')();
   assert.equal(lastWrite.recordStatus,'example');assert.equal(records.isRecorded(saved),false);
-  console.log('문항 원본·참여자 연결·가상/미완성 제외·26개 렌더링·엑셀 재열기·입력 검증·수정 이력·동시 수정 검사 통과');
+  console.log('문항 원본·참여자 연결·가상/미완성 제외·32개 렌더링·엑셀 재열기·입력 검증·수정 이력·동시 수정 검사 통과');
 })().catch(error => { console.error(error); process.exitCode=1; });

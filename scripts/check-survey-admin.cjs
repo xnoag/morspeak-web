@@ -19,6 +19,7 @@ function load(file) {
   const exports = {};
   const localRequire = name => {
     if(name === 'react') return mockReact;
+    if(name.endsWith('.module.css')) return new Proxy({}, { get: (_target, key) => String(key) });
     if(name === 'firebase/firestore') return firestoreStub;
     if(name === '@/lib/firebase') return { db: {} };
     if(name.startsWith('@/')) return load(path.join(root, name.slice(2)) + (name.includes('components/') ? '.tsx' : '.ts'));
@@ -57,6 +58,19 @@ const trends=load(path.join(root,'lib/survey-trends.ts'));
 const page = load(path.join(root, 'app/survey-admin/page.tsx')).default;
 const fixture = ['pre','mid','post'].map((surveyType) => ({id:surveyType === 'pre' ? 'pre' : `${surveyType}_pre`, surveyType, surveyVersion: surveyType === 'pre' ? 'v1' : schema.FOLLOWUP_VERSION, recordStatus: 'recorded', sourceResponseId: surveyType === 'pre' ? undefined : 'pre', caregiverName:'검증 보호자 1', patientName:'검증 환자 1', caregiverContact:null, deviceType:'mobile', answers:Object.fromEntries(schema.getStageQuestions(surveyType).map(q=>[q.id,q.type==='multi'?['a']:surveyType === 'pre' ? 'd' : '3']))}));
 const q=schema.getStageQuestions('mid')[0];
+const anonymousPage=load(path.join(root,'app/survey-admin/trends/page.tsx')).default;
+const anonymousRows=fixture.map(row=>({...row,answers:{...row.answers}}));
+anonymousRows[2].answers[q.id]='4';
+stateValues=[anonymousRows,false,'',0];stateIndex=0;
+let anonymousHtml=renderToStaticMarkup(React.createElement(anonymousPage));
+assert.ok(anonymousHtml.includes('참여자 01') && anonymousHtml.includes('20문항'));
+assert.ok(anonymousHtml.includes('1점 상승'));
+assert.ok(!anonymousHtml.includes('검증 환자 1') && !anonymousHtml.includes('검증 보호자 1'));
+anonymousRows[2].recordStatus='example';
+stateValues=[anonymousRows,false,'',0];stateIndex=0;
+anonymousHtml=renderToStaticMarkup(React.createElement(anonymousPage));
+assert.ok(anonymousHtml.includes('비교 대기'));
+assert.ok(!anonymousHtml.includes('1점 상승'));
 assert.equal(trends.scoreChange(q,fixture[1],{...fixture[2],answers:{...fixture[2].answers,[q.id]:'4'}}),1);
 assert.equal(trends.scoreChange(q,fixture[1],{...fixture[2],answers:{...fixture[2].answers,[q.id]:'2'}}),-1);
 assert.equal(trends.scoreChange(q,fixture[1],fixture[2]),0);

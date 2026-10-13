@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { getStageQuestions, FOLLOWUP_SECTION_LABELS } from '@/lib/survey-stages';
-import { relatedPreQuestions, scoreChange, trendFollowup } from '@/lib/survey-trends';
+import { COMMON_PRE, commonPreScore, relatedPreQuestions, scoreChange, trendFollowup } from '@/lib/survey-trends';
 import type { SurveyRow } from '@/lib/survey-records';
 import type { SurveyQuestion } from '@/lib/survey-questions';
 import styles from './trends.module.css';
@@ -77,10 +77,29 @@ export default function AnonymousTrendsPage() {
             <div><span className={styles.eyebrow}>참여자 {String(selected + 1).padStart(2, '0')}</span><h2>사전 → 중간 → 사후</h2><p>각 문항의 관련 사전 답변부터 중간·사후 답변까지 따라갑니다. 사전은 질문과 척도가 달라 답변 내용으로 비교합니다.</p></div>
             <div><span className={styles.stage}>중간 → 사후 점수 변화</span><div className={styles.metrics} aria-label="중간에서 사후 변화 요약"><span><strong>{improved}</strong> 상승</span><span><strong>{same}</strong> 유지</span><span><strong>{lower}</strong> 하락</span><span><strong>{questions.length - comparable}</strong> 비교 대기</span></div></div>
           </div>
+          <section className={styles.common} aria-label="사전·중간·사후 공통 주제 추이">
+            <h3>세 번 공통으로 살펴본 주제</h3>
+            <p>사전의 5단계 보기 순서를 0–4로 놓은 참고 추이입니다. 질문 표현이 완전히 같지는 않아 점수 차이는 성과 수치로 합산하지 않습니다.</p>
+            <div className={styles.commonGrid}>{COMMON_PRE.map(({ id, label }) => {
+              const question = questions.find((item) => item.id === id)!;
+              const preScore = commonPreScore(id, person);
+              const midScore = response(mid, question);
+              const postScore = response(post, question);
+              return <article className={styles.commonCard} key={id}>
+                <h4>{label} <small>{id}</small></h4>
+                <div className={styles.commonPath}>
+                  <span>사전<strong>{preScore ?? '—'}</strong></span><b aria-hidden="true">→</b>
+                  <span>중간<strong>{midScore ?? '—'}</strong></span><b aria-hidden="true">→</b>
+                  <span>사후<strong>{postScore ?? '—'}</strong></span>
+                </div>
+              </article>;
+            })}</div>
+          </section>
           {[...new Set(questions.map((question) => question.section))].map((section) => <section className={styles.section} key={section}>
             <h3><span>{section}</span> {FOLLOWUP_SECTION_LABELS[section]}</h3>
             {questions.filter((question) => question.section === section).map((question) => {
               const before = relatedPreQuestions(question.id);
+              const preScore = commonPreScore(question.id, person);
               const midValue = response(mid, question);
               const postValue = response(post, question);
               const change = delta(question, mid, post);
@@ -88,8 +107,8 @@ export default function AnonymousTrendsPage() {
               return <article className={styles.card} key={question.id}>
                 <div className={styles.question}><span className={styles.questionId}>{question.id}</span><h4>{question.title}</h4></div>
                 <div className={styles.answers}>
-                  <div className={styles.pre}><span className={styles.stage}>① 사전 · 관련 문항</span>{before.length ? before.map((source) => <p key={source.id}><b>{source.id}</b> {source.title}<em>{preAnswer(person, source)}</em></p>) : <p>연결할 사전 문항 없음</p>}</div>
-                  <div className={styles.arrow}><span aria-hidden="true">→</span><small>답변 변화</small></div>
+                  <div className={styles.pre}><span className={styles.stage}>① 사전 · 관련 문항{preScore !== null ? ` · 참고 ${preScore}/4` : ''}</span>{before.length ? before.map((source) => <p key={source.id}><b>{source.id}</b> {source.title}<em>{preAnswer(person, source)}</em></p>) : <p>연결할 사전 문항 없음</p>}</div>
+                  <div className={styles.arrow}><span aria-hidden="true">→</span><small>{preScore === null || midValue === null ? '내용 비교' : Number(midValue) > preScore ? `↑ ${Number(midValue) - preScore}단계 참고` : Number(midValue) < preScore ? `↓ ${preScore - Number(midValue)}단계 참고` : '→ 유지 참고'}</small></div>
                   <div className={styles.stageAnswer}><span className={styles.stage}>② 중간</span><strong>{midValue ?? '—'}</strong><small>{midValue === null ? '응답 없음' : question.options?.find((option) => option.value === midValue)?.label}</small></div>
                   <div className={`${styles.arrow} ${change !== null && change > 0 ? styles.up : ''}`}><span aria-hidden="true">→</span><small>{state}</small></div>
                   <div className={styles.stageAnswer}><span className={styles.stage}>③ 사후</span><strong>{postValue ?? '—'}</strong><small>{postValue === null ? '응답 없음' : question.options?.find((option) => option.value === postValue)?.label}</small></div>

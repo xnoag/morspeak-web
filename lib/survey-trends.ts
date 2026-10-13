@@ -1,4 +1,4 @@
-import { SURVEY_QUESTIONS, type SurveyQuestion } from './survey-questions';
+import { SURVEY_QUESTIONS } from './survey-questions';
 import { FOLLOWUP_VERSION } from './survey-stages';
 import type { SurveyRow } from './survey-records';
 
@@ -33,16 +33,4 @@ export function commonPreScore(id: string, row: SurveyRow) {
 
 export function trendFollowup(rows: SurveyRow[], sourceId: string, stage: 'mid' | 'post', example = false) {
   return rows.find((r) => r.sourceResponseId === sourceId && r.surveyType === stage && r.recordStatus === (example ? 'example' : 'recorded') && r.surveyVersion === FOLLOWUP_VERSION);
-}
-
-export function scoreChange(q: SurveyQuestion, mid?: SurveyRow, post?: SurveyRow, example = false) {
-  const status = example ? 'example' : 'recorded';
-  if (!mid || !post || !mid.sourceResponseId || mid.sourceResponseId !== post.sourceResponseId || mid.surveyType !== 'mid' || post.surveyType !== 'post' || mid.recordStatus !== status || post.recordStatus !== status || mid.surveyVersion !== FOLLOWUP_VERSION || post.surveyVersion !== FOLLOWUP_VERSION) return null;
-  const a = mid.answers[q.id], b = post.answers[q.id];
-  if (typeof a !== 'string' || typeof b !== 'string' || !q.options?.some((o) => o.value === a) || !q.options.some((o) => o.value === b)) return null;
-  return Number(b) - Number(a);
-}
-
-export function choiceChangeLabel(change: number | null) {
-  return change === null ? '비교 대기' : change > 0 ? '더 긍정적인 선택지' : change < 0 ? '덜 긍정적인 선택지' : '같은 선택지';
 }

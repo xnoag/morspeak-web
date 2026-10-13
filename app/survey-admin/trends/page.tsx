@@ -4,12 +4,15 @@ import { useEffect, useState } from 'react';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { getStageQuestions, FOLLOWUP_SECTION_LABELS } from '@/lib/survey-stages';
-import { COMMON_PRE, choiceChangeLabel, relatedPreQuestions, scoreChange, trendFollowup } from '@/lib/survey-trends';
+import { SURVEY_QUESTIONS } from '@/lib/survey-questions';
+import { surveyDistribution } from '@/lib/survey-distribution';
+import { COMMON_PRE, relatedPreQuestions, trendFollowup } from '@/lib/survey-trends';
 import type { SurveyRow } from '@/lib/survey-records';
 import type { SurveyQuestion } from '@/lib/survey-questions';
 import styles from './trends.module.css';
 
 const questions = getStageQuestions('mid');
+const preChoiceQuestions = SURVEY_QUESTIONS.filter((question) => question.options?.length);
 
 function response(row: SurveyRow | undefined, question: SurveyQuestion) {
   const answer = row?.answers?.[question.id];
@@ -32,8 +35,21 @@ function stageRows(rows: SurveyRow[], sourceId: string) {
   return { mid, post };
 }
 
-function delta(question: SurveyQuestion, mid?: SurveyRow, post?: SurveyRow) {
-  return scoreChange(question, mid, post, mid?.recordStatus === 'example');
+function DistributionCard({ stage, question, rows }: { stage: string; question: SurveyQuestion; rows: SurveyRow[] }) {
+  const distribution = surveyDistribution(question, rows);
+  return <article className={styles.ratioCard}>
+    <div className={styles.ratioHeading}>
+      <span>{stage} · {question.id}</span>
+      <h3>{question.title}</h3>
+      <p>응답 {distribution.answered}명 / 대상 {distribution.total}명</p>
+    </div>
+    {distribution.answered === 0 ? <p className={styles.noAnswers}>응답이 없습니다.</p> : null}
+    <div className={styles.ratioOptions}>{distribution.options.map((option) => <div className={styles.ratioOption} key={option.value}>
+      <div className={styles.ratioOptionLabel}><span>{option.label}</span><strong>{option.count}명 · {option.percent}%</strong></div>
+      <div className={styles.ratioTrack} aria-hidden="true"><span style={{ width: `${option.percent}%` }} /></div>
+    </div>)}</div>
+    {distribution.multiple ? <p className={styles.ratioNote}>복수 선택 문항이라 비율의 합이 100%를 넘을 수 있습니다.</p> : null}
+  </article>;
 }
 
 export default function AnonymousTrendsPage() {
@@ -41,6 +57,9 @@ export default function AnonymousTrendsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState(0);
+  const [view, setView] = useState<'person' | 'question'>('person');
+  const [questionGroup, setQuestionGroup] = useState<'followup' | 'pre'>('followup');
+  const [questionIndex, setQuestionIndex] = useState(0);
 
   useEffect(() => {
     getDocs(query(collection(db, 'survey_responses'), orderBy('createdAt', 'desc')))
@@ -53,33 +72,31 @@ export default function AnonymousTrendsPage() {
     (a.createdAt?.toMillis() ?? 0) - (b.createdAt?.toMillis() ?? 0) || a.id.localeCompare(b.id));
   const person = people[selected];
   const { mid, post } = person ? stageRows(rows, person.id) : { mid: undefined, post: undefined };
-  const changes = questions.map((question) => delta(question, mid, post));
-  const improved = changes.filter((change) => change !== null && change > 0).length;
-  const same = changes.filter((change) => change === 0).length;
-  const lower = changes.filter((change) => change !== null && change < 0).length;
-  const comparable = improved + same + lower;
+  const questionList = questionGroup === 'followup' ? questions : preChoiceQuestions;
+  const selectedQuestion = questionList[questionIndex] ?? questionList[0];
+  const midRows = people.map((entry) => stageRows(rows, entry.id).mid).filter((row): row is SurveyRow => !!row);
+  const postRows = people.map((entry) => stageRows(rows, entry.id).post).filter((row): row is SurveyRow => !!row);
 
   return <main className={styles.page}>
     <header className={styles.header}>
       <div><a className={styles.back} href="/survey-admin">← 설문 관리</a><h1>사전 · 중간 · 사후 변화</h1><p>익명 참여자별로 사전 응답과 문항별 답변 흐름을 확인합니다.</p></div>
-      <span className={styles.count}>{people.length}명 · {questions.length}문항</span>
+      <span className={styles.count}>{people.length}명</span>
     </header>
-    {loading ? <p className={styles.message}>응답을 불러오는 중입니다.</p> : error ? <p className={styles.message} role="alert">{error}</p> : !person ? <p className={styles.message}>사전 응답이 없습니다.</p> :
+    {!loading && !error && person ? <div className={styles.viewTabs} role="group" aria-label="설문 결과 보기">
+      <button aria-pressed={view === 'person'} onClick={() => setView('person')}>개인별 답변</button>
+      <button aria-pressed={view === 'question'} onClick={() => setView('question')}>문항별 비율</button>
+    </div> : null}
+    {loading ? <p className={styles.message}>응답을 불러오는 중입니다.</p> : error ? <p className={styles.message} role="alert">{error}</p> : !person ? <p className={styles.message}>사전 응답이 없습니다.</p> : view === 'person' ?
       <div className={styles.layout}>
         <nav className={styles.people} aria-label="익명 참여자 선택">
           <h2>참여자</h2>
-          <div className={styles.peopleList}>{people.map((entry, index) => {
-            const pair = stageRows(rows, entry.id);
-            const gains = questions.filter((question) => { const value = delta(question, pair.mid, pair.post); return value !== null && value > 0; }).length;
-            return <button key={entry.id} className={`${styles.person} ${selected === index ? styles.active : ''}`} aria-current={selected === index ? 'true' : undefined} onClick={() => setSelected(index)}>
-              <span>참여자 {String(index + 1).padStart(2, '0')}</span><small>{pair.mid && pair.post ? `중간→사후 ${gains}문항 긍정 방향` : '비교 대기'}</small>
-            </button>;
-          })}</div>
+          <div className={styles.peopleList}>{people.map((entry, index) => <button key={entry.id} className={`${styles.person} ${selected === index ? styles.active : ''}`} aria-current={selected === index ? 'true' : undefined} onClick={() => setSelected(index)}>
+            <span>참여자 {String(index + 1).padStart(2, '0')}</span>
+          </button>)}</div>
         </nav>
         <div className={styles.content}>
           <div className={styles.overview}>
             <div><span className={styles.eyebrow}>참여자 {String(selected + 1).padStart(2, '0')}</span><h2>사전 → 중간 → 사후</h2><p>각 시점에 선택한 답변을 문장 그대로 따라갑니다. 질문 문구가 다른 항목은 관련 답변으로 연결합니다.</p></div>
-            <div><span className={styles.stage}>중간 → 사후 선택지 변화</span><div className={styles.metrics} aria-label="중간에서 사후 선택지 변화 요약"><span><strong>{improved}</strong>긍정 방향</span><span><strong>{same}</strong>같은 선택지</span><span><strong>{lower}</strong>반대 방향</span><span><strong>{questions.length - comparable}</strong>비교 대기</span></div></div>
           </div>
           <section className={styles.common} aria-label="사전·중간·사후 공통 주제 추이">
             <h3>세 번 공통으로 살펴본 주제</h3>
@@ -105,20 +122,41 @@ export default function AnonymousTrendsPage() {
               const before = relatedPreQuestions(question.id);
               const midValue = response(mid, question);
               const postValue = response(post, question);
-              const change = delta(question, mid, post);
-              const state = choiceChangeLabel(change);
               return <article className={styles.card} key={question.id}>
                 <div className={styles.question}><span className={styles.questionId}>{question.id}</span><h4>{question.title}</h4></div>
                 <div className={styles.answers}>
                   <div className={styles.pre}><span className={styles.stage}>① 사전 · 관련 문항</span>{before.length ? before.map((source) => <p key={source.id}><b>{source.id}</b> {source.title}<em>{preAnswer(person, source)}</em></p>) : <p>연결할 사전 문항 없음</p>}</div>
-                  <div className={styles.arrow}><span aria-hidden="true">→</span><small>관련 응답</small></div>
+                  <div className={styles.arrow}><span aria-hidden="true">→</span></div>
                   <div className={styles.stageAnswer}><span className={styles.stage}>② 중간</span><strong>{choiceAnswer(midValue, question)}</strong></div>
-                  <div className={`${styles.arrow} ${change !== null && change > 0 ? styles.up : ''}`}><span aria-hidden="true">→</span><small>{state}</small></div>
+                  <div className={styles.arrow}><span aria-hidden="true">→</span></div>
                   <div className={styles.stageAnswer}><span className={styles.stage}>③ 사후</span><strong>{choiceAnswer(postValue, question)}</strong></div>
                 </div>
               </article>;
             })}
           </section>)}
+        </div>
+      </div> : <div className={styles.questionView}>
+        <div className={styles.questionGroups} role="group" aria-label="문항 범위">
+          <button aria-pressed={questionGroup === 'followup'} onClick={() => { setQuestionGroup('followup'); setQuestionIndex(0); }}>중간·사후 20문항</button>
+          <button aria-pressed={questionGroup === 'pre'} onClick={() => { setQuestionGroup('pre'); setQuestionIndex(0); }}>사전 객관식 {preChoiceQuestions.length}문항</button>
+        </div>
+        <div className={styles.layout}>
+          <nav className={styles.people} aria-label="비율을 볼 문항 선택">
+            <h2>문항</h2>
+            <div className={styles.peopleList}>{questionList.map((question, index) => <button key={question.id} className={`${styles.person} ${questionIndex === index ? styles.active : ''}`} aria-current={questionIndex === index ? 'true' : undefined} onClick={() => setQuestionIndex(index)}>
+              <span>{question.id}</span><small>{question.title}</small>
+            </button>)}</div>
+          </nav>
+          <div className={styles.content}>
+            <div className={styles.ratioIntro}><span>{questionGroup === 'followup' ? '중간·사후 문항' : '사전 문항'} · {selectedQuestion.id}</span><h2>{selectedQuestion.title}</h2><p>각 비율은 해당 문항에 답한 사람을 기준으로 계산합니다. 사전 서술형 1문항은 선택지 비율 대상에서 제외했습니다.</p></div>
+            {questionGroup === 'followup' ? <>
+              {relatedPreQuestions(selectedQuestion.id).length ? <section className={styles.ratioSection}><h3>사전 관련 문항</h3>{relatedPreQuestions(selectedQuestion.id).map((question) => <DistributionCard key={question.id} stage="사전" question={question} rows={people} />)}</section> : <p className={styles.noRelated}>직접 연결되는 사전 문항은 없습니다.</p>}
+              <section className={styles.ratioSection}><h3>중간 · 사후</h3><div className={styles.ratioGrid}>
+                <DistributionCard stage="중간" question={selectedQuestion} rows={midRows} />
+                <DistributionCard stage="사후" question={getStageQuestions('post').find((question) => question.id === selectedQuestion.id)!} rows={postRows} />
+              </div></section>
+            </> : <section className={styles.ratioSection}><h3>사전</h3><DistributionCard stage="사전" question={selectedQuestion} rows={people} /></section>}
+          </div>
         </div>
       </div>}
   </main>;

@@ -42,3 +42,7 @@ export function scoreChange(q: SurveyQuestion, mid?: SurveyRow, post?: SurveyRow
   if (typeof a !== 'string' || typeof b !== 'string' || !q.options?.some((o) => o.value === a) || !q.options.some((o) => o.value === b)) return null;
   return Number(b) - Number(a);
 }
+
+export function choiceChangeLabel(change: number | null) {
+  return change === null ? '비교 대기' : change > 0 ? '더 긍정적인 선택지' : change < 0 ? '덜 긍정적인 선택지' : '같은 선택지';
+}

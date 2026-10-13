@@ -7,7 +7,7 @@ import { SurveyQuestion, formatAnswerLabel } from '@/lib/survey-questions';
 import SurveyMindMap, { SummaryQuestion } from '@/components/SurveyMindMap';
 import { SURVEY_STAGES, getStageQuestions, FOLLOWUP_VERSION, FOLLOWUP_SECTION_LABELS, type SurveyStage } from '@/lib/survey-stages';
 import { followupId, followupPayload, positiveExample, isRecorded, visibleFollowup, interviewText, type SurveyRow } from '@/lib/survey-records';
-import { COMMON_PRE, relatedPreQuestions, trendFollowup, scoreChange } from '@/lib/survey-trends';
+import { COMMON_PRE, choiceChangeLabel, relatedPreQuestions, trendFollowup, scoreChange } from '@/lib/survey-trends';
 import SurveyParticipantTrend from '@/components/SurveyParticipantTrend';
 import SurveyFollowupEditor from '@/components/SurveyFollowupEditor';
 
@@ -364,12 +364,12 @@ export default function SurveyAdminPage() {
       const ws = wb.addWorksheet(trendExample ? '예시 데이터 추이 (성과 제외)' : '개인별 답변 추이');
       const mid = trendFollowup(rows, selectedParticipant.id, 'mid', trendExample);
       const post = trendFollowup(rows, selectedParticipant.id, 'post', trendExample);
-      ws.addRow([trendExample ? '환자명 (예시 데이터·성과 제외)' : '환자명', '보호자명', '문항', '사전 관련 원답변 (척도 다름)', '중간', '사후', '중간→사후 점수차', '중간 조사일', '사후 조사일']);
+      ws.addRow([trendExample ? '환자명 (예시 데이터·성과 제외)' : '환자명', '보호자명', '문항', '사전 관련 원답변', '중간 선택지', '사후 선택지', '중간→사후 선택지 변화', '중간 조사일', '사후 조사일']);
       getStageQuestions('mid').forEach((q) => ws.addRow([
         selectedParticipant.patientName, selectedParticipant.caregiverName, `${q.id}. ${q.title}`,
         relatedPreQuestions(q.id).map((pre) => `${pre.id}. ${pre.title}: ${formatAnswerLabel(pre, selectedParticipant.answers)}`).join('\n') || '대응 사전 문항 없음',
         mid ? formatAnswerLabel(q, mid.answers) : '미입력', post ? formatAnswerLabel(q, post.answers) : '미입력',
-        scoreChange(q, mid, post, trendExample), mid?.collectedOn ?? '', post?.collectedOn ?? '',
+        choiceChangeLabel(scoreChange(q, mid, post, trendExample)), mid?.collectedOn ?? '', post?.collectedOn ?? '',
       ]));
       ws.addRow(['인터뷰 원문', '', '', '', mid?.interviewNotes ?? '', post?.interviewNotes ?? '']);
       ws.getRow(1).font = { bold: true };

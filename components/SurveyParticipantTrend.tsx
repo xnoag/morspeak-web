@@ -2,7 +2,7 @@
 
 import { getStageQuestions } from '@/lib/survey-stages';
 import { formatAnswerLabel } from '@/lib/survey-questions';
-import { relatedPreQuestions, trendFollowup, scoreChange } from '@/lib/survey-trends';
+import { choiceChangeLabel, relatedPreQuestions, trendFollowup, scoreChange } from '@/lib/survey-trends';
 import { interviewText, type SurveyRow } from '@/lib/survey-records';
 
 export default function SurveyParticipantTrend({ source, rows, example, onExampleChange }: { source: SurveyRow; rows: SurveyRow[]; example: boolean; onExampleChange: (value: boolean) => void }) {
@@ -13,11 +13,11 @@ export default function SurveyParticipantTrend({ source, rows, example, onExampl
   return <div>
     <div role="group" aria-label="추이 자료 구분" style={{ display: 'flex', gap: 8, marginBottom: 16 }}>{([false, true] as const).map((value) => <button key={String(value)} aria-pressed={example === value} onClick={() => onExampleChange(value)} style={{ minHeight: 44, border: '1px solid #c7c7cc', borderRadius: 9999, padding: '0 16px', background: example === value ? '#1d1d1f' : '#fff', color: example === value ? '#fff' : '#1d1d1f', cursor: 'pointer' }}>{value ? '내부 기록' : '확정 응답'}</button>)}</div>
     <h1 style={{ fontSize: 20, marginTop: 0 }}>{source.patientName || '환자명 없음'} · 개인별 답변 추이</h1>
-    <p style={{ fontSize: 13, color: '#636366', lineHeight: 1.6 }}>보호자 {source.caregiverName || '—'} · 사전 원답변과 중간·사후 답변을 함께 확인합니다. 사전은 문항과 척도가 달라 관련 원문만 표시하며 점수를 환산하지 않습니다.</p>
+    <p style={{ fontSize: 13, color: '#636366', lineHeight: 1.6 }}>보호자 {source.caregiverName || '—'} · 사전 원답변과 중간·사후에서 선택한 보기를 함께 확인합니다.</p>
     <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 13, padding: '12px 0' }}>
       <span>사전: 기록 있음</span><span>중간: {mid ? mid.collectedOn || '기록 있음' : '미입력'}</span><span>사후: {post ? post.collectedOn || '기록 있음' : '미입력'}</span>
     </div>
-    {changes.length > 0 && <p style={{ fontSize: 13 }}>중간 → 사후 · 점수 상승 {changes.filter((v) => v > 0).length}문항 · 동일 {changes.filter((v) => v === 0).length}문항 · 하락 {changes.filter((v) => v < 0).length}문항</p>}
+    {changes.length > 0 && <p style={{ fontSize: 13 }}>중간 → 사후 · 더 긍정적인 선택지 {changes.filter((v) => v > 0).length}문항 · 같은 선택지 {changes.filter((v) => v === 0).length}문항 · 덜 긍정적인 선택지 {changes.filter((v) => v < 0).length}문항</p>}
     <p style={{ fontSize: 12, color: '#636366' }}>좁은 화면에서는 표를 좌우로 움직여 사전·중간·사후 답변을 확인할 수 있습니다.</p>
     <div style={{ overflowX: 'auto', background: '#fff', borderRadius: 12, border: '1px solid #e5e5ea' }}>
       <table style={{ width: '100%', minWidth: 780, borderCollapse: 'collapse', fontSize: 13, textAlign: 'left' }}>
@@ -28,8 +28,8 @@ export default function SurveyParticipantTrend({ source, rows, example, onExampl
           return <tr key={q.id}>
             <th style={{ padding: 14, width: '24%', fontWeight: 500, borderBottom: '1px solid #e5e5ea', verticalAlign: 'top' }}>{q.id}. {q.title}</th>
             <td style={{ padding: 14, width: '24%', borderBottom: '1px solid #e5e5ea', verticalAlign: 'top', whiteSpace: 'pre-wrap' }}>{related.length === 0 ? '대응 사전 문항 없음' : related.map((pre) => <div key={pre.id} style={{ marginBottom: 8 }}><small style={{ color: '#636366' }}>{pre.id}. {pre.title}</small><div>{formatAnswerLabel(pre, source.answers)}</div></div>)}</td>
-            {[mid, post].map((record, i) => <td key={i} style={{ padding: 14, width: '20%', borderBottom: '1px solid #e5e5ea', verticalAlign: 'top', whiteSpace: 'pre-wrap' }}>{record ? `${record.answers[q.id] ?? '—'}점 · ${formatAnswerLabel(q, record.answers)}` : '미입력'}</td>)}
-            <td style={{ padding: 14, borderBottom: '1px solid #e5e5ea', verticalAlign: 'top', whiteSpace: 'nowrap' }}>{change === null ? '비교 대기' : change === 0 ? '동일' : `${change > 0 ? '↑ +' : '↓ '}${change}점`}</td>
+            {[mid, post].map((record, i) => <td key={i} style={{ padding: 14, width: '20%', borderBottom: '1px solid #e5e5ea', verticalAlign: 'top', whiteSpace: 'pre-wrap' }}>{record ? formatAnswerLabel(q, record.answers) : '미입력'}</td>)}
+            <td style={{ padding: 14, borderBottom: '1px solid #e5e5ea', verticalAlign: 'top' }}>{choiceChangeLabel(change)}</td>
           </tr>;
         })}</tbody>
       </table>

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { getStageQuestions, FOLLOWUP_SECTION_LABELS } from '@/lib/survey-stages';
-import { COMMON_PRE, commonPreScore, relatedPreQuestions, scoreChange, trendFollowup } from '@/lib/survey-trends';
+import { COMMON_PRE, choiceChangeLabel, relatedPreQuestions, scoreChange, trendFollowup } from '@/lib/survey-trends';
 import type { SurveyRow } from '@/lib/survey-records';
 import type { SurveyQuestion } from '@/lib/survey-questions';
 import styles from './trends.module.css';
@@ -20,6 +20,10 @@ function preAnswer(row: SurveyRow, question: SurveyQuestion) {
   const answer = row.answers?.[question.id];
   const values = Array.isArray(answer) ? answer : [answer];
   return values.map((value) => question.options?.find((option) => option.value === value)?.label).filter(Boolean).join(' · ') || '응답 없음';
+}
+
+function choiceAnswer(value: string | null, question: SurveyQuestion) {
+  return value === null ? '응답 없음' : question.options?.find((option) => option.value === value)?.label ?? '응답 없음';
 }
 
 function stageRows(rows: SurveyRow[], sourceId: string) {
@@ -68,29 +72,29 @@ export default function AnonymousTrendsPage() {
             const pair = stageRows(rows, entry.id);
             const gains = questions.filter((question) => { const value = delta(question, pair.mid, pair.post); return value !== null && value > 0; }).length;
             return <button key={entry.id} className={`${styles.person} ${selected === index ? styles.active : ''}`} aria-current={selected === index ? 'true' : undefined} onClick={() => setSelected(index)}>
-              <span>참여자 {String(index + 1).padStart(2, '0')}</span><small>{pair.mid && pair.post ? `중간→사후 ${gains} 상승` : '비교 대기'}</small>
+              <span>참여자 {String(index + 1).padStart(2, '0')}</span><small>{pair.mid && pair.post ? `중간→사후 ${gains}문항 긍정 방향` : '비교 대기'}</small>
             </button>;
           })}</div>
         </nav>
         <div className={styles.content}>
           <div className={styles.overview}>
-            <div><span className={styles.eyebrow}>참여자 {String(selected + 1).padStart(2, '0')}</span><h2>사전 → 중간 → 사후</h2><p>각 문항의 관련 사전 답변부터 중간·사후 답변까지 따라갑니다. 사전은 질문과 척도가 달라 답변 내용으로 비교합니다.</p></div>
-            <div><span className={styles.stage}>중간 → 사후 점수 변화</span><div className={styles.metrics} aria-label="중간에서 사후 변화 요약"><span><strong>{improved}</strong> 상승</span><span><strong>{same}</strong> 유지</span><span><strong>{lower}</strong> 하락</span><span><strong>{questions.length - comparable}</strong> 비교 대기</span></div></div>
+            <div><span className={styles.eyebrow}>참여자 {String(selected + 1).padStart(2, '0')}</span><h2>사전 → 중간 → 사후</h2><p>각 시점에 선택한 답변을 문장 그대로 따라갑니다. 질문 문구가 다른 항목은 관련 답변으로 연결합니다.</p></div>
+            <div><span className={styles.stage}>중간 → 사후 선택지 변화</span><div className={styles.metrics} aria-label="중간에서 사후 선택지 변화 요약"><span><strong>{improved}</strong>긍정 방향</span><span><strong>{same}</strong>같은 선택지</span><span><strong>{lower}</strong>반대 방향</span><span><strong>{questions.length - comparable}</strong>비교 대기</span></div></div>
           </div>
           <section className={styles.common} aria-label="사전·중간·사후 공통 주제 추이">
             <h3>세 번 공통으로 살펴본 주제</h3>
-            <p>사전의 5단계 보기 순서를 0–4로 놓은 참고 추이입니다. 질문 표현이 완전히 같지는 않아 점수 차이는 성과 수치로 합산하지 않습니다.</p>
+            <p>세 시점에서 고른 선택지 문장을 그대로 보여줍니다. 질문 표현이 달라 답변 내용을 함께 살펴봐야 합니다.</p>
             <div className={styles.commonGrid}>{COMMON_PRE.map(({ id, label }) => {
               const question = questions.find((item) => item.id === id)!;
-              const preScore = commonPreScore(id, person);
-              const midScore = response(mid, question);
-              const postScore = response(post, question);
+              const preQuestion = relatedPreQuestions(id)[0];
+              const midValue = response(mid, question);
+              const postValue = response(post, question);
               return <article className={styles.commonCard} key={id}>
                 <h4>{label} <small>{id}</small></h4>
                 <div className={styles.commonPath}>
-                  <span>사전<strong>{preScore ?? '—'}</strong></span><b aria-hidden="true">→</b>
-                  <span>중간<strong>{midScore ?? '—'}</strong></span><b aria-hidden="true">→</b>
-                  <span>사후<strong>{postScore ?? '—'}</strong></span>
+                  <span><small>사전</small><strong>{preQuestion ? preAnswer(person, preQuestion) : '응답 없음'}</strong></span><b aria-hidden="true">↓</b>
+                  <span><small>중간</small><strong>{choiceAnswer(midValue, question)}</strong></span><b aria-hidden="true">↓</b>
+                  <span><small>사후</small><strong>{choiceAnswer(postValue, question)}</strong></span>
                 </div>
               </article>;
             })}</div>
@@ -99,19 +103,18 @@ export default function AnonymousTrendsPage() {
             <h3><span>{section}</span> {FOLLOWUP_SECTION_LABELS[section]}</h3>
             {questions.filter((question) => question.section === section).map((question) => {
               const before = relatedPreQuestions(question.id);
-              const preScore = commonPreScore(question.id, person);
               const midValue = response(mid, question);
               const postValue = response(post, question);
               const change = delta(question, mid, post);
-              const state = change === null ? '비교 대기' : change > 0 ? `↑ ${change}점 상승` : change < 0 ? `↓ ${Math.abs(change)}점 하락` : '→ 유지';
+              const state = choiceChangeLabel(change);
               return <article className={styles.card} key={question.id}>
                 <div className={styles.question}><span className={styles.questionId}>{question.id}</span><h4>{question.title}</h4></div>
                 <div className={styles.answers}>
-                  <div className={styles.pre}><span className={styles.stage}>① 사전 · 관련 문항{preScore !== null ? ` · 참고 ${preScore}/4` : ''}</span>{before.length ? before.map((source) => <p key={source.id}><b>{source.id}</b> {source.title}<em>{preAnswer(person, source)}</em></p>) : <p>연결할 사전 문항 없음</p>}</div>
-                  <div className={styles.arrow}><span aria-hidden="true">→</span><small>{preScore === null || midValue === null ? '내용 비교' : Number(midValue) > preScore ? `↑ ${Number(midValue) - preScore}단계 참고` : Number(midValue) < preScore ? `↓ ${preScore - Number(midValue)}단계 참고` : '→ 유지 참고'}</small></div>
-                  <div className={styles.stageAnswer}><span className={styles.stage}>② 중간</span><strong>{midValue ?? '—'}</strong><small>{midValue === null ? '응답 없음' : question.options?.find((option) => option.value === midValue)?.label}</small></div>
+                  <div className={styles.pre}><span className={styles.stage}>① 사전 · 관련 문항</span>{before.length ? before.map((source) => <p key={source.id}><b>{source.id}</b> {source.title}<em>{preAnswer(person, source)}</em></p>) : <p>연결할 사전 문항 없음</p>}</div>
+                  <div className={styles.arrow}><span aria-hidden="true">→</span><small>관련 응답</small></div>
+                  <div className={styles.stageAnswer}><span className={styles.stage}>② 중간</span><strong>{choiceAnswer(midValue, question)}</strong></div>
                   <div className={`${styles.arrow} ${change !== null && change > 0 ? styles.up : ''}`}><span aria-hidden="true">→</span><small>{state}</small></div>
-                  <div className={styles.stageAnswer}><span className={styles.stage}>③ 사후</span><strong>{postValue ?? '—'}</strong><small>{postValue === null ? '응답 없음' : question.options?.find((option) => option.value === postValue)?.label}</small></div>
+                  <div className={styles.stageAnswer}><span className={styles.stage}>③ 사후</span><strong>{choiceAnswer(postValue, question)}</strong></div>
                 </div>
               </article>;
             })}

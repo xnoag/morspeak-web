@@ -15,6 +15,22 @@ export function relatedPreQuestions(id: string) {
   return (RELATED_PRE[id] ?? []).map((key) => SURVEY_QUESTIONS.find((q) => q.id === key)!);
 }
 
+// 세 시점 모두 같은 방향의 5단계 보기로 묻는 핵심 주제만 참고 추이에 포함한다.
+export const COMMON_PRE = [
+  { id: 'A-1', preId: 'B1', label: '의사 파악' },
+  { id: 'A-3', preId: 'B6', label: '소통 범위' },
+  { id: 'D-3', preId: 'B4', label: '대신 설명' },
+] as const;
+
+export function commonPreScore(id: string, row: SurveyRow) {
+  const preId = COMMON_PRE.find((item) => item.id === id)?.preId;
+  const question = SURVEY_QUESTIONS.find((item) => item.id === preId);
+  const answer = preId && row.answers?.[preId];
+  if (row.surveyType !== 'pre' || !question?.options || question.options.length !== 5 || typeof answer !== 'string') return null;
+  const index = question.options.findIndex((option) => option.value === answer);
+  return index < 0 ? null : index;
+}
+
 export function trendFollowup(rows: SurveyRow[], sourceId: string, stage: 'mid' | 'post', example = false) {
   return rows.find((r) => r.sourceResponseId === sourceId && r.surveyType === stage && r.recordStatus === (example ? 'example' : 'recorded') && r.surveyVersion === FOLLOWUP_VERSION);
 }

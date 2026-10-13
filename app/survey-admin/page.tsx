@@ -488,6 +488,7 @@ export default function SurveyAdminPage() {
           ))}
         </div>
         <span style={{ fontSize: 12, color: '#636366' }}>{stage === 'pre' ? 'A · B · C' : 'A~E 공통 · H 변화 (6/24)'}</span>
+        <a href="/survey-admin/trends" onClick={(event) => { if (!canLeaveEntry()) event.preventDefault(); }} style={{ minHeight: 44, display: 'inline-flex', alignItems: 'center', padding: '0 16px', borderRadius: 9999, background: '#eaf3ff', color: '#0066cc', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>익명 변화 보기</a>
         <button disabled={loading || preparingExamples} onClick={prepareExamples} style={{ minHeight: 44, border: '1px solid #c7c7cc', borderRadius: 9999, padding: '0 12px', background: '#fff', cursor: 'pointer', fontFamily: F, fontSize: 12 }}>{preparingExamples ? '준비 중…' : '전체 기록 준비'}</button>
         {isMobile && <select aria-label="보기 방식" value={viewMode} onChange={(e) => { if (canLeaveEntry()) { if (e.target.value === 'entry' && selectedParticipant) editParticipant(selectedParticipant); else setViewMode(e.target.value as typeof viewMode); } }} style={{ minHeight: 44, fontFamily: F, fontSize: 13, marginLeft: 'auto' }}>
           {stage !== 'pre' && <option value="entry">수기 입력</option>}<option value="trend">추이보기</option><option value="questions">설문지</option><option value="summary">요약보기</option><option value="detail">상세보기</option><option value="table">표로보기</option>

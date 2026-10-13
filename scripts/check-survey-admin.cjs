@@ -74,8 +74,18 @@ assert.equal(distribution.options.find(option=>option.value==='b').percent,100);
 assert.equal(distribution.options.find(option=>option.value==='d').percent,50);
 const page = load(path.join(root, 'app/survey-admin/page.tsx')).default;
 const fixture = ['pre','mid','post'].map((surveyType) => ({id:surveyType === 'pre' ? 'pre' : `${surveyType}_pre`, surveyType, surveyVersion: surveyType === 'pre' ? 'v1' : schema.FOLLOWUP_VERSION, recordStatus: 'recorded', sourceResponseId: surveyType === 'pre' ? undefined : 'pre', caregiverName:'검증 보호자 1', patientName:'검증 환자 1', caregiverContact:null, deviceType:'mobile', answers:Object.fromEntries(schema.getStageQuestions(surveyType).map(q=>[q.id,q.type==='multi'?['a']:surveyType === 'pre' ? 'd' : '3']))}));
+const share=load(path.join(root,'lib/survey-share.ts'));
+const shared=share.sharedSurveyRows([
+  {...fixture[0],id:'raw-private-id',caregiverContact:'010-private',answers:{...fixture[0].answers,A4:'private-free-text'}},
+  {...fixture[1],sourceResponseId:'raw-private-id',answers:{...fixture[1].answers,'A-1_comment':'private-comment'},interviewNotes:'private-interview'},
+  {...fixture[2],sourceResponseId:'raw-private-id'},
+]);
+assert.equal(shared.length,3);
+assert.equal(shared[0].id,'participant-01');
+assert.equal(shared[1].sourceResponseId,'participant-01');
+assert.ok(!['raw-private-id','010-private','private-free-text','private-comment','private-interview','검증 보호자'].some(value=>JSON.stringify(shared).includes(value)));
 const q=schema.getStageQuestions('mid')[0];
-const anonymousPage=load(path.join(root,'app/survey-admin/trends/page.tsx')).default;
+const anonymousPage=load(path.join(root,'app/survey-share/page.tsx')).default;
 const anonymousRows=fixture.map(row=>({...row,answers:{...row.answers}}));
 anonymousRows[2].answers[q.id]='4';
 stateValues=[anonymousRows,false,'',0];stateIndex=0;

@@ -1,7 +1,7 @@
 import type { SurveyQuestion } from './survey-questions';
 import type { SurveyRow } from './survey-records';
 
-export function surveyDistribution(question: SurveyQuestion, rows: SurveyRow[]) {
+export function surveyDistribution(question: SurveyQuestion, rows: Pick<SurveyRow, 'answers'>[]) {
   const options = question.options ?? [];
   const valid = new Set(options.map((option) => option.value));
   const counts = new Map(options.map((option) => [option.value, 0]));

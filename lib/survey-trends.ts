@@ -31,6 +31,6 @@ export function commonPreScore(id: string, row: SurveyRow) {
   return index < 0 ? null : index;
 }
 
-export function trendFollowup(rows: SurveyRow[], sourceId: string, stage: 'mid' | 'post', example = false) {
+export function trendFollowup<T extends Pick<SurveyRow, 'sourceResponseId' | 'surveyType' | 'recordStatus' | 'surveyVersion'>>(rows: T[], sourceId: string, stage: 'mid' | 'post', example = false) {
   return rows.find((r) => r.sourceResponseId === sourceId && r.surveyType === stage && r.recordStatus === (example ? 'example' : 'recorded') && r.surveyVersion === FOLLOWUP_VERSION);
 }

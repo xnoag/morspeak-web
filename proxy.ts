@@ -17,7 +17,7 @@ export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   const isProtected =
-    PROTECTED_PREFIXES.some(p => pathname.startsWith(p)) && !pathname.startsWith('/tracking/login')
+    PROTECTED_PREFIXES.some(p => pathname.startsWith(p)) && !pathname.startsWith('/tracking/login') && pathname !== '/survey-admin/trends'
 
   if (isProtected) {
     const session = req.cookies.get('admin_session')

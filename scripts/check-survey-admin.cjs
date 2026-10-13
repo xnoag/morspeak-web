@@ -65,6 +65,7 @@ stateValues=[anonymousRows,false,'',0];stateIndex=0;
 let anonymousHtml=renderToStaticMarkup(React.createElement(anonymousPage));
 assert.ok(anonymousHtml.includes('참여자 01') && anonymousHtml.includes('20문항'));
 assert.ok(anonymousHtml.includes('1점 상승'));
+assert.ok(anonymousHtml.indexOf('① 사전') < anonymousHtml.indexOf('② 중간') && anonymousHtml.indexOf('② 중간') < anonymousHtml.indexOf('③ 사후'));
 assert.ok(!anonymousHtml.includes('검증 환자 1') && !anonymousHtml.includes('검증 보호자 1'));
 anonymousRows[2].recordStatus='example';
 stateValues=[anonymousRows,false,'',0];stateIndex=0;
@@ -83,7 +84,7 @@ assert.equal(trends.scoreChange(q,{...fixture[1],recordStatus:'example'},{...fix
 assert.equal(trends.scoreChange(q,fixture[1],{...fixture[2],recordStatus:'example'},true),null);
 assert.equal(trends.relatedPreQuestions('A-1')[0].id,'B1');
 assert.equal(trends.relatedPreQuestions('H-1')[0].id,'B1');
-assert.equal(trends.relatedPreQuestions('D-2').length,0);
+assert.equal(trends.relatedPreQuestions('D-2').map(q=>q.id).join(','),'B16,B5');
 assert.equal(trends.trendFollowup(fixture,'another-person','mid'),undefined);
 assert.equal(trends.trendFollowup(fixture,'pre','mid').id,'mid_pre');
 fixture.push({...fixture[1],id:'example_mid_pre',recordStatus:'example',patientName:'가상 기록 제외 검사'});

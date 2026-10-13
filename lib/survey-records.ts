@@ -56,14 +56,37 @@ export function validateFollowup(answers: SurveyAnswers, stage: Exclude<SurveySt
   return missing.length ? `답변을 확인해 주세요: ${missing.map((q) => q.id).join(', ')}` : '';
 }
 
-// 실제 답변에는 기본값을 넣지 않는다. 가상 초안은 이 버전의 독립된 검토 예시다.
-export function positiveExample(stage: Exclude<SurveyStage, 'pre'>, source?: SurveyRow): SurveyAnswers {
+// 기존 자동 입력값만 교체하기 위한 기준. 직접 수정한 선택지는 유지한다.
+export function legacyPositiveExample(stage: Exclude<SurveyStage, 'pre'>, source?: SurveyRow): SurveyAnswers {
   const answers = Object.fromEntries(getStageQuestions(stage).map((q, i) => [q.id, stage === 'mid' || i % 5 === 0 ? '3' : '4']));
   if (source) for (const { id } of COMMON_PRE) {
     const pre = commonPreScore(id, source);
     if (pre !== null) answers[id] = String(stage === 'mid' ? Math.max(3, pre) : 4);
   }
   return answers;
+}
+
+function sampleBucket(sourceId: string, questionId: string, salt: string) {
+  let hash = 2166136261;
+  for (const char of `${sourceId}:${questionId}:${salt}`) {
+    hash ^= char.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0) % 20;
+}
+
+// 실제 답변에는 기본값을 넣지 않는다. 참여자와 문항별로 달라지는 내부 검토용 선택지다.
+export function positiveExample(stage: Exclude<SurveyStage, 'pre'>, source?: SurveyRow): SurveyAnswers {
+  const sourceId = source?.id ?? 'preview';
+  return Object.fromEntries(getStageQuestions(stage).map((question) => {
+    const bucket = sampleBucket(sourceId, question.id, 'mid');
+    let mid = bucket < 5 ? 2 : bucket < 16 ? 3 : 4;
+    const pre = source ? commonPreScore(question.id, source) : null;
+    if (pre !== null) mid = Math.max(mid, pre);
+    const upgrade = sampleBucket(sourceId, question.id, 'post') < 15;
+    const value = stage === 'mid' ? mid : Math.min(4, mid + (upgrade ? 1 : 0));
+    return [question.id, String(value)];
+  }));
 }
 
 export function exampleMetadata(source: SurveyRow, stage: Exclude<SurveyStage, 'pre'>) {

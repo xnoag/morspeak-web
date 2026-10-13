@@ -6,8 +6,8 @@ import { db } from '@/lib/firebase';
 import { SurveyQuestion, formatAnswerLabel } from '@/lib/survey-questions';
 import SurveyMindMap, { SummaryQuestion } from '@/components/SurveyMindMap';
 import { SURVEY_STAGES, getStageQuestions, FOLLOWUP_VERSION, FOLLOWUP_SECTION_LABELS, type SurveyStage } from '@/lib/survey-stages';
-import { followupId, followupPayload, positiveExample, isRecorded, visibleFollowup, interviewText, type SurveyRow } from '@/lib/survey-records';
-import { COMMON_PRE, relatedPreQuestions, trendFollowup } from '@/lib/survey-trends';
+import { followupId, followupPayload, positiveExample, legacyPositiveExample, isRecorded, visibleFollowup, interviewText, type SurveyRow } from '@/lib/survey-records';
+import { relatedPreQuestions, trendFollowup } from '@/lib/survey-trends';
 import SurveyParticipantTrend from '@/components/SurveyParticipantTrend';
 import SurveyFollowupEditor from '@/components/SurveyFollowupEditor';
 
@@ -275,11 +275,11 @@ export default function SurveyAdminPage() {
               const questionTimes = { ...payload.questionTimes, ...previous.questionTimes };
               const deviceType = ['mobile', 'tablet', 'desktop'].includes(previous.deviceType) ? previous.deviceType : payload.deviceType;
               const answers = { ...previous.answers };
-              const baseline = positiveExample(phase);
-              for (const { id: questionId } of COMMON_PRE) {
-                if (answers[questionId] === baseline[questionId]) answers[questionId] = payload.answers[questionId];
+              const baseline = legacyPositiveExample(phase, person);
+              for (const question of getStageQuestions(phase)) {
+                if (answers[question.id] === undefined || answers[question.id] === baseline[question.id]) answers[question.id] = payload.answers[question.id];
               }
-              if (Object.keys(payload.questionTimes ?? {}).every((key) => previous.questionTimes?.[key] > 0) && deviceType === previous.deviceType && COMMON_PRE.every(({ id: questionId }) => answers[questionId] === previous.answers?.[questionId])) return false;
+              if (Object.keys(payload.questionTimes ?? {}).every((key) => previous.questionTimes?.[key] > 0) && deviceType === previous.deviceType && getStageQuestions(phase).every((question) => answers[question.id] === previous.answers?.[question.id])) return false;
               const { revisionHistory = [], ...prior } = previous;
               const updated = { ...previous, answers, questionTimes, deviceType, revision: (previous.revision ?? 0) + 1, revisionHistory: [...revisionHistory, prior] };
               transaction.set(ref, { ...updated, updatedAt: serverTimestamp() });

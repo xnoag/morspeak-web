@@ -48,9 +48,15 @@ assert.equal(records.isRecorded({recordStatus:'recorded'}),true);
 assert.ok(records.validateFollowup({}, 'mid', '2026-08-01').includes('A-1'));
 assert.ok(records.validateFollowup(records.positiveExample('mid'), 'mid', '2026-02-30'));
 assert.equal(records.validateFollowup(records.positiveExample('mid'), 'mid', '2026-08-01'), '');
-assert.ok(Object.values(records.positiveExample('mid')).every(v=>v==='3'));
-assert.equal(Object.values(records.positiveExample('post')).filter(v=>v==='4').length,16);
-assert.equal(Object.values(records.positiveExample('post')).filter(v=>v==='3').length,4);
+assert.ok(Object.values(records.legacyPositiveExample('mid')).every(v=>v==='3'));
+const samplePeople=Array.from({length:19},(_,i)=>({id:`sample-${i}`,surveyType:'pre',answers:{}}));
+for(const question of schema.getStageQuestions('mid')) {
+  const mids=samplePeople.map(person=>Number(records.positiveExample('mid',person)[question.id]));
+  const posts=samplePeople.map(person=>Number(records.positiveExample('post',person)[question.id]));
+  assert.ok(new Set(mids).size>=2,`${question.id} 중간 선택지 다양성`);
+  assert.ok(new Set(posts).size>=2,`${question.id} 사후 선택지 다양성`);
+  assert.ok(mids.every((value,i)=>value<=posts[i]),`${question.id} 중간→사후 역행 없음`);
+}
 assert.equal(records.cleanFollowupAnswers({'A-1':'99', 'S-1':'사전 인터뷰'},'mid')['A-1'],undefined);
 assert.equal(records.followupId('pre_person','mid'), 'mid_pre_person');
 assert.equal(records.followupId('pre_person','mid',true), 'example_mid_pre_person');
@@ -229,7 +235,7 @@ allowDiscard=false;
   await findExport(page(),'전체 기록 준비')();
   assert.equal(lastWrite.recordStatus,'example');assert.equal(lastWrite.surveyType,'post');
   assert.equal(lastWrite.sourceResponseId,'pre');
-  assert.equal(Object.values(lastWrite.answers).filter(v=>v==='4').length,17);
+  assert.deepEqual(lastWrite.answers,records.positiveExample('post',fixture[0]));
   previousRecord={recordStatus:'example',sourceResponseId:'pre',surveyVersion:schema.FOLLOWUP_VERSION,answers:{'A-1':'1'},deviceType:'manual'};lastWrite=undefined;
   stateValues=[false,[fixture[0]],false,'','pre','',null,null,'detail'];stateIndex=0;
   await findExport(page(),'전체 기록 준비')();
@@ -241,15 +247,13 @@ allowDiscard=false;
   previousRecord=lastWrite;lastWrite=undefined;
   stateValues=[false,[fixture[0]],false,'','pre','',null,null,'detail'];stateIndex=0;
   await findExport(page(),'전체 기록 준비')();
-  assert.equal(lastWrite,undefined); // 이미 기입된 값과 답변은 보존한다.
-  previousRecord={recordStatus:'example',sourceResponseId:'pre',surveyVersion:schema.FOLLOWUP_VERSION,answers:records.positiveExample('post'),questionTimes:Object.fromEntries(schema.getStageQuestions('post').map(q=>[q.id,30])),deviceType:'mobile',revision:1,revisionHistory:[]};lastWrite=undefined;
+  assert.equal(lastWrite.answers['A-1'],'1'); // 직접 수정한 보기는 다음 준비에서도 보존한다.
+  previousRecord={recordStatus:'example',sourceResponseId:'pre',surveyVersion:schema.FOLLOWUP_VERSION,answers:records.legacyPositiveExample('post',fixture[0]),questionTimes:Object.fromEntries(schema.getStageQuestions('post').map(q=>[q.id,30])),deviceType:'mobile',revision:1,revisionHistory:[]};lastWrite=undefined;
   stateValues=[false,[fixture[0]],false,'','pre','',null,null,'detail'];stateIndex=0;
   await findExport(page(),'전체 기록 준비')();
-  assert.equal(lastWrite.answers['A-1'],'4');
-  assert.equal(lastWrite.answers['A-3'],'4');
-  assert.equal(lastWrite.answers['D-3'],'4');
+  assert.deepEqual(lastWrite.answers,records.positiveExample('post',fixture[0]));
   assert.equal(lastWrite.revision,2);
-  assert.equal(lastWrite.revisionHistory[0].answers['A-1'],'3');
+  assert.equal(lastWrite.revisionHistory[0].answers['A-1'],records.legacyPositiveExample('post',fixture[0])['A-1']);
   previousRecord=undefined;
   const Editor = load(path.join(root,'components/SurveyFollowupEditor.tsx')).default;
   let saved;

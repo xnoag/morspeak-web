@@ -7,7 +7,7 @@ import { SurveyQuestion, formatAnswerLabel } from '@/lib/survey-questions';
 import SurveyMindMap, { SummaryQuestion } from '@/components/SurveyMindMap';
 import { SURVEY_STAGES, getStageQuestions, FOLLOWUP_VERSION, FOLLOWUP_SECTION_LABELS, type SurveyStage } from '@/lib/survey-stages';
 import { followupId, followupPayload, positiveExample, isRecorded, visibleFollowup, interviewText, type SurveyRow } from '@/lib/survey-records';
-import { relatedPreQuestions, trendFollowup, scoreChange } from '@/lib/survey-trends';
+import { COMMON_PRE, relatedPreQuestions, trendFollowup, scoreChange } from '@/lib/survey-trends';
 import SurveyParticipantTrend from '@/components/SurveyParticipantTrend';
 import SurveyFollowupEditor from '@/components/SurveyFollowupEditor';
 
@@ -262,7 +262,7 @@ export default function SurveyAdminPage() {
     for (const person of rows.filter((r) => r.surveyType === 'pre')) {
       for (const phase of ['mid', 'post'] as const) {
         const id = followupId(person.id, phase, true);
-        const payload = followupPayload(person, phase, positiveExample(phase), '', '가상 검토 시나리오: 중간보다 사후에 대부분의 항목이 좋아지고 일부는 같은 상태입니다. 실제 인터뷰 원문이 아닙니다.', 'example');
+        const payload = followupPayload(person, phase, positiveExample(phase, person), '', '가상 검토 시나리오: 중간보다 사후에 대부분의 항목이 좋아지고 일부는 같은 상태입니다. 실제 인터뷰 원문이 아닙니다.', 'example');
         try {
           const made = await runTransaction(db, async (transaction) => {
             const original = await transaction.get(doc(db, 'survey_responses', person.id));
@@ -274,9 +274,14 @@ export default function SurveyAdminPage() {
               if (previous.recordStatus !== 'example' || previous.sourceResponseId !== person.id || previous.surveyVersion !== FOLLOWUP_VERSION) throw new Error('예시 기록의 출처를 확인할 수 없습니다.');
               const questionTimes = { ...payload.questionTimes, ...previous.questionTimes };
               const deviceType = ['mobile', 'tablet', 'desktop'].includes(previous.deviceType) ? previous.deviceType : payload.deviceType;
-              if (Object.keys(payload.questionTimes ?? {}).every((key) => previous.questionTimes?.[key] > 0) && deviceType === previous.deviceType) return false;
+              const answers = { ...previous.answers };
+              const baseline = positiveExample(phase);
+              for (const { id: questionId } of COMMON_PRE) {
+                if (answers[questionId] === baseline[questionId]) answers[questionId] = payload.answers[questionId];
+              }
+              if (Object.keys(payload.questionTimes ?? {}).every((key) => previous.questionTimes?.[key] > 0) && deviceType === previous.deviceType && COMMON_PRE.every(({ id: questionId }) => answers[questionId] === previous.answers?.[questionId])) return false;
               const { revisionHistory = [], ...prior } = previous;
-              const updated = { ...previous, questionTimes, deviceType, revision: (previous.revision ?? 0) + 1, revisionHistory: [...revisionHistory, prior] };
+              const updated = { ...previous, answers, questionTimes, deviceType, revision: (previous.revision ?? 0) + 1, revisionHistory: [...revisionHistory, prior] };
               transaction.set(ref, { ...updated, updatedAt: serverTimestamp() });
               return { ...payload, ...updated, id };
             }

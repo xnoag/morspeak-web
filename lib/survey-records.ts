@@ -1,6 +1,7 @@
 import type { Timestamp } from 'firebase/firestore';
 import { getStageQuestions, FOLLOWUP_VERSION, type SurveyStage } from './survey-stages';
 import type { SurveyAnswers } from './survey-questions';
+import { COMMON_PRE, commonPreScore } from './survey-trends';
 
 export interface SurveyRow {
   id: string;
@@ -56,8 +57,13 @@ export function validateFollowup(answers: SurveyAnswers, stage: Exclude<SurveySt
 }
 
 // 실제 답변에는 기본값을 넣지 않는다. 가상 초안은 이 버전의 독립된 검토 예시다.
-export function positiveExample(stage: Exclude<SurveyStage, 'pre'>): SurveyAnswers {
-  return Object.fromEntries(getStageQuestions(stage).map((q, i) => [q.id, stage === 'mid' || i % 5 === 0 ? '3' : '4']));
+export function positiveExample(stage: Exclude<SurveyStage, 'pre'>, source?: SurveyRow): SurveyAnswers {
+  const answers = Object.fromEntries(getStageQuestions(stage).map((q, i) => [q.id, stage === 'mid' || i % 5 === 0 ? '3' : '4']));
+  if (source) for (const { id } of COMMON_PRE) {
+    const pre = commonPreScore(id, source);
+    if (pre !== null) answers[id] = String(stage === 'mid' ? Math.max(3, pre) : 4);
+  }
+  return answers;
 }
 
 export function exampleMetadata(source: SurveyRow, stage: Exclude<SurveyStage, 'pre'>) {

@@ -91,6 +91,17 @@ assert.equal(trends.commonPreScore('A-1',fixture[0]),3);
 assert.equal(trends.commonPreScore('A-3',{...fixture[0],answers:{...fixture[0].answers,B6:'a'}}),0);
 assert.equal(trends.commonPreScore('D-3',{...fixture[0],answers:{...fixture[0].answers,B4:'e'}}),4);
 assert.equal(trends.commonPreScore('A-2',fixture[0]),null);
+for (const preValue of ['a', 'd', 'e']) {
+  const source = {...fixture[0], answers:{...fixture[0].answers, B1:preValue, B6:preValue, B4:preValue}};
+  const pre = trends.commonPreScore('A-1',source);
+  const mid = records.positiveExample('mid',source);
+  const post = records.positiveExample('post',source);
+  for (const {id} of trends.COMMON_PRE) {
+    assert.ok(trends.commonPreScore(id,source) <= Number(mid[id]));
+    assert.ok(Number(mid[id]) <= Number(post[id]));
+  }
+  assert.equal(mid['A-1'],String(Math.max(3,pre)));
+}
 assert.equal(trends.trendFollowup(fixture,'another-person','mid'),undefined);
 assert.equal(trends.trendFollowup(fixture,'pre','mid').id,'mid_pre');
 fixture.push({...fixture[1],id:'example_mid_pre',recordStatus:'example',patientName:'가상 기록 제외 검사'});
@@ -205,7 +216,7 @@ allowDiscard=false;
   await findExport(page(),'전체 기록 준비')();
   assert.equal(lastWrite.recordStatus,'example');assert.equal(lastWrite.surveyType,'post');
   assert.equal(lastWrite.sourceResponseId,'pre');
-  assert.equal(Object.values(lastWrite.answers).filter(v=>v==='4').length,16);
+  assert.equal(Object.values(lastWrite.answers).filter(v=>v==='4').length,17);
   previousRecord={recordStatus:'example',sourceResponseId:'pre',surveyVersion:schema.FOLLOWUP_VERSION,answers:{'A-1':'1'},deviceType:'manual'};lastWrite=undefined;
   stateValues=[false,[fixture[0]],false,'','pre','',null,null,'detail'];stateIndex=0;
   await findExport(page(),'전체 기록 준비')();
@@ -213,10 +224,19 @@ allowDiscard=false;
   assert.equal(Object.keys(lastWrite.questionTimes).length,20);
   assert.ok(['mobile','tablet','desktop'].includes(lastWrite.deviceType));
   assert.equal(lastWrite.revisionHistory[0].deviceType,'manual');
+  assert.equal(lastWrite.answers['A-1'],'1');
   previousRecord=lastWrite;lastWrite=undefined;
   stateValues=[false,[fixture[0]],false,'','pre','',null,null,'detail'];stateIndex=0;
   await findExport(page(),'전체 기록 준비')();
   assert.equal(lastWrite,undefined); // 이미 기입된 값과 답변은 보존한다.
+  previousRecord={recordStatus:'example',sourceResponseId:'pre',surveyVersion:schema.FOLLOWUP_VERSION,answers:records.positiveExample('post'),questionTimes:Object.fromEntries(schema.getStageQuestions('post').map(q=>[q.id,30])),deviceType:'mobile',revision:1,revisionHistory:[]};lastWrite=undefined;
+  stateValues=[false,[fixture[0]],false,'','pre','',null,null,'detail'];stateIndex=0;
+  await findExport(page(),'전체 기록 준비')();
+  assert.equal(lastWrite.answers['A-1'],'4');
+  assert.equal(lastWrite.answers['A-3'],'4');
+  assert.equal(lastWrite.answers['D-3'],'4');
+  assert.equal(lastWrite.revision,2);
+  assert.equal(lastWrite.revisionHistory[0].answers['A-1'],'3');
   previousRecord=undefined;
   const Editor = load(path.join(root,'components/SurveyFollowupEditor.tsx')).default;
   let saved;

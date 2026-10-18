@@ -485,30 +485,6 @@ function Hero() {
 
 export default function Renewal() {
   const [menu, setMenu] = useState(false);
-  const [active, setActive] = useState<number | null>(null);
-  const dialog = useRef<HTMLDialogElement>(null);
-  const trigger = useRef<HTMLButtonElement | null>(null);
-  useEffect(() => {
-    if (active === null) return;
-    const body = document.body;
-    const previousOverflow = body.style.overflow;
-    body.style.overflow = "hidden";
-    return () => {
-      body.style.overflow = previousOverflow;
-    };
-  }, [active]);
-  function openFeature(index: number, button: HTMLButtonElement) {
-    trigger.current = button;
-    setActive(index);
-    dialog.current?.showModal();
-  }
-  function closeFeature() {
-    dialog.current?.close();
-  }
-  function onDialogClose() {
-    trigger.current?.focus();
-    setActive(null);
-  }
   return (
     <main className={styles.page} lang="ko">
       <a href="#renewal-about" className={styles.skip}>
@@ -540,7 +516,7 @@ export default function Renewal() {
         <button
           type="button"
           className={styles.menuButton}
-          aria-label="메뉴 열기"
+          aria-label={menu ? "메뉴 닫기" : "메뉴 열기"}
           aria-expanded={menu}
           aria-controls="renewal-menu"
           onClick={() => setMenu(!menu)}
@@ -579,7 +555,7 @@ export default function Renewal() {
           <p className={styles.sectionLead}>모스픽은 iPad에서 작은 움직임을 입력으로 활용해 의사소통과 생활 속 선택을 돕는 앱입니다. 입력 방식과 실제 사용 가능성은 개별 평가를 통해 확인합니다.</p>
         </div>
         <Gallery label="모스픽 솔루션">
-          {features.map((card, i) => (
+          {features.map((card) => (
             <article
               className={`${styles.featureCard} ${card.light ? styles.light : ""}`}
               style={{ background: card.bg }}
@@ -597,17 +573,6 @@ export default function Renewal() {
                 <p>{card.title}</p>
                 <h3>{card.body}</h3>
               </div>
-              <button
-                type="button"
-                className={styles.plus}
-                aria-label={`${card.title} 이미지와 설명 확대 보기`}
-                onClick={(e) => openFeature(i, e.currentTarget)}
-              >
-                <img
-                  src={i === 2 ? pc.imgOriginalSvg1 : pc.imgOriginalSvg}
-                  alt=""
-                />
-              </button>
             </article>
           ))}
         </Gallery>
@@ -621,6 +586,8 @@ export default function Renewal() {
           <div className={styles.impactCopy}>
             <p>원하는 말을 전하고, 조명을 조절하거나 음악을 고르는 일. 모스픽은 작은 움직임이 이런 선택으로 이어지도록 설계합니다.</p>
             <p>그 변화는 당사자가 의사를 표현할 통로를 넓히고, 가족·돌봄 제공자와 소통하는 방식에도 영향을 줄 수 있습니다. 실제 사용 결과와 효과는 개인별 사용 환경에서 확인해야 합니다.</p>
+            <p>2026년 7월 스마일게이트 뉴스룸 인터뷰는 한 가족이 필요한 것을 요청하고 음악을 직접 선택한 경험을 소개합니다. 한 사례의 보도 내용이며, 모든 사용자에게 같은 결과가 나타난다는 뜻은 아닙니다.</p>
+            <a className={styles.textLink} href="https://newsroom.smilegate.com/en/lab/morspeak_interview" target="_blank" rel="noreferrer">스마일게이트 뉴스룸 인터뷰 원문 읽기 →</a>
             <Link className={styles.textLink} href="#renewal-journal">만들어 가는 과정 읽기 →</Link>
           </div>
         </div>
@@ -667,8 +634,8 @@ export default function Renewal() {
         <div className={styles.editorialInner}>
           <p className={styles.eyebrow}>기관·기업 협업</p>
           <h2>더 많은 선택의 기회를<br />함께 만들어 갑니다.</h2>
-          <p className={styles.lead}>협회·의료 및 돌봄 기관의 도입·교육 논의와 접근성 기술 협력을 위한 대화를 열어 두고 있습니다.</p>
-          <p>어떤 사람들의 어떤 상황에서 모스픽을 살펴보고 싶은지, 기관의 역할과 협력 구상을 알려 주세요. 가능한 범위는 문의 내용을 바탕으로 함께 검토합니다.</p>
+          <p className={styles.lead}>협회·의료 및 돌봄 기관의 도입·교육 논의를 이어 갑니다. 기업과의 접근성 기술 협력도 제안을 듣고 가능성을 검토합니다.</p>
+          <p>어떤 사람들의 어떤 상황에서 모스픽을 살펴보고 싶은지, 조직의 역할과 협력 구상을 알려 주세요. 제공 범위나 연동 방식은 사전에 약속하지 않고 문의 내용을 바탕으로 검토합니다.</p>
           <Link className={styles.pillLink} href="/contact">협업 문의하기</Link>
         </div>
       </section>
@@ -679,16 +646,16 @@ export default function Renewal() {
           <p className={styles.sectionLead}>현장에서 무엇을 배우고 제품을 어떻게 다듬어 왔는지, 모스픽이 직접 기록한 이야기를 읽어 보세요.</p>
         </div>
         <div className={styles.journalGrid}>
-          <Link href="/articles/250708" className={styles.journalCard}>
+          <Link href="/home/renewal/stories/250708" className={styles.journalCard}>
             <span>현장과 제품</span><h3>국내부터 시작하는 해결 사례</h3>
             <p>직접 만나 사용 과정을 살피고, 피드백을 제품에 반영해 온 이야기.</p><strong>이야기 읽기 →</strong>
           </Link>
-          <Link href="/articles/251124" className={styles.journalCard}>
+          <Link href="/home/renewal/stories/251124" className={styles.journalCard}>
             <span>만드는 사람들</span><h3>Let’Swift에서 전한 모스픽의 여정</h3>
             <p>모스픽을 만들게 된 계기와 입력 기술을 개발해 온 과정.</p><strong>이야기 읽기 →</strong>
           </Link>
         </div>
-        <Link className={styles.textLink} href="/article">모든 이야기 보기 →</Link>
+        <Link className={styles.textLink} href="/home/renewal/stories">모든 이야기 보기 →</Link>
       </section>
       <section className={styles.stories} id="renewal-press">
         <div className={styles.sectionHeader}>
@@ -710,38 +677,6 @@ export default function Renewal() {
           ))}
         </Gallery>
       </section>
-      <dialog
-        ref={dialog}
-        className={styles.dialog}
-        onClose={onDialogClose}
-        onClick={(e) => {
-          if (e.target === e.currentTarget) closeFeature();
-        }}
-        aria-labelledby="renewal-feature-title"
-      >
-        <button
-          className={styles.close}
-          type="button"
-          onClick={closeFeature}
-          aria-label="설명 닫기"
-        >
-          ×
-        </button>
-        {active !== null && (
-          <div>
-            <h2 id="renewal-feature-title">{features[active].title}</h2>
-            <p>{features[active].body}</p>
-            {features[active].image && (
-              <Picture
-                src={features[active].image}
-                small={features[active].small}
-                alt={features[active].alt}
-                className={styles.dialogImage}
-              />
-            )}
-          </div>
-        )}
-      </dialog>
     </main>
   );
 }

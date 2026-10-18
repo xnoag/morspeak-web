@@ -19,8 +19,8 @@ export default function ContactPage() {
           className="text-[16px] text-ms-secondary mb-2 max-w-lg"
           style={{ letterSpacing: "-0.01em", lineHeight: "1.6em" }}
         >
-          협회·의료·돌봄 기관의 도입·교육이나 기업의 접근성 기술 협력을 논의하고 싶다면,
-          조직과 협력 구상을 알려 주시기 바랍니다. 가능한 범위는 문의 내용을 바탕으로 검토합니다.
+          협회·의료·돌봄 기관의 도입·교육이나 기업의 접근성 기술 협력을 제안하려면,
+          조직의 역할과 협력 구상을 알려 주시기 바랍니다. 가능한 범위는 문의 내용을 바탕으로 검토합니다.
         </p>
         <p
           className="text-[13px] text-ms-muted mb-10"

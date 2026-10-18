@@ -1,0 +1,17 @@
+{
+  "head": "19ef1bbfb38538c3c6ea562d0752acadb780c169",
+  "stack": [
+    "Node (package.json): morspeak-web 0.1.0"
+  ],
+  "verify_commands": [],
+  "fingerprint": {
+    "pyproject.toml": "absent",
+    "package.json": [
+      1792312671139927170,
+      896
+    ],
+    "go.mod": "absent",
+    "Cargo.toml": "absent",
+    ".ouroboros/mechanical.toml": "absent"
+  }
+}

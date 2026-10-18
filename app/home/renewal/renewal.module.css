@@ -232,6 +232,13 @@
   text-decoration: underline !important;
   text-underline-offset: 4px;
 }
+.impactCopy .textLink {
+  display: flex;
+  width: fit-content;
+}
+.impactCopy .textLink + .textLink {
+  margin-top: 4px;
+}
 .pillLink {
   display: inline-flex;
   min-height: 44px;
@@ -445,10 +452,12 @@
   margin: 48px var(--gutter) 0;
 }
 .controls button {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: rgba(210, 210, 215, 0.64);
+  display: grid;
+  place-items: center;
 }
 .controls img {
   display: block;
@@ -456,14 +465,6 @@
 .controls button:disabled {
   cursor: default;
   opacity: 0.55;
-}
-@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  .featureCard {
-    transition: transform 0.3s cubic-bezier(0, 0, 0.5, 1);
-  }
-  .featureCard:hover {
-    transform: scale(1.01613);
-  }
 }
 .featureCard {
   height: 720px;
@@ -515,19 +516,6 @@
 }
 .light {
   color: #f5f5f7;
-}
-.plus {
-  position: absolute;
-  right: 20px;
-  bottom: 20px;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: #1d1d1f;
-  z-index: 2;
-}
-.plus img {
-  display: block;
 }
 .resources {
   padding: 160px 0;
@@ -761,57 +749,6 @@
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 3px;
-}
-.dialog {
-  border: 0;
-  border-radius: 28px;
-  padding: 64px;
-  max-width: 800px;
-  width: calc(100% - 40px);
-  max-height: 90svh;
-  color: var(--ink);
-  margin: auto;
-}
-.dialog::backdrop {
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(8px);
-}
-.dialog h2 {
-  font-size: 32px;
-  line-height: 36px;
-}
-.dialog p {
-  margin-top: 16px;
-  font-size: 19px;
-}
-.dialog a {
-  display: block;
-  margin-top: 24px;
-  text-decoration: underline;
-}
-.close {
-  position: absolute;
-  right: 20px;
-  top: 16px;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: #eee;
-  font-size: 28px !important;
-}
-.dialogImage {
-  display: block;
-  margin-top: 24px;
-  height: 360px;
-  overflow: hidden;
-  border-radius: 20px;
-}
-.dialogImage img {
-  height: 100%;
-  max-width: 100%;
-  object-fit: contain;
-  margin: auto;
-  display: block;
 }
 @media (min-width: 735px) and (max-width: 1068px) {
   .nav {
@@ -1110,13 +1047,6 @@
     font-size: 14px;
     line-height: 18px;
     margin-top: 11.195px;
-  }
-  .dialog {
-    padding: 56px 24px 32px;
-  }
-  .dialog h2 {
-    font-size: 28px;
-    line-height: 32px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

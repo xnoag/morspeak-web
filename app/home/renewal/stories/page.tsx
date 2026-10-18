@@ -24,6 +24,7 @@ export default function StoriesPage() {
               <Link className={styles.storyLink} href={`/home/renewal/stories/${story.slug}`}>
                 <span className={styles.date}>{story.date}</span>
                 <h2>{story.title}</h2>
+                <span className={styles.source}>{story.provenance.authorType} · 개발 과정 요약</span>
                 <p>{story.paragraphs[0]}</p>
                 <span className={styles.read}>이야기 읽기 →</span>
               </Link>

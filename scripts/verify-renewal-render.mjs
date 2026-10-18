@@ -91,6 +91,21 @@ try {
     assert.equal(ready.menuVisible, viewport.mobile, `${viewport.name}: wrong navigation mode`);
     assert.ok(ready.heroImageLoaded, `${viewport.name}: hero image did not load`);
     await capture(viewport.name);
+    if (viewport.mobile) {
+      const menu = await evaluate(`(async () => {
+        const button = document.querySelector('button[aria-label="메뉴 열기"]');
+        button?.click();
+        for (let i = 0; i < 20 && !document.querySelector('#renewal-menu'); i++) {
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        return { expanded: button?.getAttribute('aria-expanded'), links: document.querySelectorAll('#renewal-menu a').length };
+      })()`);
+      assert.equal(menu.expanded, 'true', 'mobile menu did not open');
+      assert.equal(menu.links, 7, 'mobile menu must expose all seven sections');
+      await evaluate(`document.querySelector('button[aria-label="메뉴 닫기"]')?.click()`);
+    }
+    await evaluate(`document.querySelector('#renewal-impact')?.scrollIntoView()`);
+    await capture(`${viewport.name}-impact`);
     await evaluate(`document.querySelector('#renewal-journal')?.scrollIntoView()`);
     await capture(`${viewport.name}-stories`);
     console.log(`${viewport.name}: ${ready.width}px, overflow ${ready.scrollWidth}px, hero loaded, navigation correct, screenshots saved`);
@@ -109,7 +124,7 @@ try {
   console.log('mobile-390 contact: institution and company inquiry heading rendered, screenshot saved');
   for (const { path, name, heading } of [
     { path: '/home/renewal/stories', name: 'mobile-390-story-list', heading: '문제를 듣고, 만들고,' },
-    { path: '/home/renewal/stories/250708', name: 'mobile-390-story-detail', heading: '국내부터 시작하는 확실한 해결 사례' },
+    { path: '/home/renewal/stories/250708', name: 'mobile-390-story-detail', heading: '국내에서 사용 과정을 살펴본 기록' },
   ]) {
     await send('Page.navigate', { url: `${base}${path}` });
     const state = await evaluate(`(async () => {

@@ -265,22 +265,12 @@ function InputSymbol({ kind }: { kind: InputKind }) {
 }
 const stories = [
   {
-    source: "모스픽 소식",
-    title: "WWDC에서 모스픽을 소개했습니다",
-    image: "/renewal-reference/morspeak-tim-cook-meeting.jpg",
-    small: "/renewal-reference/morspeak-tim-cook-meeting.jpg",
-    alt: "WWDC에서 모스픽을 소개하는 한가온 대표",
-    href: "/articles/250609",
-    external: false,
-  },
-  {
     source: "스마일게이트 뉴스룸",
-    title: "기술을 통한 사회적 변화에 관한 인터뷰",
+    title: "모스픽의 기술과 일상에 관한 인터뷰",
     image: "/renewal-reference/morspeak-everyday-story-20261008.webp",
     small: "/renewal-reference/morspeak-everyday-story-20261008.webp",
     alt: "침대 옆에서 모스픽을 설명하는 장면",
     href: "https://newsroom.smilegate.com/en/lab/morspeak_interview",
-    external: true,
   },
 ];
 const onboardingSteps = [
@@ -584,9 +574,18 @@ export default function Renewal() {
             <h2>변화는 스스로 선택할 수 있는 순간에서 시작합니다.</h2>
           </div>
           <div className={styles.impactCopy}>
-            <p>원하는 말을 전하고, 조명을 조절하거나 음악을 고르는 일. 모스픽은 작은 움직임이 이런 선택으로 이어지도록 설계합니다.</p>
-            <p>그 변화는 당사자가 의사를 표현할 통로를 넓히고, 가족·돌봄 제공자와 소통하는 방식에도 영향을 줄 수 있습니다. 실제 사용 결과와 효과는 개인별 사용 환경에서 확인해야 합니다.</p>
-            <p>2026년 7월 스마일게이트 뉴스룸 인터뷰는 한 가족이 필요한 것을 요청하고 음악을 직접 선택한 경험을 소개합니다. 한 사례의 보도 내용이며, 모든 사용자에게 같은 결과가 나타난다는 뜻은 아닙니다.</p>
+            <div className={styles.impactItem}>
+              <h3>확인된 사용 과정의 변화</h3>
+              <p>모스픽은 작은 움직임을 입력으로 받아 화면에서 말을 만들고 선택하는 과정을 제공합니다. 어떤 움직임을 사용할 수 있는지는 잔존 움직임 평가와 결과 검토를 통해 개인별로 확인합니다.</p>
+            </div>
+            <div className={styles.impactItem}>
+              <h3>출처가 있는 한 가족의 경험</h3>
+              <p>2026년 7월 스마일게이트 뉴스룸은 한 가족이 필요한 것을 요청하고 음악을 직접 선택한 경험을 전했습니다. 보도에 실린 한 사례이며, 다른 사용자에게 같은 결과가 나타난다는 근거는 아닙니다.</p>
+            </div>
+            <div className={styles.impactItem}>
+              <h3>검증할 임팩트</h3>
+              <p>당사자가 의사를 표현할 기회와 가족·돌봄 제공자와의 소통 방식이 넓어질 것으로 기대합니다. 실제 변화의 정도와 지속 여부는 개인별 사용 환경에서 확인해야 합니다.</p>
+            </div>
             <a className={styles.textLink} href="https://newsroom.smilegate.com/en/lab/morspeak_interview" target="_blank" rel="noreferrer">스마일게이트 뉴스룸 인터뷰 원문 읽기 →</a>
             <Link className={styles.textLink} href="#renewal-journal">만들어 가는 과정 읽기 →</Link>
           </div>
@@ -626,7 +625,7 @@ export default function Renewal() {
           ))}
         </Gallery>
         <div className={styles.sectionAction}>
-          <p>평가 장소·기기·비용과 지원 범위는 이용 안내 과정에서 확인할 수 있습니다.</p>
+          <p>신청 화면에서 희망 날짜를 선택하면 해당 날짜의 접수 순서에 따라 담당자가 연락해 이용 절차를 안내합니다. 평가 장소·기기·비용과 지원 범위는 안내 과정에서 확인할 수 있습니다.</p>
           <Link className={styles.pillLink} href="/waitlist">모스픽 이용 안내 신청</Link>
         </div>
       </section>
@@ -647,12 +646,12 @@ export default function Renewal() {
         </div>
         <div className={styles.journalGrid}>
           <Link href="/home/renewal/stories/250708" className={styles.journalCard}>
-            <span>현장과 제품</span><h3>국내부터 시작하는 해결 사례</h3>
-            <p>직접 만나 사용 과정을 살피고, 피드백을 제품에 반영해 온 이야기.</p><strong>이야기 읽기 →</strong>
+            <span>현장과 제품</span><h3>국내에서 사용 과정을 살펴본 기록</h3>
+            <p>현장에서 사용 과정을 살피고 제품 방향을 다듬은 기록.</p><strong>이야기 읽기 →</strong>
           </Link>
           <Link href="/home/renewal/stories/251124" className={styles.journalCard}>
-            <span>만드는 사람들</span><h3>Let’Swift에서 전한 모스픽의 여정</h3>
-            <p>모스픽을 만들게 된 계기와 입력 기술을 개발해 온 과정.</p><strong>이야기 읽기 →</strong>
+            <span>만드는 사람들</span><h3>Let’Swift에서 전한 개발 이야기</h3>
+            <p>모스픽 기존 글에 담긴 개발 배경과 발표 내용을 정리한 기록.</p><strong>이야기 읽기 →</strong>
           </Link>
         </div>
         <Link className={styles.textLink} href="/home/renewal/stories">모든 이야기 보기 →</Link>
@@ -671,7 +670,7 @@ export default function Renewal() {
               <div className={styles.storyCopy}>
                 <p className={styles.storySource}>{card.source}</p>
                 <h3>{card.title}</h3>
-                <a href={card.href} target={card.external ? "_blank" : undefined} rel={card.external ? "noreferrer" : undefined}>기사 읽기 →</a>
+                <a href={card.href} target="_blank" rel="noreferrer">기사 읽기 →</a>
               </div>
             </article>
           ))}

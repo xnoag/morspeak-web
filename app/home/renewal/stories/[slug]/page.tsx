@@ -29,6 +29,7 @@ export default async function StoryPage({ params }: Props) {
           <p className={styles.eyebrow}>모스픽 이야기</p>
           <h1>{story.title}</h1>
           <p className={styles.date}>{story.date}</p>
+          <p className={styles.source}>{story.provenance.authorType} · {story.provenance.reuseScope}</p>
         </header>
         <div className={styles.body}>
           {story.paragraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)}

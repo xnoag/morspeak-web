@@ -54,7 +54,7 @@ test('리뉴얼 홈에서 일곱 영역과 실제 다음 경로를 탐색할 수
     for (const label of ['모스픽 소개', '솔루션', '일상의 변화', '이용 안내', '협업', '이야기', '언론']) {
       assert.ok(html.includes(label), `${label} content missing`);
     }
-    for (const path of ['/waitlist', '/contact', '/home/renewal/stories', '/home/renewal/stories/250708', '/home/renewal/stories/251124', '/articles/250609']) {
+    for (const path of ['/waitlist', '/contact', '/home/renewal/stories', '/home/renewal/stories/250708', '/home/renewal/stories/251124']) {
       assert.ok(html.includes(`href="${path}"`), `${path} link missing`);
       const destination = await fetch(`${base}${path}`);
       assert.equal(destination.status, 200, `${path} did not resolve`);
@@ -67,10 +67,17 @@ test('리뉴얼 홈에서 일곱 영역과 실제 다음 경로를 탐색할 수
       const detail = await detailResponse.text();
       assert.ok(detail.includes('href="/home/renewal/stories"'), `${slug} cannot return to list`);
       assert.ok(detail.includes('모스픽 이야기'), `${slug} missing article content`);
+      assert.ok(detail.includes('모스픽 기존 글'), `${slug} author provenance missing`);
+      assert.ok(!detail.includes('52명의'), `${slug} unverified figure reused`);
     }
     assert.ok(!list.includes('href="/home/renewal/stories/250609"'), 'press article mixed into stories');
     assert.ok(!list.includes('href="/home/renewal/stories/251205"'), 'award mixed into stories');
+    for (const heading of ['확인된 사용 과정의 변화', '출처가 있는 한 가족의 경험', '검증할 임팩트']) {
+      assert.ok(html.includes(heading), `${heading} evidence label missing`);
+    }
+    assert.ok(html.includes('희망 날짜를 선택하면 해당 날짜의 접수 순서'), 'waitlist receipt meaning missing');
     assert.ok(html.includes('href="https://newsroom.smilegate.com/en/lab/morspeak_interview"'), 'source article missing');
+    assert.ok(!html.includes('href="/articles/250609"'), 'historical article promoted as sourced press');
     assert.ok(!html.includes('href="#"'), 'empty card link found');
     assert.ok(!html.includes('<dialog'), 'repeated feature modal found');
     assert.ok(!html.includes('확대 보기'), 'feature expansion with repeated content found');

@@ -208,15 +208,13 @@
   max-width: 850px;
   line-height: 1.16;
 }
-.editorial .lead,
-.impactCopy p:first-child {
+.editorial .lead {
   font-size: 28px;
   line-height: 1.42;
   font-weight: 400;
   margin-top: 36px;
 }
-.editorialInner > p:not(.eyebrow):not(.lead),
-.impactCopy p:not(:first-child) {
+.editorialInner > p:not(.eyebrow):not(.lead) {
   font-size: 19px;
   line-height: 1.7;
   margin-top: 24px;
@@ -269,8 +267,20 @@
   grid-template-columns: 1fr 1fr;
   gap: 80px;
 }
-.impactCopy p:first-child {
-  margin-top: 0;
+.impactItem + .impactItem {
+  margin-top: 40px;
+}
+.impactItem h3 {
+  color: #a93700;
+  font-size: 17px;
+  line-height: 1.5;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.impactItem p {
+  font-size: 19px;
+  line-height: 1.7;
+  max-width: 700px;
 }
 .resourceIntro {
   margin: 0 var(--gutter) 42px !important;
@@ -784,14 +794,13 @@
   .impactCopy {
     margin-top: 32px;
   }
-  .editorial .lead,
-  .impactCopy p:first-child {
+  .editorial .lead {
     font-size: 21px;
     line-height: 1.48;
     margin-top: 28px;
   }
   .editorialInner > p:not(.eyebrow):not(.lead),
-  .impactCopy p:not(:first-child) {
+  .impactItem p {
     font-size: 17px;
   }
   .sectionLead,

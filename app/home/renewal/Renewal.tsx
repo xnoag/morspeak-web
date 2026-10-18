@@ -1,7 +1,6 @@
 "use client";
 
-/* The current homepage Figma frames are the source of truth. The Apple copy
-   and artwork remain reference content until replaced in the design. */
+/* Preserve the established brand visuals while connecting the corporate story. */
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   motion,
@@ -12,23 +11,24 @@ import {
   type MotionValue,
 } from "framer-motion";
 import { pc, mobile } from "./assets";
+import Link from "next/link";
 import styles from "./renewal.module.css";
 
 const heroSlides = [
   {
     src: "/renewal-reference/hero-bedside-man-2026.webp",
     small: "/renewal-reference/hero-1M.webp",
-    alt: "A man in bed looking toward a mounted tablet",
+    alt: "침대에 누워 거치된 태블릿을 바라보는 사람",
   },
   {
     src: "/renewal-reference/hero-riverside-walk-2026.webp",
     small: "/renewal-reference/hero-2M.webp",
-    alt: "A wheelchair user and companion by the riverside at sunset",
+    alt: "해 질 무렵 강변에 함께 있는 휠체어 사용자와 동행인",
   },
   {
     src: "/renewal-reference/hero-calm-morning-2026.webp",
     small: "/renewal-reference/hero-3M.webp",
-    alt: "A person in a hospital bed looking at a mounted tablet on a calm morning",
+    alt: "아침에 거치된 태블릿을 바라보는 사람",
   },
 ];
 
@@ -118,7 +118,7 @@ function HeroSlideshow({ controlRight, controlBottom }: {
           className={styles.heroPause}
           style={{ right: controlRight, bottom: controlBottom }}
           onClick={() => setPaused(value => !value)}
-          aria-label={paused ? "Play hero slideshow" : "Pause hero slideshow"}
+          aria-label={paused ? "사진 자동 전환 재생" : "사진 자동 전환 일시정지"}
           aria-pressed={paused}
         >
           <svg viewBox="0 0 36 36" aria-hidden="true">
@@ -146,52 +146,52 @@ type Feature = {
 
 const features: Feature[] = [
   {
-    title: "Communication",
-    body: "One small move starts a conversation.",
+    title: "의사소통",
+    body: "작은 움직임에서 대화를 시작합니다.",
     image: "/renewal-reference/morspeak-bedside-group-3.webp",
     small: "/renewal-reference/morspeak-bedside-group-3.webp",
-    alt: "A person in bed communicating through Morspeak on a mounted tablet",
+    alt: "거치된 태블릿으로 의사소통하는 장면을 표현한 이미지",
     bg: "#f5f5f7",
     light: false,
   },
   {
-    title: "Home Control",
-    body: "Need more light?\nTurn it on yourself.",
+    title: "생활 환경 제어",
+    body: "필요한 조명을 직접 선택하는 일상.",
     image: "/renewal-reference/morspeak-light-control-illustration-v3.webp",
     small: "/renewal-reference/morspeak-light-control-illustration-v3.webp",
-    alt: "A wheelchair user controlling a light through Morspeak on a mounted tablet",
+    alt: "태블릿으로 조명을 제어하는 장면을 표현한 일러스트",
     bg: "#fde7d3",
     light: false,
   },
   {
-    title: "Caregiver Support",
-    body: "Help when needed. Breathing room for caregivers.",
+    title: "도움 요청",
+    body: "도움이 필요할 때 의사를 전합니다.",
     image: "/renewal-reference/morspeak-sos-home-illustration-v2.webp",
-    alt: "A person using Morspeak to send an SOS alert from home",
+    alt: "집에서 도움을 요청하는 장면을 표현한 일러스트",
     bg: "#673627",
     light: true,
   },
   {
-    title: "Connection",
-    body: "Reconnect, one message at a time.",
+    title: "연결",
+    body: "한 번의 메시지에서 다시 이어지는 관계.",
     image: "/renewal-reference/morspeak-connection-illustration-v2.webp",
-    alt: "A person using Morspeak to connect with a loved one through messages and video",
+    alt: "메시지와 영상으로 가족과 연결되는 장면을 표현한 일러스트",
     bg: "#ff4800",
     light: false,
   },
   {
-    title: "Entertainment",
-    body: "Your music. Your videos. Your choice.",
+    title: "여가",
+    body: "음악과 영상을 스스로 고르는 시간.",
     image: "/renewal-reference/morspeak-music-control-illustration.webp",
-    alt: "A wheelchair user listening to music through a mounted Morspeak tablet",
+    alt: "태블릿으로 음악을 고르는 장면을 표현한 일러스트",
     bg: "#cccccc",
     light: false,
   },
   {
-    title: "Possibilities",
-    body: "Imagine what’s next.\nWe’re with you.",
+    title: "가능성",
+    body: "다음 선택을 함께 찾아갑니다.",
     image: "/renewal-reference/morspeak-possibilities-illustration.webp",
-    alt: "A wheelchair user imagining conversations, music, videos, learning, and everyday activities through Morspeak",
+    alt: "대화와 여가 등 일상의 가능성을 표현한 일러스트",
     bg: "#fde7d3",
     light: false,
   },
@@ -199,12 +199,12 @@ const features: Feature[] = [
 type InputKind = "blink" | "mouth" | "frown" | "finger" | "breath" | "personalize";
 
 const resources: { title: string; body: string; icon: InputKind }[] = [
-  { title: "Eye Blink", body: "A simple blink can choose what you want to do next.", icon: "blink" },
-  { title: "Mouth Movement", body: "Open your mouth to move through the app without touch.", icon: "mouth" },
-  { title: "Frown", body: "Turn even a slight frown into a command you can use.", icon: "frown" },
-  { title: "Finger Movement", body: "Even a tiny finger movement can help you make your next choice.", icon: "finger" },
-  { title: "Breath", body: "Blow gently to choose your next step inside the app.", icon: "breath" },
-  { title: "Your Way", body: "Choose the movement that works best for you, every day.", icon: "personalize" },
+  { title: "눈 깜빡임", body: "눈 깜빡임을 입력으로 활용할 수 있습니다.", icon: "blink" },
+  { title: "입 움직임", body: "입을 움직여 화면을 조작하는 방식을 살펴봅니다.", icon: "mouth" },
+  { title: "얼굴 움직임", body: "작은 얼굴 움직임도 평가 대상입니다.", icon: "frown" },
+  { title: "손가락 움직임", body: "손가락의 작은 움직임을 입력으로 활용합니다.", icon: "finger" },
+  { title: "호흡", body: "숨을 불어 입력하는 방식을 살펴봅니다.", icon: "breath" },
+  { title: "나에게 맞는 방식", body: "가능한 움직임과 반복 가능성은 개별적으로 확인합니다.", icon: "personalize" },
 ];
 
 function InputSymbol({ kind }: { kind: InputKind }) {
@@ -264,20 +264,20 @@ function InputSymbol({ kind }: { kind: InputKind }) {
 }
 const stories = [
   {
-    source: "Apple",
-    title: "Invited to WWDC, we introduced Morspeak to Tim Cook.",
+    source: "모스픽 소식",
+    title: "Apple CEO Tim Cook에게 모스픽을 소개했습니다",
     image: "/renewal-reference/morspeak-tim-cook-meeting.jpg",
     small: "/renewal-reference/morspeak-tim-cook-meeting.jpg",
-    alt: "Morspeak founder introducing the app to Apple CEO Tim Cook at WWDC",
+    alt: "WWDC에서 모스픽을 소개하는 한가온 대표",
     href: "/articles/250609",
     external: false,
   },
   {
-    source: "Smilegate Newsroom",
-    title: "Creating Social Impact Through Technology Recognized by Apple",
+    source: "스마일게이트 뉴스룸",
+    title: "기술을 통한 사회적 변화에 관한 인터뷰",
     image: "/renewal-reference/morspeak-everyday-story-20261008.webp",
     small: "/renewal-reference/morspeak-everyday-story-20261008.webp",
-    alt: "Morspeak in use at a bedside, alongside a person explaining it",
+    alt: "침대 옆에서 모스픽을 설명하는 장면",
     href: "https://newsroom.smilegate.com/en/lab/morspeak_interview",
     external: true,
   },
@@ -285,28 +285,28 @@ const stories = [
 const onboardingSteps = [
   {
     number: "01",
-    title: "Assess remaining movement.",
-    body: "Our test program measures which movements remain and how consistently each can be repeated.",
+    title: "잔존 움직임 평가",
+    body: "모스픽 테스트 프로그램으로 남아 있는 움직임과 반복 가능성을 살펴봅니다.",
   },
   {
     number: "02",
-    title: "See which movements may work.",
-    body: "We’ll review the test results to see how Morspeak may fit the movements that remain.",
+    title: "결과 검토",
+    body: "테스트 결과를 검토해 모스픽 사용 가능성과 적합한 입력 방식을 안내합니다.",
   },
   {
     number: "03",
-    title: "Plan the setup.",
-    body: "We’ll explain the setup needed to introduce Morspeak in your space.",
+    title: "세팅 안내",
+    body: "사용 공간에 필요한 기기와 배치·설정을 안내합니다.",
   },
   {
     number: "04",
-    title: "Get set up and learn.",
-    body: "We’ll provide training and setup help as needed, so you can use Morspeak with confidence.",
+    title: "교육 지원",
+    body: "모스픽을 익히고 사용할 수 있도록 필요한 교육과 세팅을 지원합니다.",
   },
   {
     number: "05",
-    title: "Join the Morspeak community.",
-    body: "Stay connected and follow the latest news, updates, and stories from our community.",
+    title: "커뮤니티",
+    body: "이용자 커뮤니티에서 새로운 소식을 접하고 사용 경험을 나눕니다.",
   },
 ];
 
@@ -404,7 +404,7 @@ function Gallery({
 }
 
 const introduction =
-  "We create assistive technology for people with motor disabilities. We discover new possibilities in small movements. Everyone connects with the world in their own way. We adapt technology to each individual, opening up new ways to express and connect.";
+  "모스픽은 움직임이 제한된 사람도 자신의 의사를 전하고 일상의 선택을 이어갈 수 있도록 돕는 보조 기술을 만듭니다. 사람마다 남아 있는 움직임이 다르기에, 입력 방식도 함께 살펴봅니다.";
 
 function Hero() {
   const scene = useRef<HTMLElement>(null);
@@ -484,39 +484,15 @@ function Hero() {
 
 export default function Renewal() {
   const [menu, setMenu] = useState(false);
-  const [active, setActive] = useState<number | null>(null);
-  const dialog = useRef<HTMLDialogElement>(null);
-  const trigger = useRef<HTMLButtonElement | null>(null);
-  useEffect(() => {
-    if (active === null) return;
-    const body = document.body;
-    const previousOverflow = body.style.overflow;
-    body.style.overflow = "hidden";
-    return () => {
-      body.style.overflow = previousOverflow;
-    };
-  }, [active]);
-  function openFeature(index: number, button: HTMLButtonElement) {
-    trigger.current = button;
-    setActive(index);
-    dialog.current?.showModal();
-  }
-  function closeFeature() {
-    dialog.current?.close();
-  }
-  function onDialogClose() {
-    trigger.current?.focus();
-    setActive(null);
-  }
   return (
-    <main className={styles.page} lang="en">
-      <a href="#renewal-features" className={styles.skip}>
-        Skip to features
+    <main className={styles.page} lang="ko">
+      <a href="#renewal-about" className={styles.skip}>
+        본문으로 건너뛰기
       </a>
       <header className={styles.nav}>
         <a
           href="#renewal-overview"
-          aria-label="Morspeak homepage"
+          aria-label="모스픽 소개 처음으로"
         >
           <Picture
             src={pc.imgMorspeakLogoWhiteOriginalRgbVectors}
@@ -526,15 +502,20 @@ export default function Renewal() {
         </a>
         <nav
           className={styles.desktopNav}
-          aria-label="Main"
+          aria-label="주요 메뉴"
         >
-          <a href="#renewal-overview">Overview</a>
-          <a href="#renewal-features">Features</a>
+          <a href="#renewal-about">모스픽 소개</a>
+          <a href="#renewal-features">솔루션</a>
+          <a href="#renewal-impact">일상의 변화</a>
+          <a href="#renewal-use">이용 안내</a>
+          <a href="#renewal-partner">협업</a>
+          <a href="#renewal-journal">이야기</a>
+          <a href="#renewal-press">언론</a>
         </nav>
         <button
           type="button"
           className={styles.menuButton}
-          aria-label="Navigation menu"
+          aria-label={menu ? "메뉴 닫기" : "메뉴 열기"}
           aria-expanded={menu}
           aria-controls="renewal-menu"
           onClick={() => setMenu(!menu)}
@@ -546,27 +527,34 @@ export default function Renewal() {
         <nav
           id="renewal-menu"
           className={styles.mobileNav}
-          aria-label="Mobile main"
+          aria-label="모바일 주요 메뉴"
         >
-          <a href="#renewal-overview" onClick={() => setMenu(false)}>
-            Overview
-          </a>
-          <a href="#renewal-features" onClick={() => setMenu(false)}>
-            Features
-          </a>
+          {[
+            ["renewal-about", "모스픽 소개"], ["renewal-features", "솔루션"],
+            ["renewal-impact", "일상의 변화"], ["renewal-use", "이용 안내"],
+            ["renewal-partner", "협업"], ["renewal-journal", "이야기"],
+            ["renewal-press", "언론"],
+          ].map(([id, label]) => <a key={id} href={`#${id}`} onClick={() => setMenu(false)}>{label}</a>)}
         </nav>
       )}
       <Hero />
+      <section className={styles.editorial} id="renewal-about">
+        <div className={styles.editorialInner}>
+          <p className={styles.eyebrow}>모스픽 소개</p>
+          <h2>작은 움직임도<br />나의 말과 선택이 되도록.</h2>
+          <p className={styles.lead}>모스픽은 루게릭병을 비롯해 움직임이 제한된 사람을 위한 보조 기술을 만드는 팀입니다. 말하고 싶을 때 말하고, 필요한 일을 직접 선택할 수 있는 일상을 지향합니다.</p>
+          <p>누군가의 도움을 기다려야만 의사를 전할 수 있는 순간을 줄이고 싶습니다. 사람마다 남아 있는 움직임과 사용하는 환경이 다른 만큼, 한 가지 조작법을 모두에게 적용하지 않고 개인에게 맞는 방식을 찾습니다.</p>
+          <Link className={styles.textLink} href="/waitlist">내게 맞는 이용 방법 문의하기 →</Link>
+        </div>
+      </section>
       <section className={styles.features} id="renewal-features">
         <div className={styles.featureHeading}>
-          <h2>
-            Expanding Possibilities
-            <br />
-            Through Flexible Solutions
-          </h2>
+          <p className={styles.eyebrow}>솔루션</p>
+          <h2>작은 움직임을 입력으로,<br />일상의 선택을 내 뜻대로.</h2>
+          <p className={styles.sectionLead}>모스픽은 작은 움직임을 짧고 긴 신호로 구분하고, 그 조합을 글자와 명령으로 바꾸는 iPad 앱입니다. 눈 깜빡임 같은 움직임으로 말을 전하고, 음악이나 조명처럼 일상의 기능을 선택할 수 있도록 돕습니다.</p>
         </div>
-        <Gallery label="Morspeak solutions">
-          {features.map((card, i) => (
+        <Gallery label="모스픽 솔루션">
+          {features.map((card) => (
             <article
               className={`${styles.featureCard} ${card.light ? styles.light : ""}`}
               style={{ background: card.bg }}
@@ -584,28 +572,31 @@ export default function Renewal() {
                 <p>{card.title}</p>
                 <h3>{card.body}</h3>
               </div>
-              <button
-                type="button"
-                className={styles.plus}
-                aria-label={`Learn more about ${card.title}`}
-                onClick={(e) => openFeature(i, e.currentTarget)}
-              >
-                <img
-                  src={i === 2 ? pc.imgOriginalSvg1 : pc.imgOriginalSvg}
-                  alt=""
-                />
-              </button>
             </article>
           ))}
         </Gallery>
       </section>
+      <section className={styles.impact} id="renewal-impact">
+        <div className={styles.impactInner}>
+          <div>
+            <p className={styles.eyebrow}>일상의 변화와 임팩트</p>
+            <h2>변화는 스스로 선택할 수 있는 순간에서 시작합니다.</h2>
+          </div>
+          <div className={styles.impactCopy}>
+            <p>원하는 말을 전하고, 조명을 조절하거나 음악을 고르는 일. 모스픽은 작은 움직임이 이런 선택으로 이어지도록 설계합니다.</p>
+            <p>내 뜻을 전할 수 있는 통로가 생기는 것. 필요한 것을 직접 고를 수 있는 시간이 늘어나는 것. 모스픽이 만들고 싶은 변화는 당사자와 가족의 이런 일상에 있습니다.</p>
+            <p>2026년 7월 스마일게이트 뉴스룸은 모스픽을 통해 필요한 것을 요청하고 음악을 직접 고른 한 가족의 경험을 소개했습니다. 그 가족의 이야기를 인터뷰에서 만나 보세요.</p>
+            <a className={styles.textLink} href="https://newsroom.smilegate.com/en/lab/morspeak_interview" target="_blank" rel="noreferrer">스마일게이트 뉴스룸 인터뷰 원문 읽기 →</a>
+            <Link className={styles.textLink} href="#renewal-journal">만들어 가는 과정 읽기 →</Link>
+          </div>
+        </div>
+      </section>
       <section className={styles.resources}>
         <h2>
-          Your tiny movement.
-          <br />
-          Your way to control Morspeak.
+          사람마다 다른 움직임,<br />함께 찾는 입력 방식.
         </h2>
-        <Gallery label="Ways to control Morspeak">
+        <p className={styles.resourceIntro}>아래는 살펴볼 수 있는 움직임의 예시입니다. 실제 지원 방식과 적합성은 평가 결과와 사용 환경에 따라 달라집니다.</p>
+        <Gallery label="모스픽 입력 방식">
           {resources.map((card) => (
             <article
               className={styles.resourceCard}
@@ -618,42 +609,13 @@ export default function Renewal() {
           ))}
         </Gallery>
       </section>
-      <section className={styles.stories}>
-        <h2>
-          <span>Discover how Morspeak creates</span>
-          <span>
-            a lasting social impact on
-            <br className={styles.storyMobileBreak} />
-            {" "}everyday life.
-          </span>
-        </h2>
-        <Gallery label="Accessibility stories" wide>
-          {stories.map((card) => (
-            <article className={styles.storyCard} key={card.title}>
-              <Picture
-                className={styles.storyImage}
-                src={card.image}
-                small={card.small}
-                alt={card.alt ?? card.title}
-              />
-              <div className={styles.scrim} />
-              <div className={styles.storyCopy}>
-                <p className={styles.storySource}>{card.source}</p>
-                <h3>{card.title}</h3>
-                <a href={card.href} target={card.external ? "_blank" : undefined} rel={card.external ? "noreferrer" : undefined}>
-                  Read story
-                </a>
-              </div>
-            </article>
-          ))}
-        </Gallery>
-      </section>
-      <section className={styles.values}>
-        <p className={styles.valuesEyebrow}>For individuals and families</p>
-        <h2>Could Morspeak work for your loved one?</h2>
-        <Gallery label="Exploring Morspeak for personal use">
+      <section className={styles.values} id="renewal-use">
+        <p className={styles.valuesEyebrow}>개인·가족 이용 안내</p>
+        <h2>나에게 맞는 모스픽, 함께 확인합니다.</h2>
+        <p className={styles.valuesIntro}>본인이나 가족이 이용을 검토할 때, 남아 있는 움직임과 사용 환경을 다음 다섯 단계로 살펴봅니다.</p>
+        <Gallery label="개인 이용 가능성 확인 다섯 단계">
           {onboardingSteps.map((card) => (
-            <article className={styles.valueCard} key={card.title} aria-label={`Step ${Number(card.number)}: ${card.title}`}>
+            <article className={styles.valueCard} key={card.title} aria-label={`${Number(card.number)}단계: ${card.title}`}>
               <div className={styles.valueIcon}>
                 <span className={styles.stepNumber} aria-hidden="true">{card.number}</span>
               </div>
@@ -662,39 +624,74 @@ export default function Renewal() {
             </article>
           ))}
         </Gallery>
+        <div className={styles.sectionAction}>
+          <p>평가 장소·기기·비용과 지원 범위는 이용 안내 과정에서 확인할 수 있습니다.</p>
+          <Link className={styles.pillLink} href="/waitlist">모스픽 이용 안내 신청</Link>
+        </div>
       </section>
-      <dialog
-        ref={dialog}
-        className={styles.dialog}
-        onClose={onDialogClose}
-        onClick={(e) => {
-          if (e.target === e.currentTarget) closeFeature();
-        }}
-        aria-labelledby="renewal-feature-title"
-      >
-        <button
-          className={styles.close}
-          type="button"
-          onClick={closeFeature}
-          aria-label="Close feature"
-        >
-          ×
-        </button>
-        {active !== null && (
-          <div>
-            <h2 id="renewal-feature-title">{features[active].title}</h2>
-            <p>{features[active].body}</p>
-            {features[active].image && (
-              <Picture
-                src={features[active].image}
-                small={features[active].small}
-                alt={features[active].alt}
-                className={styles.dialogImage}
-              />
-            )}
+      <section className={styles.editorial} id="renewal-partner">
+        <div className={styles.editorialInner}>
+          <p className={styles.eyebrow}>기관·기업 협업</p>
+          <h2>더 많은 선택의 기회를<br />함께 만들어 갑니다.</h2>
+          <p className={styles.lead}>사람을 연결하는 현장 경험, 기술을 만드는 전문성, 지속적인 사용을 돕는 자원. 서로의 역할을 모아 모스픽과 함께할 방법을 찾습니다.</p>
+          <div className={styles.partnerPaths}>
+            <article><h3>현장에서 함께</h3><p>협회·의료·돌봄 기관에서 모스픽이 필요한 사람을 만나고, 도입과 교육을 논의합니다.</p></article>
+            <article><h3>기술로 함께</h3><p>접근성 기술과 제품을 만드는 기업의 전문성을 바탕으로 협력 가능성을 살펴봅니다.</p></article>
+            <article><h3>지속적인 사용을 위해</h3><p>사용 환경 마련과 교육·지원에 힘을 보태고 싶은 조직의 제안을 기다립니다.</p></article>
           </div>
-        )}
-      </dialog>
+          <p>조직의 역할과 함께 풀고 싶은 문제를 알려 주세요. 문의 내용을 바탕으로 협력 방향과 범위를 논의합니다.</p>
+          <Link className={styles.pillLink} href="/contact">협업 문의하기</Link>
+        </div>
+      </section>
+      <section className={styles.journal} id="renewal-journal">
+        <div className={styles.sectionHeader}>
+          <p className={styles.eyebrow}>모스픽 이야기</p>
+          <h2>문제를 듣고, 만들고,<br />다시 살펴보는 과정.</h2>
+          <p className={styles.sectionLead}>현장에서 무엇을 배우고 제품을 어떻게 다듬어 왔는지, 모스픽이 직접 기록한 이야기를 읽어 보세요.</p>
+        </div>
+        <div className={styles.journalGrid}>
+          <Link href="/home/renewal/stories/250708" className={styles.journalCard}>
+            <span>현장과 제품</span><h3>국내부터 시작하는 해결 사례</h3>
+            <p>직접 만나 사용 과정을 살피고, 피드백을 제품에 반영해 온 이야기.</p><strong>이야기 읽기 →</strong>
+          </Link>
+          <Link href="/home/renewal/stories/251124" className={styles.journalCard}>
+            <span>만드는 사람들</span><h3>Let’Swift에서 전한 모스픽의 여정</h3>
+            <p>모스픽을 만들게 된 계기와 입력 기술을 개발해 온 과정.</p><strong>이야기 읽기 →</strong>
+          </Link>
+        </div>
+        <Link className={styles.textLink} href="/home/renewal/stories">모든 이야기 보기 →</Link>
+      </section>
+      <section className={styles.stories} id="renewal-press">
+        <div className={styles.sectionHeader}>
+          <p className={styles.eyebrow}>언론과 소식</p>
+          <h2>모스픽을 소개한 자리와 보도.</h2>
+          <p className={styles.sectionLead}>모스픽을 세상에 소개한 순간과, 기술이 만드는 변화를 전한 인터뷰를 모았습니다.</p>
+        </div>
+        <Gallery label="모스픽 언론 및 소식" wide>
+          {stories.map((card) => (
+            <article className={styles.storyCard} key={card.title}>
+              <Picture className={styles.storyImage} src={card.image} small={card.small} alt={card.alt ?? card.title} />
+              <div className={styles.scrim} />
+              <div className={styles.storyCopy}>
+                <p className={styles.storySource}>{card.source}</p>
+                <h3>{card.title}</h3>
+                <a href={card.href} target={card.external ? "_blank" : undefined} rel={card.external ? "noreferrer" : undefined}>기사 읽기 →</a>
+              </div>
+            </article>
+          ))}
+        </Gallery>
+      </section>
+      <footer className={styles.footer}>
+        <div className={styles.footerInner}>
+          <div><strong>Morspeak</strong><p>Small, Yet Significant.</p></div>
+          <nav aria-label="하단 메뉴">
+            <Link href="/waitlist">이용 안내 신청</Link>
+            <Link href="/contact">협업 문의</Link>
+            <a href="mailto:hello@morspeak.com">hello@morspeak.com</a>
+            <Link href="/legalpolicies">개인정보 및 이용 안내</Link>
+          </nav>
+        </div>
+      </footer>
     </main>
   );
 }

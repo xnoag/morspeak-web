@@ -90,7 +90,24 @@ try {
     assert.match(ready.heading ?? '', /Small, Yet Significant/);
     assert.equal(ready.menuVisible, viewport.mobile, `${viewport.name}: wrong navigation mode`);
     assert.ok(ready.heroImageLoaded, `${viewport.name}: hero image did not load`);
+    const heroAssets = await evaluate(`({
+      images: [...document.querySelectorAll('[data-slide] picture img')].map(image => ({
+        source: new URL(image.currentSrc).pathname,
+        loaded: image.naturalWidth > 0,
+      })),
+      pause: !!document.querySelector('button[aria-label="사진 자동 전환 일시정지"]'),
+      symbols: document.querySelectorAll('section svg[class*="resourceIcon"]').length,
+    })`);
+    assert.equal(heroAssets.images.length, 3, `${viewport.name}: hero image count changed`);
+    assert.ok(heroAssets.images.every(image => image.loaded), `${viewport.name}: hero image missing`);
+    assert.ok(heroAssets.images.every(image => image.source.endsWith(viewport.mobile ? 'M.webp' : '2026.webp')), `${viewport.name}: wrong hero assets`);
+    assert.ok(heroAssets.pause, `${viewport.name}: transition control missing`);
+    assert.equal(heroAssets.symbols, 6, `${viewport.name}: movement symbols missing`);
     await capture(viewport.name);
+    const initialSlide = await evaluate(`document.querySelector('[data-slide][aria-hidden="false"]')?.getAttribute('data-slide')`);
+    await new Promise(resolve => setTimeout(resolve, 3700));
+    const advancedSlide = await evaluate(`document.querySelector('[data-slide][aria-hidden="false"]')?.getAttribute('data-slide')`);
+    assert.notEqual(advancedSlide, initialSlide, `${viewport.name}: hero did not advance after its 3.5-second step`);
     if (viewport.mobile) {
       const menu = await evaluate(`(async () => {
         const button = document.querySelector('button[aria-label="메뉴 열기"]');
@@ -103,6 +120,25 @@ try {
       assert.equal(menu.expanded, 'true', 'mobile menu did not open');
       assert.equal(menu.links, 7, 'mobile menu must expose all seven sections');
       await evaluate(`document.querySelector('button[aria-label="메뉴 닫기"]')?.click()`);
+    }
+    for (const sectionId of ['renewal-about', 'renewal-features', 'renewal-impact', 'renewal-use', 'renewal-partner', 'renewal-journal', 'renewal-press']) {
+      const section = await evaluate(`(() => {
+        const element = document.getElementById(${JSON.stringify(sectionId)});
+        element?.scrollIntoView();
+        const heading = element?.querySelector('h2');
+        const rect = heading?.getBoundingClientRect();
+        return {
+          heading: heading?.textContent,
+          headingTop: rect?.top,
+          headingBottom: rect?.bottom,
+          navBottom: document.querySelector('header')?.getBoundingClientRect().bottom,
+          scrollWidth: document.documentElement.scrollWidth,
+        };
+      })()`);
+      assert.ok(section.heading, `${viewport.name}/${sectionId}: section heading missing`);
+      assert.ok(section.headingTop >= section.navBottom, `${viewport.name}/${sectionId}: heading covered by navigation`);
+      assert.ok(section.headingBottom <= viewport.height, `${viewport.name}/${sectionId}: heading outside viewport`);
+      assert.ok(section.scrollWidth <= viewport.width, `${viewport.name}/${sectionId}: horizontal overflow`);
     }
     await evaluate(`document.querySelector('#renewal-impact')?.scrollIntoView()`);
     await capture(`${viewport.name}-impact`);

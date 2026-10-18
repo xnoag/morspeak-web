@@ -42,6 +42,13 @@
 
 ## 화면 캡처
 
+### AC 4 — 브랜드와 실행 화면 재검증 (2026-10-18)
+
+- `Small, Yet Significant` 영문 슬로건, `#ff4800` 주황 상단과 흰 로고를 PC·모바일 캡처에서 확인했습니다. 기존 Hero 원본 3장과 모바일 `hero-1M.webp`·`hero-2M.webp`·`hero-3M.webp`가 각각 로딩됐고, 약 3.5초 대기 뒤 표시 사진이 바뀌는 것을 Chrome에서 확인했습니다. 입력 방식의 움직임 심볼 6개도 화면 DOM에서 확인했습니다 (`assessed_pass`).
+- 빌드 산출물을 Chrome 1440×900 및 390×844에서 열었습니다. 두 크기 모두 회사·솔루션·일상의 변화·이용 안내·협업·이야기·언론의 7개 섹션 제목이 상단 메뉴에 가리지 않고 뷰포트 안에 있으며, 각 섹션의 문서 가로 너비가 뷰포트를 넘지 않았습니다. 모바일 메뉴 7개 항목, 개인 `/waitlist`와 협업 `/contact` CTA 이동, 이야기 목록·상세의 모바일 가로 넘침도 확인했습니다 (`assessed_pass`).
+- 아래 히어로·변화·이야기·언론·신청·문의·이야기 상세 캡처를 직접 열어 한글 읽기, 카드와 텍스트 배치, 링크 표시를 확인했습니다. 두 CTA의 실제 폼 제출은 하지 않았습니다.
+- 이번 재검증에서 `npx eslint app/home/renewal scripts/verify-renewal-render.mjs tests/renewal-navigation.test.mjs --quiet`와 합성 Firebase 공개 설정을 적용한 `npm run build`는 통과했습니다. 기본 빌드는 `/admin/inquiries`의 `auth/invalid-api-key`로 실패합니다. 전체 `npm run lint -- --quiet`는 이번 범위 밖의 기존 88개 오류로 실패하므로 전체 린트 게이트는 `blocked_by_gate`입니다. 이를 홈 콘텐츠 결함으로 분류하지 않습니다.
+
 - [PC 홈 히어로](desktop-1440.png)
 - [PC 이야기 구역](desktop-1440-stories.png)
 - [PC 언론 구역](desktop-1440-press.png)

@@ -193,6 +193,28 @@ try {
     }
     console.log(`${path}: mobile story rendered without overflow, screenshot saved`);
   }
+  await send('Page.navigate', { url: `${base}/home/renewal/stories` });
+  const storyRoundTrip = await evaluate(`(async () => {
+    const waitFor = async (path) => {
+      for (let i = 0; i < 100 && location.pathname !== path; i++) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      return location.pathname === path;
+    };
+    for (let i = 0; i < 100 && !document.querySelector('a[href="/home/renewal/stories/250708"]'); i++) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    document.querySelector('a[href="/home/renewal/stories/250708"]')?.click();
+    const opened = await waitFor('/home/renewal/stories/250708');
+    for (let i = 0; i < 100 && !document.querySelector('a[href="/home/renewal/stories"]'); i++) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    document.querySelector('a[href="/home/renewal/stories"]')?.click();
+    const returned = await waitFor('/home/renewal/stories');
+    return { opened, returned };
+  })()`);
+  assert.deepEqual(storyRoundTrip, { opened: true, returned: true }, 'story list/detail navigation did not round-trip');
+  console.log('mobile story list → detail → list: click navigation passed');
   socket.close();
 } finally {
   child.kill('SIGTERM');

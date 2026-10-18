@@ -91,3 +91,15 @@
 모스픽 이야기 두 편은 모스픽의 기존 글 `/articles/250708`(2025-07-08), `/articles/251124`(2025-11-24)를 개발 과정 요약으로만 사용합니다. 목록과 상세에 작성 주체·게시일·원문 링크를 표시합니다. 공개 페이지에서 제품 효과, 사용자 수, 임상 성과, 수익 지표, 확정된 기업 연동, 가격을 주장하지 않았습니다. 해당 정보와 추가 사례를 게시하려면 원기록·현재 제공 범위·공개 동의를 먼저 확인해야 합니다.
 
 AC 5 평가: `assessed_pass`. `git diff --exit-code 19ef1bb --`로 위 보호 경로와 접수폼의 동일성을 확인했고, `git diff --check`, 변경 범위 ESLint(`--quiet`), `npm test` 1건이 통과했습니다. 전체 린트의 기존 오류는 공통 게이트 `blocked_by_gate`로 계속 구분합니다. 실제 운영 데이터·제출·배포 상태는 평가하지 않았습니다.
+
+## AC 6 — 최종 검토용 재검증 (2026-10-18)
+
+- 작업 위치: 위 격리 worktree의 `ooo/ralph-5c503ddca64b27f7c02869ca0834a3`. 메인 체크아웃과 `feat/unified-admin`은 수정하지 않았습니다.
+- 실패 원인을 먼저 재현했습니다. `npm run lint -- --quiet`는 기존 관리자·추적·공개 구 경로·Firebase 함수·제공된 MediaPipe 파일 등에서 88개 오류로 실패했습니다. 이번 리뉴얼 경로를 고쳐야 하는 오류는 없으며, 이 AC에서 보호 범위 밖 코드를 고치거나 규칙을 끄지 않았습니다. 전체 린트는 `blocked_by_gate`, 변경 범위 린트는 `assessed_pass`입니다.
+- `npx tsc --noEmit`와 `npx eslint app/home/renewal app/contact/page.tsx scripts/verify-renewal-render.mjs tests/renewal-navigation.test.mjs --quiet`는 각각 종료 코드 0으로 통과했습니다 (`assessed_pass`).
+- 설정 없는 `npm run build`는 `/admin/inquiries` 사전 렌더의 `auth/invalid-api-key`로 실패했습니다. `NEXT_PUBLIC_FIREBASE_API_KEY=synthetic-test-key`, `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=demo-morspeak.test`, `NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-morspeak`, `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=demo-morspeak.appspot.com`, `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=123456789`, `NEXT_PUBLIC_FIREBASE_APP_ID=1:123456789:web:synthetic`을 명령 프로세스에만 주입한 `npm run build`는 통과했습니다. 이는 빌드 재현용 설정이며 실제 인증·접수 검증이 아닙니다 (`assessed_pass`).
+- `npm test` 1건 통과: 7개 탐색 영역, 개인·협업 목적지, 두 이야기의 목록·본문·기존 원문 경로, 출처·표현 경계와 HTTP 200을 확인했습니다 (`assessed_pass`).
+- 합성 설정으로 만든 빌드 산출물을 `127.0.0.1:3187`에서 실행하고 `node scripts/verify-renewal-render.mjs`를 통과시켰습니다. Chrome 1440×900·모바일 에뮬레이션 390×844에서 가로 넘침 0, Hero 3장 로딩·자동 전환, 7개 영역의 제목 노출, 모바일 메뉴 7개 항목을 확인했습니다. `/waitlist`·`/contact` CTA 클릭과 모바일 이야기 목록→상세→목록 클릭 이동도 통과했습니다. 저장된 PC·모바일 히어로, 임팩트, 이야기, 언론, 두 신청·문의 화면과 이야기 출처 캡처를 다시 열어 한글 줄바꿈과 링크 표시를 확인했습니다 (`assessed_pass`).
+- 출처 확인: 기존 모스픽 글 `/articles/250708`, `/articles/251124`는 로컬 빌드에서 HTTP 200입니다. [스마일게이트 뉴스룸 인터뷰](https://newsroom.smilegate.com/en/lab/morspeak_interview)는 검색 색인에서 2026-07-30 게시와 한 가족 경험의 보도 내용을 확인했으나, 현재 원문에 대한 직접 HTTP 요청은 503이었습니다. 외부 원문의 현재 접속 가능성은 `not_assessed`이며 공개 사이트의 링크는 유지했습니다. 보도 내용은 단일 사례를 넘는 효과 주장으로 사용하지 않았습니다.
+- 화면 검토 링크: [PC 히어로](desktop-1440.png), [PC 변화](desktop-1440-impact.png), [모바일 히어로](mobile-390.png), [모바일 변화](mobile-390-impact.png), [모바일 이야기](mobile-390-stories.png), [모바일 언론](mobile-390-press.png), [모바일 이용 신청](mobile-390-waitlist.png), [모바일 협업 문의](mobile-390-contact.png), [모바일 이야기 본문과 출처](mobile-390-story-detail-source.png). 로컬 URL은 위 서버를 켠 동안에만 접근 가능합니다.
+- 미확인: 실제 폼 제출·운영 접수, 실기기 Safari, 외부 원문의 현재 접속 가능성, 운영 배포. 글로벌 root 교체와 프로덕션 배포는 최종 검토 이후 별도 결정 사항입니다.

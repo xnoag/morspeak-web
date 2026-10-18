@@ -538,7 +538,7 @@ export default function Renewal() {
           <h2>작은 움직임도<br />나의 말과 선택이 되도록.</h2>
           <p className={styles.lead}>모스픽은 루게릭병을 비롯해 움직임이 제한된 사람을 위한 보조 기술을 만드는 팀입니다. 말하고 싶을 때 말하고, 필요한 일을 직접 선택할 수 있는 일상을 지향합니다.</p>
           <p>누군가의 도움을 기다려야만 의사를 전할 수 있는 순간을 줄이고 싶습니다. 사람마다 남아 있는 움직임과 사용하는 환경이 다른 만큼, 한 가지 조작법을 모두에게 적용하지 않고 개인에게 맞는 방식을 찾습니다.</p>
-          <Link className={styles.textLink} href="/waitlist">내게 맞는 이용 방법 문의하기 →</Link>
+          <Link className={styles.textLink} href="/waitlist">모스픽 이용 안내 신청 →</Link>
         </div>
       </section>
       <section className={styles.features} id="renewal-features">
@@ -628,7 +628,7 @@ export default function Renewal() {
           ))}
         </Gallery>
         <div className={styles.sectionAction}>
-          <p>신청 화면에서 희망 날짜를 선택하면 해당 날짜의 접수 순서에 따라 담당자가 연락해 이용 절차를 안내합니다. 평가 장소·기기·비용과 지원 범위는 안내 과정에서 확인할 수 있습니다.</p>
+          <p>이용 안내 신청은 위 다섯 단계의 절차를 안내받기 위한 요청입니다. 신청 화면에서 희망 날짜를 선택하면 해당 날짜의 접수 순서에 따라 담당자가 연락합니다. 신청만으로 평가나 이용 가능성이 확정되지는 않으며, 평가 장소·기기·비용과 지원 범위는 안내 과정에서 확인할 수 있습니다.</p>
           <Link className={styles.pillLink} href="/waitlist">모스픽 이용 안내 신청</Link>
         </div>
       </section>
@@ -636,7 +636,7 @@ export default function Renewal() {
         <div className={styles.editorialInner}>
           <p className={styles.eyebrow}>기관·기업 협업</p>
           <h2>더 많은 선택의 기회를<br />함께 만들어 갑니다.</h2>
-          <p className={styles.lead}>협회·의료 및 돌봄 기관의 도입·교육 논의를 이어 갑니다. 기업과의 접근성 기술 협력도 제안을 듣고 가능성을 검토합니다.</p>
+          <p className={styles.lead}>협회·의료 및 돌봄 기관의 도입·교육 관련 문의와 기업의 접근성 기술 협력 제안을 받습니다. 협력 가능성과 구체적인 범위는 문의 내용을 바탕으로 검토합니다.</p>
           <p>어떤 사람들의 어떤 상황에서 모스픽을 살펴보고 싶은지, 조직의 역할과 협력 구상을 알려 주세요. 제공 범위나 연동 방식은 사전에 약속하지 않고 문의 내용을 바탕으로 검토합니다.</p>
           <Link className={styles.pillLink} href="/contact">협업 문의하기</Link>
         </div>

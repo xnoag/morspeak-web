@@ -20,6 +20,7 @@
 - `npm test`: 일곱 영역, 목적지 HTTP 200, 이야기 목록·상세·원문 경로, 출처 구분, 개인·협업 CTA와 접수 의미 확인. 1건 통과 (`assessed_pass`). 테스트는 별도 빌드 디렉터리를 사용합니다.
 - 합성 공개 설정의 `npm run build`: 통과. `/home/renewal`, 이야기 목록과 두 상세가 정적 경로로 생성됨 (`assessed_pass`). 실제 Firebase 접수 검증은 아닙니다.
 - `node scripts/verify-renewal-render.mjs`: Chrome 1440×900·모바일 에뮬레이션 390×844에서 가로 넘침 없음, 히어로 로딩, 모바일 메뉴 7개 항목 열림, 문의·이야기 화면 제목 확인 (`assessed_pass`). 이야기 원문 출처와 언론 카드 화면을 추가 캡처해 직접 확인했습니다.
+- 2026-10-18 CTA 재검증: 개인 소개 CTA를 ‘모스픽 이용 안내 신청’으로 맞추고, 신청이 개인 다섯 단계의 절차 안내 요청이며 평가·이용 가능성 확정은 아니라는 설명을 추가했습니다. 협업 문구는 기관·기업의 제안 접수와 범위 검토로 한정했습니다. 모바일 Chrome에서 `/home/renewal`의 개인·협업 CTA를 각각 클릭해 `/waitlist`의 ‘모스픽 이용 신청’, `/contact`의 ‘기관·기업 협업 문의’ 화면으로 이동하는 것을 확인했습니다. 입력·제출은 하지 않았습니다 (`assessed_pass`).
 - `git diff --check`: 통과.
 - 테스트와 빌드를 동시에 실행한 첫 시도는 테스트용 임시 타입 파일이 빌드 중 삭제돼 실패했습니다. 테스트 통과 뒤 빌드를 단독 실행해 통과했습니다. 콘텐츠 결함이 아닌 검증 실행 간 충돌입니다.
 
@@ -50,6 +51,7 @@
 - [모바일 언론 구역](mobile-390-press.png)
 - [모바일 일상의 변화와 임팩트](mobile-390-impact.png)
 - [모바일 기관·기업 문의](mobile-390-contact.png)
+- [모바일 개인 이용 신청](mobile-390-waitlist.png)
 - [모바일 이야기 목록](mobile-390-story-list.png)
 - [모바일 이야기 상세](mobile-390-story-detail.png)
 - [모바일 이야기 원문·목록 복귀](mobile-390-story-detail-source.png)

@@ -80,6 +80,10 @@ test('리뉴얼 홈에서 일곱 영역과 실제 다음 경로를 탐색할 수
       assert.ok(html.includes(heading), `${heading} evidence label missing`);
     }
     assert.ok(html.includes('희망 날짜를 선택하면 해당 날짜의 접수 순서'), 'waitlist receipt meaning missing');
+    assert.match(html, /href="\/waitlist"[^>]*>모스픽 이용 안내 신청 →<\/a>/, 'intro personal CTA must describe an application');
+    assert.ok(html.includes('위 다섯 단계의 절차를 안내받기 위한 요청'), 'application and five steps relationship missing');
+    assert.ok(html.includes('신청만으로 평가나 이용 가능성이 확정되지는 않으며'), 'application must not promise eligibility');
+    assert.ok(html.includes('협력 가능성과 구체적인 범위는 문의 내용을 바탕으로 검토합니다'), 'collaboration must not promise an offered service');
     assert.ok(html.includes('href="https://newsroom.smilegate.com/en/lab/morspeak_interview"'), 'source article missing');
     assert.ok(html.includes('외부 보도') && html.includes('스마일게이트 뉴스룸') && html.includes('2026. 7. 30.'), 'press author and date missing');
     assert.ok(html.includes('원문 기사 읽기'), 'press original source action missing');

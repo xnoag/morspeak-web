@@ -112,18 +112,29 @@ try {
     await capture(`${viewport.name}-press`);
     console.log(`${viewport.name}: ${ready.width}px, overflow ${ready.scrollWidth}px, hero loaded, navigation correct, screenshots saved`);
   }
-  await send('Page.navigate', { url: `${base}/contact` });
-  const contactHeading = await evaluate(`(async () => {
-    for (let i = 0; i < 100; i++) {
-      const heading = document.querySelector('h1')?.textContent ?? '';
-      if (heading.includes('기관·기업 협업 문의')) return heading;
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    return document.querySelector('h1')?.textContent ?? '';
-  })()`);
-  assert.match(contactHeading, /기관·기업 협업 문의/);
-  await capture('mobile-390-contact');
-  console.log('mobile-390 contact: institution and company inquiry heading rendered, screenshot saved');
+  for (const { selector, path, heading, screenshot } of [
+    { selector: '#renewal-use a[href="/waitlist"]', path: '/waitlist', heading: '모스픽 이용 신청', screenshot: 'mobile-390-waitlist' },
+    { selector: '#renewal-partner a[href="/contact"]', path: '/contact', heading: '기관·기업 협업 문의', screenshot: 'mobile-390-contact' },
+  ]) {
+    await send('Page.navigate', { url: `${base}/home/renewal` });
+    const destination = await evaluate(`(async () => {
+      for (let i = 0; i < 100 && !document.querySelector(${JSON.stringify(selector)}); i++) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      const link = document.querySelector(${JSON.stringify(selector)});
+      if (!link) return { error: 'CTA missing' };
+      link.click();
+      for (let i = 0; i < 100; i++) {
+        if (location.pathname === ${JSON.stringify(path)} && document.querySelector('h1')?.textContent?.includes(${JSON.stringify(heading)})) break;
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      return { path: location.pathname, heading: document.querySelector('h1')?.textContent ?? '' };
+    })()`);
+    assert.equal(destination.path, path, `${path}: CTA did not navigate`);
+    assert.match(destination.heading, new RegExp(heading), `${path}: form heading missing`);
+    await capture(screenshot);
+    console.log(`${path}: CTA click navigated to the form; no form submission`);
+  }
   for (const { path, name, heading } of [
     { path: '/home/renewal/stories', name: 'mobile-390-story-list', heading: '문제를 듣고, 만들고,' },
     { path: '/home/renewal/stories/250708', name: 'mobile-390-story-detail', heading: '국내에서 사용 과정을 살펴본 기록' },

@@ -71,3 +71,23 @@
 - 스마일게이트 뉴스룸 인터뷰의 한 가족 경험은 단일 보도 사례로만 다뤘습니다. 제품의 일반적 효과나 임상 성과로 해석하지 않습니다.
 - 실제 사용자 조작 영상과 공개 동의가 있는 성과 자료는 [필요 자료](../renewal-content-gaps.md)에 정리했습니다.
 - 글로벌 root 교체와 프로덕션 배포는 이번 검토 대상이 아닙니다. 최종 검토 후 별도 결정이 필요합니다.
+
+## AC 5 — 변경 범위와 공개 주장 점검
+
+- 비교 기준은 이 작업의 분기점 `19ef1bb`입니다. `git diff --name-status 19ef1bb --`로 **현재 작업 트리까지** 비교했습니다. 관리자 초안이 이미 있던 `feat/unified-admin`의 이전 커밋을 기준으로 판단하지 않습니다. 다른 작업의 worktree는 수정하지 않았습니다.
+- 변경된 공개 경로는 `/home/renewal`, 새 하위 경로 `/home/renewal/stories`와 `/home/renewal/stories/[slug]`, 기존 `/contact`의 제목·안내 문구뿐입니다. `app/contact/page.tsx`의 문구 변경은 기록하며, 기존 `/contact` 주소가 변경되지 않았다고 해서 화면 내용까지 동일하다고 말하지 않습니다.
+- 기존 `/contact` 접수폼 `components/ContactForm.tsx`는 비교 기준과 동일합니다. `/waitlist`의 화면·접수 처리 코드도 동일합니다. 폼 제출·운영 접수는 실행 검증하지 않았습니다.
+- `app/admin`, `app/api`, `app/tracking`, `app/survey*`, `lib`, `firestore`, `firebase-functions`, `proxy.ts`는 비교 기준과 동일합니다. 관리자·인증·저장 데이터의 코드 및 규칙을 이번 홈페이지 작업에서 수정하지 않았습니다. 운영 데이터가 동일한지는 읽기·쓰기 검증을 수행하지 않았으므로 별도 확인이 필요합니다.
+- 기존 공개주소를 제공하는 `app/page.tsx`, `app/home/page.tsx`, `app/waitlist/page.tsx`, `app/articles/[slug]/page.tsx`, `app/article*`, `app/blog`, `app/eng`, `app/jpn`, `app/robots.ts`, `app/layout.tsx`는 변경되지 않았습니다. root 교체나 운영 배포도 하지 않았습니다.
+- 그 밖의 변경은 리뉴얼 콘텐츠와 스타일, 탐색 테스트·화면 검증 스크립트, 화면 캡처·기록, 테스트의 별도 빌드 폴더 설정(`next.config.ts`, `tsconfig.json`) 및 `npm test` 명령(`package.json`)입니다. `.ouroboros/context_pack.json`의 별도 미커밋 변경은 이 감사에서 수정하지 않았습니다.
+
+| 공개 내용 | 근거 상태 | 원문·공개 범위 |
+| --- | --- | --- |
+| 입력과 개인 다섯 단계 | `confirmed_process` | 기존 제품·`/waitlist` 절차를 안내합니다. 개인별 적합성·제공 가능성은 평가와 안내에서 확인합니다. |
+| 한 가족의 요청·음악 선택 경험 | `sourced_outcome` | [스마일게이트 뉴스룸 인터뷰](https://newsroom.smilegate.com/en/lab/morspeak_interview), 스마일게이트 작성·2026-07-30 게시. 공개 보도에 실린 경험을 출처와 함께 간접 서술하는 범위로만 사용합니다. 당사자의 별도 재게시 동의나 원기록은 확인하지 않았으므로 직접 인용·신원·영상·임상 결과로 확장하지 않습니다. |
+| 소통 기회와 일상 선택의 확대 | `unverified_expectation` | 기대 방향임을 명시합니다. 측정된 제품 효과·임팩트 수치로 제시하지 않습니다. |
+| 합성 페르소나 점검 | `synthetic_hypothesis` | 내부 화면 검토 가설입니다. 실제 사용자 발언·사례·성과로 게시하지 않습니다. |
+
+모스픽 이야기 두 편은 모스픽의 기존 글 `/articles/250708`(2025-07-08), `/articles/251124`(2025-11-24)를 개발 과정 요약으로만 사용합니다. 목록과 상세에 작성 주체·게시일·원문 링크를 표시합니다. 공개 페이지에서 제품 효과, 사용자 수, 임상 성과, 수익 지표, 확정된 기업 연동, 가격을 주장하지 않았습니다. 해당 정보와 추가 사례를 게시하려면 원기록·현재 제공 범위·공개 동의를 먼저 확인해야 합니다.
+
+AC 5 평가: `assessed_pass`. `git diff --exit-code 19ef1bb --`로 위 보호 경로와 접수폼의 동일성을 확인했고, `git diff --check`, 변경 범위 ESLint(`--quiet`), `npm test` 1건이 통과했습니다. 전체 린트의 기존 오류는 공통 게이트 `blocked_by_gate`로 계속 구분합니다. 실제 운영 데이터·제출·배포 상태는 평가하지 않았습니다.

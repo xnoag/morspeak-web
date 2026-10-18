@@ -77,7 +77,7 @@ export default function ContactForm() {
         name="organization"
         value={form.organization}
         onChange={handleChange}
-        placeholder="기관명 (필수)"
+        placeholder="기관·기업명 (필수)"
         required
         className={inputClass}
       />

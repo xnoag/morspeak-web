@@ -13,14 +13,14 @@ export default function ContactPage() {
           className="text-[28px] font-bold text-ms-dark mb-3"
           style={{ letterSpacing: "-0.01em" }}
         >
-          협력 방안 문의
+          기관·기업 협업 문의
         </h1>
         <p
           className="text-[16px] text-ms-secondary mb-2 max-w-lg"
           style={{ letterSpacing: "-0.01em", lineHeight: "1.6em" }}
         >
-          협회·기관·단체에서 앱 사용 교육을 원하시거나 도입을 검토하시는 경우, 문의해
-          주시기 바랍니다.
+          협회·의료·돌봄 기관의 도입·교육이나 기업의 접근성 기술 협력을 논의하고 싶다면,
+          조직과 협력 구상을 알려 주시기 바랍니다. 가능한 범위는 문의 내용을 바탕으로 검토합니다.
         </p>
         <p
           className="text-[13px] text-ms-muted mb-10"

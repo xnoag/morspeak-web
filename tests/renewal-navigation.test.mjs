@@ -63,11 +63,15 @@ test('리뉴얼 홈에서 일곱 영역과 실제 다음 경로를 탐색할 수
     const list = await listResponse.text();
     for (const slug of ['250708', '251124']) {
       assert.ok(list.includes(`href="/home/renewal/stories/${slug}"`), `${slug} missing from story list`);
+      assert.ok(list.includes(`href="/articles/${slug}"`), `${slug} original source missing from story list`);
       const detailResponse = await fetch(`${base}/home/renewal/stories/${slug}`);
       const detail = await detailResponse.text();
       assert.ok(detail.includes('href="/home/renewal/stories"'), `${slug} cannot return to list`);
       assert.ok(detail.includes('모스픽 이야기'), `${slug} missing article content`);
       assert.ok(detail.includes('모스픽 기존 글'), `${slug} author provenance missing`);
+      assert.ok(detail.includes(`href="/articles/${slug}"`), `${slug} original source missing from story detail`);
+      const originalResponse = await fetch(`${base}/articles/${slug}`);
+      assert.equal(originalResponse.status, 200, `${slug} original source does not resolve`);
       assert.ok(!detail.includes('52명의'), `${slug} unverified figure reused`);
     }
     assert.ok(!list.includes('href="/home/renewal/stories/250609"'), 'press article mixed into stories');
@@ -77,6 +81,8 @@ test('리뉴얼 홈에서 일곱 영역과 실제 다음 경로를 탐색할 수
     }
     assert.ok(html.includes('희망 날짜를 선택하면 해당 날짜의 접수 순서'), 'waitlist receipt meaning missing');
     assert.ok(html.includes('href="https://newsroom.smilegate.com/en/lab/morspeak_interview"'), 'source article missing');
+    assert.ok(html.includes('외부 보도') && html.includes('스마일게이트 뉴스룸') && html.includes('2026. 7. 30.'), 'press author and date missing');
+    assert.ok(html.includes('원문 기사 읽기'), 'press original source action missing');
     assert.ok(!html.includes('href="/articles/250609"'), 'historical article promoted as sourced press');
     assert.ok(!html.includes('href="#"'), 'empty card link found');
     assert.ok(!html.includes('<dialog'), 'repeated feature modal found');

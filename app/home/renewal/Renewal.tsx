@@ -266,6 +266,7 @@ function InputSymbol({ kind }: { kind: InputKind }) {
 const stories = [
   {
     source: "스마일게이트 뉴스룸",
+    publicationDate: "2026. 7. 30.",
     title: "모스픽의 기술과 일상에 관한 인터뷰",
     image: "/renewal-reference/morspeak-everyday-story-20261008.webp",
     small: "/renewal-reference/morspeak-everyday-story-20261008.webp",
@@ -328,10 +329,12 @@ function Gallery({
   children,
   label,
   wide = false,
+  showControls = true,
 }: {
   children: ReactNode;
   label: string;
   wide?: boolean;
+  showControls?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [edges, setEdges] = useState({ start: true, end: false });
@@ -372,7 +375,7 @@ function Gallery({
       >
         {children}
       </div>
-      <div className={styles.controls}>
+      {showControls && <div className={styles.controls}>
         <button
           type="button"
           aria-label={`${label}: previous`}
@@ -389,7 +392,7 @@ function Gallery({
         >
           <img src={pc.imgOriginalSvg3} alt="" />
         </button>
-      </div>
+      </div>}
     </div>
   );
 }
@@ -662,15 +665,15 @@ export default function Renewal() {
           <h2>모스픽을 소개한 자리와 보도.</h2>
           <p className={styles.sectionLead}>소개와 보도는 팀의 활동을 보여 줍니다. 개인의 사용 가능성이나 효과는 별도 평가와 사용 과정에서 확인합니다.</p>
         </div>
-        <Gallery label="모스픽 언론 및 소식" wide>
+        <Gallery label="모스픽 언론 및 소식" wide showControls={false}>
           {stories.map((card) => (
             <article className={styles.storyCard} key={card.title}>
               <Picture className={styles.storyImage} src={card.image} small={card.small} alt={card.alt ?? card.title} />
               <div className={styles.scrim} />
               <div className={styles.storyCopy}>
-                <p className={styles.storySource}>{card.source}</p>
+                <p className={styles.storySource}>외부 보도 · {card.source} · {card.publicationDate}</p>
                 <h3>{card.title}</h3>
-                <a href={card.href} target="_blank" rel="noreferrer">기사 읽기 →</a>
+                <a href={card.href} target="_blank" rel="noreferrer">원문 기사 읽기 →</a>
               </div>
             </article>
           ))}

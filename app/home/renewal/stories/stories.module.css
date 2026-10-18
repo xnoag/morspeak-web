@@ -23,29 +23,31 @@
 .header > p:last-child { margin-top: 24px; font-size: 1.3125rem; line-height: 1.5; }
 .header a { color: #a93700; text-decoration: underline; text-underline-offset: 3px; }
 .list { list-style: none; padding: 0; margin: 0; display: grid; gap: 20px; }
+.list li { border-radius: 28px; background: #fff; overflow: hidden; }
 .storyLink {
   display: flex;
   flex-direction: column;
-  min-height: 240px;
-  padding: 40px;
-  border-radius: 28px;
-  background: #fff;
+  padding: 40px 40px 0;
 }
 .date { color: #6e6e73; font-size: .875rem; line-height: 1.5; }
 .source { color: #6e6e73; font-size: .875rem; line-height: 1.5; margin-top: 8px; }
 .storyLink h2 { margin-top: 14px; font-size: 1.75rem; line-height: 1.3; font-weight: 600; }
 .storyLink p { margin-top: 16px; font-size: 1.0625rem; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .read { margin-top: auto; padding-top: 20px; color: #a93700; font-size: 1.0625rem; text-decoration: underline; text-underline-offset: 4px; }
+.originalLink { display: inline-flex; align-items: center; min-height: 44px; margin: 12px 40px 28px; color: #a93700; font-size: .875rem; text-decoration: underline; text-underline-offset: 3px; }
 .article { max-width: 848px; }
 .article .header { padding-bottom: 44px; }
 .article .header .date { font-size: 1rem; }
 .body { max-width: 680px; }
 .body p { font-size: 1.0625rem; line-height: 1.85; margin-bottom: 1.5em; }
+.originalSource { margin-top: 32px; font-size: .875rem; line-height: 1.6; color: #6e6e73; }
+.originalSource a { color: #a93700; text-decoration: underline; text-underline-offset: 3px; }
 .endLink { margin-top: 32px; }
 @media (max-width: 734px) {
   .page { padding: 88px 20px 96px; }
   .header { padding: 56px 0 40px; }
   .header > p:last-child { font-size: 1.0625rem; }
-  .storyLink { padding: 28px; min-height: 240px; }
+  .storyLink { padding: 28px 28px 0; }
+  .originalLink { margin: 12px 28px 20px; }
   .storyLink h2 { font-size: 1.3125rem; }
 }

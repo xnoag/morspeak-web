@@ -108,6 +108,8 @@ try {
     await capture(`${viewport.name}-impact`);
     await evaluate(`document.querySelector('#renewal-journal')?.scrollIntoView()`);
     await capture(`${viewport.name}-stories`);
+    await evaluate(`document.querySelector('#renewal-press')?.scrollIntoView()`);
+    await capture(`${viewport.name}-press`);
     console.log(`${viewport.name}: ${ready.width}px, overflow ${ready.scrollWidth}px, hero loaded, navigation correct, screenshots saved`);
   }
   await send('Page.navigate', { url: `${base}/contact` });
@@ -138,6 +140,10 @@ try {
     assert.equal(state.width, 390, `${path}: wrong viewport`);
     assert.ok(state.scrollWidth <= 390, `${path}: horizontal overflow`);
     await capture(name);
+    if (name === 'mobile-390-story-detail') {
+      await evaluate(`document.querySelector('article')?.lastElementChild?.scrollIntoView()`);
+      await capture('mobile-390-story-detail-source');
+    }
     console.log(`${path}: mobile story rendered without overflow, screenshot saved`);
   }
   socket.close();

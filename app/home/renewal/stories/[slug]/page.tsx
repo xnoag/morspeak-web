@@ -34,6 +34,9 @@ export default async function StoryPage({ params }: Props) {
         <div className={styles.body}>
           {story.paragraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)}
         </div>
+        <p className={styles.originalSource}>
+          원문 출처: <Link href={story.provenance.originalSource}>모스픽 기존 글 ({story.provenance.publicationDate}) →</Link>
+        </p>
         <Link className={styles.endLink} href="/home/renewal/stories">이야기 목록으로 돌아가기 →</Link>
       </article>
     </main>

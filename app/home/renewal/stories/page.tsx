@@ -28,6 +28,9 @@ export default function StoriesPage() {
                 <p>{story.paragraphs[0]}</p>
                 <span className={styles.read}>이야기 읽기 →</span>
               </Link>
+              <Link className={styles.originalLink} href={story.provenance.originalSource}>
+                원문: 모스픽 기존 글 ({story.provenance.publicationDate}) →
+              </Link>
             </li>
           ))}
         </ol>

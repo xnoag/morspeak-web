@@ -17,12 +17,12 @@ export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   const isProtected =
-    PROTECTED_PREFIXES.some(p => pathname.startsWith(p)) && !pathname.startsWith('/tracking/login') && pathname !== '/survey-admin/trends'
+    PROTECTED_PREFIXES.some(p => pathname.startsWith(p)) && !pathname.startsWith('/tracking/login') && pathname !== '/admin/login' && pathname !== '/survey-admin/trends'
 
   if (isProtected) {
     const session = req.cookies.get('admin_session')
     if (!session || session.value !== 'authenticated') {
-      const loginUrl = new URL('/tracking/login', req.url)
+      const loginUrl = new URL(pathname.startsWith('/admin/workspace') || pathname === '/admin' ? '/admin/login' : '/tracking/login', req.url)
       loginUrl.searchParams.set('redirect', pathname)
       return NextResponse.redirect(loginUrl)
     }

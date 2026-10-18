@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   const adminId = process.env.ADMIN_ID
   const adminPw = process.env.ADMIN_PASSWORD
 
-  if (id !== adminId || pw !== adminPw) {
+  if (!adminId || !adminPw || typeof id !== 'string' || typeof pw !== 'string' || id !== adminId || pw !== adminPw) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

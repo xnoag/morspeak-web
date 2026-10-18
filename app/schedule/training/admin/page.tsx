@@ -1,4 +1,5 @@
 'use client';
+import { useAdminWorkspace } from '@/components/admin/AdminWorkspace';
 import { useEffect, useState } from 'react';
 import { collection, deleteDoc, doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { getAuth, signInAnonymously } from 'firebase/auth';
@@ -38,8 +39,9 @@ const DATE_LABELS: Record<string, string> = {
 };
 
 export default function TrainingAdminPage() {
+  const workspace = useAdminWorkspace();
   const [pw, setPw] = useState('');
-  const [authed, setAuthed] = useState(false);
+  const [authed, setAuthed] = useState(workspace.active);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [codeDrafts, setCodeDrafts] = useState<Record<string, string>>({});
   const [memoDrafts, setMemoDrafts] = useState<Record<string, string>>({});
@@ -93,7 +95,7 @@ export default function TrainingAdminPage() {
   }, {});
 
   return (
-    <div style={{ minHeight: '100svh', background: '#F5F5F7', fontFamily: F, padding: '24px 16px 60px' }}>
+    <div data-admin-page="training" style={{ minHeight: '100svh', background: '#F5F5F7', fontFamily: F, padding: '24px 16px 60px' }}>
       <div style={{ maxWidth: 720, margin: '0 auto' }}>
         <h1 style={{ fontSize: 20, fontWeight: 700, color: '#1C1C1E', marginBottom: 4 }}>원격 교육 신청 현황</h1>
         <p style={{ fontSize: 14, color: '#8E8E93', marginBottom: 20 }}>총 {bookings.length}건 예약됨</p>

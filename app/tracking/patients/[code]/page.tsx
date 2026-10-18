@@ -1,4 +1,6 @@
 'use client'
+import { useAdminWorkspace } from '@/components/admin/AdminWorkspace';
+import Link from 'next/link';
 import { use, useEffect, useState } from 'react'
 import { initializeApp, getApps } from 'firebase/app'
 import { getFirestore, doc, getDoc, collection, query, orderBy, getDocs, deleteDoc, setDoc, limit, updateDoc, onSnapshot } from 'firebase/firestore'
@@ -112,10 +114,8 @@ const MODE_FLAGS: { key: string; label: string; morse: string; defaultOn: boolea
   { key: 'keyboardMode', label: '키보드 모드 진입', morse: '●●●●━ (11112)', defaultOn: true },
   { key: 'shortcut',     label: '단축어 모드 진입', morse: '━●●●● (21111)', defaultOn: false },
   { key: 'functionMode', label: '기능 모드 진입',   morse: '(기능 버튼)',    defaultOn: false },
-  // 켜면 관리자가 매 단계 "다음 단계"를 눌러주지 않아도, 환자 기기에서 로컬 "다음 단계" 버튼과
-  // 5초 자동 진행으로 튜토리얼을 스스로 끝까지 진행할 수 있음. 아래 교육온보딩 탭에서 여러 단계를
-  // 한 번에 체크해서 "단계 열기"로 큐에 넣어주면, 그 뒤로는 관리자 개입 없이 계속 진행됨
-  { key: 'selfGuidedTutorial', label: '자율 온보딩 (관리자 개입 없이 진행)', morse: '(설정 화면)', defaultOn: false },
+  // 앱의 자율 교육 진입 허용. 기능별 이용 권한은 아래 토글과 별개다.
+  { key: 'selfGuidedTutorial', label: '온보딩 허용 (사용자가 직접 진행·재시도)', morse: '(교육 시작 권한)', defaultOn: false },
   // 켜면 카메라(눈 깜빡임 감지) 대신 연결된 외장 키보드의 스페이스바로 장/단을 입력함 —
   // 눈 깜빡임은 어렵지만 손가락은 움직일 수 있는 환자용
   { key: 'oneKeyInput', label: '원키 입력 (외장 키보드 아무 키로 장/단 입력)', morse: '(설정 화면)', defaultOn: false },
@@ -132,6 +132,7 @@ const MODE_FLAGS: { key: string; label: string; morse: string; defaultOn: boolea
 ]
 
 export default function PatientDetail({ params }: { params: Promise<{ code: string }> }) {
+  const workspace = useAdminWorkspace();
   const { code } = use(params)
   const [tab, setTab] = useState('개요')
   const [stats, setStats]   = useState<Record<string,any>>({})
@@ -268,14 +269,14 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
   if (loading) return <div style={{height:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'#f2f2f7',fontFamily:F,color:'#8e8e93',fontSize:13}}>불러오는 중...</div>
 
   return (
-    <div style={{height:'100vh',display:'flex',flexDirection:'column',background:'#f2f2f7',fontFamily:F,color:'#1d1d1f'}}>
+    <div data-admin-page="patient" style={{height:'100vh',display:'flex',flexDirection:'column',background:'#f2f2f7',fontFamily:F,color:'#1d1d1f'}}>
 
       {/* 상단 헤더 */}
-      <div style={{background:'#1d1d1f',flexShrink:0,padding:'0 24px',display:'flex',alignItems:'center',gap:16,height:56}}>
-        <a href="/tracking/dashboard" style={{color:'rgba(255,255,255,0.6)',textDecoration:'none',fontSize:12,display:'flex',alignItems:'center',gap:6,flexShrink:0}}>
+      <div data-admin-toolbar style={{background:'#1d1d1f',flexShrink:0,padding:'0 24px',display:'flex',alignItems:'center',gap:16,height:56}}>
+        <Link href={workspace.path("/tracking/dashboard")} style={{color:'rgba(255,255,255,0.6)',textDecoration:'none',fontSize:12,display:'flex',alignItems:'center',gap:6,flexShrink:0}}>
           <svg width="6" height="10" viewBox="0 0 6 10" fill="none"><path d="M5 1L1 5L5 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
           목록
-        </a>
+        </Link>
         <div style={{width:1,height:16,background:'rgba(255,255,255,0.15)'}}/>
         <div>
           <div style={{fontSize:15,fontWeight:700,color:'#fff',letterSpacing:'-.3px'}}>{stats.userName||code}</div>
@@ -325,7 +326,7 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
           await Promise.all([...d1.docs,...d2.docs,...d3.docs].map(d=>deleteDoc(d.ref)))
           await Promise.all([deleteDoc(doc(db,'usageStats',code)),deleteDoc(doc(db,'blinkProfiles',code)),deleteDoc(doc(db,'chats',code)),deleteDoc(doc(db,'shortcuts',code)),deleteDoc(doc(db,'youtubeSuggestions',code))])
           if (loginId) await deleteDoc(doc(db,'patients',loginId))
-          location.href='/tracking/dashboard'
+          location.href=workspace.path('/tracking/dashboard')
         }} disabled={deleting} style={{fontSize:11,color:'#ff453a',border:'none',background:'transparent',cursor:'pointer',fontFamily:F}}>
           {deleting?'삭제 중...':'삭제'}
         </button>
@@ -360,12 +361,12 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
       )}
 
       {/* 메인: 사이드바 + 콘텐츠 */}
-      <div style={{display:'flex',flex:1,overflow:'hidden'}}>
+      <div data-admin-patient-body style={{display:'flex',flex:1,overflow:'hidden'}}>
 
       {/* 좌측 사이드바 */}
-      <div style={{width:200,background:'#fff',borderRight:'1px solid #e5e5ea',flexShrink:0,display:'flex',flexDirection:'column',paddingTop:8}}>
+      <div data-admin-patient-tabs style={{width:200,background:'#fff',borderRight:'1px solid #e5e5ea',flexShrink:0,display:'flex',flexDirection:'column',paddingTop:8}}>
         {NAV_ITEMS.map(item=>(
-          <button key={item.id} onClick={()=>setTab(item.id)} style={{
+          <button key={item.id} aria-pressed={tab === item.id} onClick={()=>setTab(item.id)} style={{
             display:'flex',alignItems:'center',gap:10,padding:'10px 16px',border:'none',
             background:tab===item.id?'#f2f2f7':'transparent',
             borderRadius:10,margin:'2px 8px',cursor:'pointer',fontFamily:F,
@@ -389,7 +390,7 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
       </div>
 
       {/* 콘텐츠 영역 */}
-      <div style={{flex:1,overflow:'auto',padding:'28px 32px'}}>
+      <div data-admin-patient-content style={{flex:1,overflow:'auto',padding:'28px 32px'}}>
 
         {/* ── 개요 ── */}
         {tab==='개요' && (
@@ -805,6 +806,19 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
           return (
           <div style={{maxWidth:920}}>
             <ColTitle>교육 · 온보딩</ColTitle>
+            <div style={{marginBottom:24,padding:20,border:'1px solid #d2d2d7',borderRadius:12}}>
+              <strong>{featureFlags.selfGuidedTutorial === true ? '온보딩 허용됨' : '온보딩 대기 중'}</strong>
+              <p style={{fontSize:13,lineHeight:1.7,color:'#6e6e73'}}>
+                한 번 허용하면 사용자가 다음 단계와 다시 하기를 직접 선택하고, 교육을 마치면 사용 화면으로 이동합니다.
+                원키·입·눈썹·바람 사용자는 눈 깜빡임 연습을 건너뜁니다. 기능 관리에서 꺼둔 기능은 교육에서도 제외됩니다.
+              </p>
+              <button style={smallBtn} onClick={async () => {
+                try {
+                  await setDoc(doc(getDb(),'featureFlags',code), {selfGuidedTutorial: featureFlags.selfGuidedTutorial !== true}, {merge:true})
+                } catch { window.alert('교육 허용 상태를 저장하지 못했습니다. 연결을 확인하고 다시 시도해주세요.') }
+              }}>{featureFlags.selfGuidedTutorial === true ? '진행 중인 온보딩 일시 중지' : '온보딩 허용'}</button>
+              <p style={{fontSize:12,lineHeight:1.6,color:'#6e6e73',marginBottom:0}}>새 자율 온보딩을 지원하는 환자 앱 업데이트가 필요합니다. 기존 사용자의 교육 완료 이력과 이용 권한은 유지합니다.</p>
+            </div>
             <p style={{fontSize:13,color:'#6e6e73',lineHeight:1.7,marginBottom:20}}>
               캘리브레이션부터 튜토리얼 단계, 화면 제어, 감지 파라미터까지 온보딩 교육에 필요한 모든 것을 여기서 관리하고 진행 상황을 추적합니다.
             </p>
@@ -1368,6 +1382,9 @@ export default function PatientDetail({ params }: { params: Promise<{ code: stri
           return (
           <div style={{maxWidth:560}}>
             <ColTitle>기능 관리</ColTitle>
+            <p style={{fontSize:13,lineHeight:1.7,color:'#6e6e73',marginBottom:24}}>
+              무료·유료 이용 조건에 맞춰 이 계정에 제공할 기능을 선택합니다. 온보딩 허용과 별개이며, 교육을 완료해도 꺼둔 기능은 활성화되지 않습니다.
+            </p>
 
             {/* 모드 접근 제어 — 개별 기능보다 넓은 의미 */}
             <div style={{marginBottom:32}}>

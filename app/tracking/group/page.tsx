@@ -1,4 +1,5 @@
 'use client'
+import { useAdminWorkspace } from '@/components/admin/AdminWorkspace';
 import React, { useEffect, useState } from 'react'
 import { initializeApp, getApps } from 'firebase/app'
 import { getFirestore, doc, setDoc, onSnapshot } from 'firebase/firestore'
@@ -95,6 +96,7 @@ function reflectionStatus(row: RowState): { label: string; color: string } {
 }
 
 export default function GroupTracking() {
+  const workspace = useAdminWorkspace();
   const [codes, setCodes] = useState<string[]>([])
   const [rows, setRows] = useState<Record<string, RowState>>({})
   const [rawInput, setRawInput] = useState('')
@@ -203,9 +205,9 @@ export default function GroupTracking() {
   }
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f2f2f7', fontFamily: F }}>
-      <div style={{ height: 56, background: '#1d1d1f', display: 'flex', alignItems: 'center', padding: '0 24px', gap: 16, flexShrink: 0 }}>
-        <a href="/tracking/dashboard" style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, textDecoration: 'none' }}>← 목록</a>
+    <div data-admin-page="group" style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f2f2f7', fontFamily: F }}>
+      <div data-admin-toolbar style={{ height: 56, background: '#1d1d1f', display: 'flex', alignItems: 'center', padding: '0 24px', gap: 16, flexShrink: 0 }}>
+        <a href={workspace.path("/tracking/dashboard")} style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, textDecoration: 'none' }}>← 목록</a>
         <span style={{ color: '#fff', fontWeight: 700, fontSize: 15, letterSpacing: '-.3px' }}>그룹 교육 관리</span>
         <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: 20 }}>{codes.length}대</span>
         <div style={{ flex: 1 }} />
@@ -449,7 +451,7 @@ export default function GroupTracking() {
                                 })}
                               </div>
                               <div style={{ marginTop: 10 }}>
-                                <a href={`/tracking/patients/${code}`} style={{ fontSize: 11, color: '#8e8e93', textDecoration: 'none' }}>전체 관리 페이지로 이동 →</a>
+                                <a href={workspace.path(`/tracking/patients/${encodeURIComponent(code)}`)} style={{ fontSize: 11, color: '#8e8e93', textDecoration: 'none' }}>전체 관리 페이지로 이동 →</a>
                               </div>
                             </td>
                           </tr>

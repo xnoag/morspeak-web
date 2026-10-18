@@ -1,4 +1,5 @@
 'use client';
+import { useAdminWorkspace } from '@/components/admin/AdminWorkspace';
 
 /**
  * 문의 관리 — /contact 기관 문의 + /eng·/jpn 소식 구독.
@@ -49,8 +50,9 @@ const fmtDate = (ts?: Timestamp) => {
 const LOCALE_LABEL: Record<string, string> = { ko: '한국어', en: 'English', ja: '日本語' };
 
 export default function InquiriesAdminPage() {
+  const workspace = useAdminWorkspace();
   const [pw, setPw] = useState('');
-  const [authed, setAuthed] = useState(false);
+  const [authed, setAuthed] = useState(workspace.active);
   const [rows, setRows] = useState<Inquiry[]>([]);
   const [memoDrafts, setMemoDrafts] = useState<Record<string, string>>({});
 
@@ -157,7 +159,7 @@ export default function InquiriesAdminPage() {
   );
 
   return (
-    <div style={{ minHeight: '100svh', background: '#F5F5F7', fontFamily: F, padding: '24px 16px 60px' }}>
+    <div data-admin-page="inquiries" style={{ minHeight: '100svh', background: '#F5F5F7', fontFamily: F, padding: '24px 16px 60px' }}>
       <div style={{ maxWidth: 720, margin: '0 auto' }}>
         <h1 style={{ fontSize: 20, fontWeight: 700, color: '#1C1C1E', marginBottom: 4 }}>문의 관리</h1>
         <p style={{ fontSize: 14, color: '#8E8E93', marginBottom: 20 }}>

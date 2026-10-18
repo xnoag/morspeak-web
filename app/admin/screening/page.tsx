@@ -1,4 +1,5 @@
 'use client';
+import { useAdminWorkspace } from '@/components/admin/AdminWorkspace';
 
 import { useState, useEffect, useRef } from 'react';
 import { collection, onSnapshot, orderBy, query, updateDoc, deleteDoc, doc, setDoc, deleteField } from 'firebase/firestore';
@@ -235,8 +236,9 @@ function calcSuitability(r: Result): Suitability | null {
 }
 
 export default function AdminScreeningPage() {
+  const workspace = useAdminWorkspace();
   const [pw, setPw] = useState('');
-  const [authed, setAuthed] = useState(false);
+  const [authed, setAuthed] = useState(workspace.active);
   const [initializing, setInitializing] = useState(true);
   const [results, setResults] = useState<Result[]>([]);
   const [loading, setLoading] = useState(false);
@@ -258,7 +260,7 @@ export default function AdminScreeningPage() {
   const [callTimerRunning, setCallTimerRunning] = useState(false);
   const [expandedNote, setExpandedNote] = useState<string|null>(null);
   const [excludedKeys, setExcludedKeys] = useState<Set<string>>(new Set());
-  const [finalUnlocked, setFinalUnlocked] = useState(false);
+  const [finalUnlocked, setFinalUnlocked] = useState(workspace.active);
   const [finalPw, setFinalPw] = useState('');
   const [equipmentLoans, setEquipmentLoans] = useState<Record<string, EquipmentLoan>>({});
   const [expandedLoanKey, setExpandedLoanKey] = useState<string | null>(null);
@@ -278,7 +280,7 @@ export default function AdminScreeningPage() {
   const [evalInput, setEvalInput] = useState({name:'', phone:'', c1:'', c2:'', c3:'', comment:''});
   const [evalJustSaved, setEvalJustSaved] = useState(false);
   const [qualViewPw, setQualViewPw] = useState('');
-  const [qualViewUnlocked, setQualViewUnlocked] = useState(false);
+  const [qualViewUnlocked, setQualViewUnlocked] = useState(workspace.active);
   const screeningUnsubRef = useRef<(() => void) | null>(null);
   const qualUnsubRef = useRef<(() => void) | null>(null);
   const appsUnsubRef = useRef<(() => void) | null>(null);
@@ -301,12 +303,12 @@ export default function AdminScreeningPage() {
   useEffect(() => {
     setEvalInput({name:'', phone:'', c1:'', c2:'', c3:'', comment:''});
     setEvalJustSaved(false);
-    setQualViewUnlocked(false);
+    setQualViewUnlocked(workspace.active);
     setQualViewPw('');
   }, [expandedRankKey]);
 
   useEffect(() => {
-    if (localStorage.getItem('morspeak_admin_authed') === '1') {
+    if (workspace.active || localStorage.getItem('morspeak_admin_authed') === '1') {
       Promise.all([load(), loadApplications(), loadQualScores()])
         .then(() => setAuthed(true))
         .catch(() => localStorage.removeItem('morspeak_admin_authed'))
@@ -996,17 +998,17 @@ export default function AdminScreeningPage() {
 
   // ── 메인 ────────────────────────────────────────────────────
   return (
-    <div style={{ height:'100vh', background:'#F7F7F9', fontFamily:F, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+    <div data-admin-page="screening" style={{ height:'100vh', background:'#F7F7F9', fontFamily:F, display:'flex', flexDirection:'column', overflow:'hidden' }}>
 
       {/* 헤더 */}
-      <div style={{ background:'rgba(255,255,255,0.9)',backdropFilter:'blur(20px)',borderBottom:'1px solid rgba(0,0,0,0.06)',padding:'14px 24px',position:'sticky',top:0,zIndex:50 }}>
+      <div data-admin-toolbar style={{ background:'rgba(255,255,255,0.9)',backdropFilter:'blur(20px)',borderBottom:'1px solid rgba(0,0,0,0.06)',padding:'14px 24px',position:'sticky',top:0,zIndex:50 }}>
         <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap' }}>
           <div style={{ display:'flex',alignItems:'center',gap:10,flexWrap:'wrap' }}>
             <img src="/morspeak-logo-icon.png" alt="Morspeak" style={{ height:36, width:'auto', display:'block' }} />
             {/* 뷰 전환 */}
-            <div style={{ display:'flex',gap:2,background:'#1C1C1E',borderRadius:10,padding:3 }}>
+            <div data-admin-tabs style={{ display:'flex',gap:2,background:'#1C1C1E',borderRadius:10,padding:3 }}>
               {(['screening','applications','ranking','final','loan','schedule'] as const).map(v => (
-                <button key={v}
+                <button key={v} aria-pressed={activeView === v}
                   onClick={() => { setActiveView(v); if ((v==='applications'||v==='ranking'||v==='final'||v==='loan') && applications.length===0) loadApplications(); }}
                   style={{ padding:'5px 14px',borderRadius:8,border:'none',cursor:'pointer',fontFamily:F,
                     fontSize:12,fontWeight:activeView===v?600:400,

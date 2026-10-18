@@ -22,6 +22,7 @@ function load(file) {
     if(name.endsWith('.module.css')) return new Proxy({}, { get: (_target, key) => String(key) });
     if(name === 'firebase/firestore') return firestoreStub;
     if(name === '@/lib/firebase') return { db: {} };
+    if(name === '@/components/admin/AdminWorkspace') return { useAdminWorkspace: () => ({ active: false, path: path => path, setUnsaved() {} }) };
     if(name.startsWith('@/')) return load(path.join(root, name.slice(2)) + (name.includes('components/') ? '.tsx' : '.ts'));
     if(name.startsWith('./')) return load(path.resolve(path.dirname(file), name) + '.ts');
     return require(path.join(root, 'node_modules', name));

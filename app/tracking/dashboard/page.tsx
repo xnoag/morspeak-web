@@ -1,4 +1,5 @@
 'use client'
+import { useAdminWorkspace } from '@/components/admin/AdminWorkspace';
 import { useEffect, useState } from 'react'
 import { initializeApp, getApps } from 'firebase/app'
 import { getFirestore, collection, getDocs, doc, updateDoc } from 'firebase/firestore'
@@ -52,6 +53,7 @@ const COLS: { key: SortKey; label: string }[] = [
 ]
 
 export default function Dashboard() {
+  const workspace = useAdminWorkspace();
   const [patients, setPatients] = useState<Patient[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -95,11 +97,11 @@ export default function Dashboard() {
   const totalSec   = realPatients.reduce((s, p) => s + (p.totalSessionSeconds ?? 0), 0)
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f2f2f7', fontFamily: F }}>
+    <div data-admin-page="tracking" style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f2f2f7', fontFamily: F }}>
 
       {/* 상단 네비게이션 */}
-      <div style={{ height: 56, background: '#1d1d1f', display: 'flex', alignItems: 'center', padding: '0 24px', gap: 16, flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div data-admin-toolbar style={{ height: 56, background: '#1d1d1f', display: 'flex', alignItems: 'center', padding: '0 24px', gap: 16, flexShrink: 0 }}>
+        <div data-admin-brand style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#007AFF,#5856D6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4h5v8H2zM9 2h5v10H9z" fill="white" opacity=".9"/></svg>
           </div>
@@ -112,7 +114,7 @@ export default function Dashboard() {
           <input placeholder="환우 검색..." value={search} onChange={e => setSearch(e.target.value)}
             style={{ paddingLeft: 30, paddingRight: 12, height: 32, borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.1)', fontSize: 13, outline: 'none', fontFamily: F, width: 180, color: '#fff' }} />
         </div>
-        <button onClick={async () => { await fetch('/api/admin/logout', { method: 'POST' }); location.href = '/tracking/login' }}
+        <button data-admin-logout onClick={async () => { await fetch('/api/admin/logout', { method: 'POST' }); location.href = '/tracking/login' }}
           style={{ height: 32, padding: '0 14px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', fontSize: 12, cursor: 'pointer', fontFamily: F, color: 'rgba(255,255,255,0.7)' }}>
           로그아웃
         </button>
@@ -122,7 +124,7 @@ export default function Dashboard() {
 
         {/* 요약 카드 */}
         {!loading && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 24 }}>
+          <div data-admin-summary style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 24 }}>
             {[
               { label: '총 환우', value: `${realPatients.length}명`, sub: `오늘 활동 ${activeToday}명`, color: '#007AFF', icon: '👤' },
               { label: '누적 말하기', value: totalSpeak.toLocaleString(), sub: '회', color: '#34c759', icon: '💬' },
@@ -160,7 +162,7 @@ export default function Dashboard() {
         )}
 
         {loading && (
-          <div style={{ background: '#fff', borderRadius: 16, border: '1px solid rgba(0,0,0,0.07)', padding: 56, textAlign: 'center', color: '#8e8e93', fontSize: 13 }}>불러오는 중...</div>
+          <div data-admin-table style={{ background: '#fff', borderRadius: 16, border: '1px solid rgba(0,0,0,0.07)', padding: 56, textAlign: 'center', color: '#8e8e93', fontSize: 13 }}>불러오는 중...</div>
         )}
       </div>
     </div>
@@ -178,8 +180,9 @@ function PatientTable({ title, list, sortKey, sortAsc, onSort, emptyLabel, toggl
   onToggleInternal: (p: Patient) => void
   muted?: boolean
 }) {
+  const workspace = useAdminWorkspace();
   return (
-    <div style={{ background: '#fff', borderRadius: 16, border: '1px solid rgba(0,0,0,0.07)', boxShadow: '0 1px 4px rgba(0,0,0,0.05)', overflow: 'hidden', opacity: muted ? 0.85 : 1 }}>
+    <div data-admin-table style={{ background: '#fff', borderRadius: 16, border: '1px solid rgba(0,0,0,0.07)', boxShadow: '0 1px 4px rgba(0,0,0,0.05)', overflow: 'hidden', opacity: muted ? 0.85 : 1 }}>
       <div style={{ padding: '14px 20px', borderBottom: '1px solid #f2f2f7', display: 'flex', alignItems: 'center', gap: 8 }}>
         <span style={{ fontWeight: 700, fontSize: 15, color: muted ? '#6e6e73' : '#1d1d1f' }}>{title}</span>
         <span style={{ fontSize: 12, color: '#8e8e93', background: '#f2f2f7', padding: '2px 8px', borderRadius: 20 }}>{list.length}명</span>
@@ -212,7 +215,7 @@ function PatientTable({ title, list, sortKey, sortAsc, onSort, emptyLabel, toggl
             {list.map((p, i) => {
               const active = isActiveToday(p.lastUpdated)
               return (
-                <tr key={p.id} onClick={() => location.href = `/tracking/patients/${p.userCode}`}
+                <tr key={p.id} tabIndex={0} role="link" aria-label={`${p.userName || p.userCode} 상세`} onKeyDown={e => { if (e.key === 'Enter') workspace.navigate(`/tracking/patients/${encodeURIComponent(p.userCode)}`); }} onClick={() => workspace.navigate(`/tracking/patients/${encodeURIComponent(p.userCode)}`)}
                   style={{ borderBottom: '1px solid #f7f7f7', cursor: 'pointer', transition: 'background .1s' }}
                   onMouseEnter={e => (e.currentTarget.style.background = '#f9f9fb')}
                   onMouseLeave={e => (e.currentTarget.style.background = '')}>

@@ -1,4 +1,5 @@
 'use client';
+import { useAdminWorkspace } from '@/components/admin/AdminWorkspace';
 import { useEffect, useState } from 'react';
 import { collection, deleteDoc, doc, onSnapshot, updateDoc, Timestamp } from 'firebase/firestore';
 import { getAuth, signInAnonymously } from 'firebase/auth';
@@ -40,8 +41,9 @@ function fmtMonday(iso: string) {
 }
 
 export default function WaitlistAdminPage() {
+  const workspace = useAdminWorkspace();
   const [pw, setPw] = useState('');
-  const [authed, setAuthed] = useState(false);
+  const [authed, setAuthed] = useState(workspace.active);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [memoDrafts, setMemoDrafts] = useState<Record<string, string>>({});
 
@@ -90,7 +92,7 @@ export default function WaitlistAdminPage() {
   const contacted = entries.filter(e => e.contacted);
 
   const renderEntry = (e: Entry, position?: number) => (
-    <div key={e.id} style={{ background: '#fff', borderRadius: 14, padding: '14px 16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: 8, opacity: e.contacted ? 0.6 : 1 }}>
+    <div key={e.id} data-admin-record style={{ background: '#fff', borderRadius: 14, padding: '14px 16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: 8, opacity: e.contacted ? 0.6 : 1 }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12, marginBottom: 10 }}>
         {position != null && (
           <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#1C1C1E', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{position}</div>
@@ -141,7 +143,7 @@ export default function WaitlistAdminPage() {
   );
 
   return (
-    <div style={{ minHeight: '100svh', background: '#F5F5F7', fontFamily: F, padding: '24px 16px 60px' }}>
+    <div data-admin-page="waitlist" style={{ minHeight: '100svh', background: '#F5F5F7', fontFamily: F, padding: '24px 16px 60px' }}>
       <div style={{ maxWidth: 720, margin: '0 auto' }}>
         <h1 style={{ fontSize: 20, fontWeight: 700, color: '#1C1C1E', marginBottom: 4 }}>웨이팅 리스트</h1>
         <p style={{ fontSize: 14, color: '#8E8E93', marginBottom: 20 }}>대기 중 {waiting.length}명 · 연락완료 {contacted.length}명</p>

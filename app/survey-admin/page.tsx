@@ -1,4 +1,5 @@
 'use client';
+import { useAdminWorkspace } from '@/components/admin/AdminWorkspace';
 
 import { useEffect, useMemo, useState } from 'react';
 import { collection, deleteDoc, doc, getDocs, orderBy, query, Timestamp, runTransaction, serverTimestamp } from 'firebase/firestore';
@@ -236,6 +237,7 @@ function FollowupPanel({ source, record, questions, isMobile, onEdit, onTrend, o
 }
 
 export default function SurveyAdminPage() {
+  const workspace = useAdminWorkspace();
   const isMobile = useIsMobile();
   const [rows, setRows] = useState<SurveyRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -296,6 +298,8 @@ export default function SurveyAdminPage() {
     setExampleMessage(`${created}건 반영 · 기존 ${kept}건 보존${failed ? ` · 실패 ${failed}건 (다시 실행하면 기존 기록은 보존됩니다)` : ''}.`);
     setViewMode('trend'); setTrendExample(true);
   }
+  useEffect(() => { workspace.setUnsaved(entryDirty); return () => workspace.setUnsaved(false); }, [entryDirty, workspace.setUnsaved]);
+
   function canLeaveEntry() {
     if (!entryDirty) return true;
     if (!confirm('저장하지 않은 입력이 있습니다. 저장하지 않고 이동할까요?')) return false;
@@ -410,8 +414,8 @@ export default function SurveyAdminPage() {
   };
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f2f2f7', fontFamily: F }}>
-      <div
+    <div data-admin-page="survey" style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f2f2f7', fontFamily: F }}>
+      <div data-admin-toolbar
         style={{
           background: '#1d1d1f',
           display: 'flex',
@@ -425,9 +429,9 @@ export default function SurveyAdminPage() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ color: '#fff', fontWeight: 700, fontSize: 15, letterSpacing: '-.3px', flex: isMobile ? 1 : undefined }}>모스픽 설문 관리</span>
+          <span data-admin-brand style={{ color: '#fff', fontWeight: 700, fontSize: 15, letterSpacing: '-.3px', flex: isMobile ? 1 : undefined }}>모스픽 설문 관리</span>
           {isMobile && (
-            <button
+            <button data-admin-logout
               onClick={async () => { if (!canLeaveEntry()) return; await fetch('/api/admin/logout', { method: 'POST' }); location.href = '/tracking/login'; }}
               style={iconBtn}
             >
@@ -473,7 +477,7 @@ export default function SurveyAdminPage() {
             엑셀 내보내기
           </button>
           {!isMobile && (
-            <button
+            <button data-admin-logout
               onClick={async () => { if (!canLeaveEntry()) return; await fetch('/api/admin/logout', { method: 'POST' }); location.href = '/tracking/login'; }}
               style={{ ...iconBtn, color: 'rgba(255,255,255,0.7)' }}
             >

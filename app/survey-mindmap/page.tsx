@@ -28,8 +28,8 @@ export default function SurveyMindMapPage() {
   }, []);
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f2f2f7', fontFamily: F }}>
-      <div style={{ background: '#1d1d1f', height: 56, flexShrink: 0, display: 'flex', alignItems: 'center', padding: '0 24px' }}>
+    <div data-admin-page="survey-map" style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#f2f2f7', fontFamily: F }}>
+      <div data-admin-toolbar style={{ background: '#1d1d1f', height: 56, flexShrink: 0, display: 'flex', alignItems: 'center', padding: '0 24px' }}>
         <span style={{ color: '#fff', fontWeight: 700, fontSize: 15, letterSpacing: '-.3px' }}>모스픽 사전 설문 요약</span>
         <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginLeft: 12 }}>{loading ? '' : `${rows.length}명 응답`}</span>
       </div>

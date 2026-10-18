@@ -1,4 +1,5 @@
 'use client';
+import { useAdminWorkspace } from '@/components/admin/AdminWorkspace';
 
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
@@ -24,8 +25,9 @@ const HOST = 'https://morspeak-web.vercel.app';
 const F = "'Noto Sans KR', sans-serif";
 
 export default function ReviewAdminPage() {
+  const workspace = useAdminWorkspace();
   const [pw, setPw] = useState('');
-  const [authed, setAuthed] = useState(false);
+  const [authed, setAuthed] = useState(workspace.active);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [tab, setTab] = useState<'create' | 'responses' | 'report'>('create');
 
@@ -111,9 +113,9 @@ export default function ReviewAdminPage() {
   );
 
   return (
-    <div style={{ minHeight:'100vh', background:'#F2F2F7', fontFamily:F }}>
+    <div data-admin-page="reviews" style={{ minHeight:'100vh', background:'#F2F2F7', fontFamily:F }}>
       {/* 탑바 */}
-      <div style={{ background:'#fff', borderBottom:'1px solid #E4E2DC', padding:'0 20px', position:'sticky', top:0, zIndex:10 }}>
+      <div data-admin-toolbar style={{ background:'#fff', borderBottom:'1px solid #E4E2DC', padding:'0 20px', position:'sticky', top:0, zIndex:10 }}>
         <div style={{ maxWidth:840, margin:'0 auto', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
           <div style={{ fontSize:15, fontWeight:700, color:'#1A1916', padding:'14px 0' }}>후기 관리</div>
           <div style={{ display:'flex', gap:2 }}>

@@ -2,6 +2,7 @@
 import { useEffect } from 'react'
 import { initializeApp, getApps } from 'firebase/app'
 import { getAuth, onAuthStateChanged, signInAnonymously } from 'firebase/auth'
+import { connectLocalEmulators } from '@/lib/firebase-emulators'
 
 /**
  * 웹 전체에 **익명 인증을 한 번** 보장한다.
@@ -41,6 +42,7 @@ export default function FirebaseAuthBootstrap() {
     let unsub: (() => void) | undefined
     try {
       const app = getApps().length ? getApps()[0] : initializeApp(cfg)
+      connectLocalEmulators(app)
       const auth = getAuth(app)
       unsub = onAuthStateChanged(auth, (user) => {
         unsub?.()          // 한 번만 판단한다

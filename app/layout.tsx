@@ -1,16 +1,11 @@
 import type { Metadata } from "next";
+import { homepageMetadata } from "@/lib/homepage-metadata";
 import "./globals.css";
 import ConditionalLayout from "@/components/ConditionalLayout";
 import FirebaseAuthBootstrap from "@/components/FirebaseAuthBootstrap";
 
 export const metadata: Metadata = {
-  title: "모스픽 | Morspeak",
-  description: "문의: 010-7641-1362 (모스픽 대표 한가온)",
-  openGraph: {
-    title: "모스픽 | Morspeak",
-    description: "문의: 010-7641-1362 (모스픽 대표 한가온)",
-    images: ["https://morspeak.com/og-image.png"],
-  },
+  ...homepageMetadata,
   verification: {
     google: "_h00yi2WRWANln_PIp4uD_mN-jk727hFyDEkQ6C-_K8",
   },

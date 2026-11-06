@@ -16,8 +16,10 @@ function createRecordReplay(dataset){
  function apply(event){
   if(!event||seen.has(event.id)||!['playback','generated-usage'].includes(event.recordOrigin))return false;
   const p=dataset.patients.find(p=>p.id===event.personId);if(!p)return false;prepare(event.timestamp);const d=daily(p,event.date);if(!d)return false;
-  const s=p.usageStats,r=clone(event.payload);sessionFor(p,d,event);
-  if(event.kind==='speech'){
+  const s=p.usageStats,r=clone(event.payload);if(!['activity','availability'].includes(event.kind))sessionFor(p,d,event);
+  if(event.kind==='availability'){p.featureTelemetry.activity??={events:[],days:{}};p.featureTelemetry.activity.days[event.date]={openIntervals:r.openIntervals,isSynthetic:true,sourceType:'synthetic'};}
+  else if(event.kind==='activity'){p.featureTelemetry.activity??={events:[],days:{}};p.featureTelemetry.activity.events.push(r);}
+  else if(event.kind==='speech'){
    p.speaks.push(r);d.speakCount++;s.speakCount++;
    for(const [target,key] of [['keyboardInputTotal','keyboardCount'],['aiInputTotal','aiCount'],['shortcutInputTotal','shortcutCount']]){d[target]+=r[key];s[target]+=r[key];}
    for(const [target,key] of [['keyboardSpeaks','keyboardCount'],['aiSpeaks','aiCount'],['shortcutSpeaks','shortcutCount']])d[target]+=Number(r[key]>0);

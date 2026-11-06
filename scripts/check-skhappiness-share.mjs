@@ -1,13 +1,15 @@
 import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';
 import {gunzipSync} from 'node:zlib';
+import usage from '../lib/skhappiness/usage-time.cjs';
 import {buildUsageDay,readUsageFeed} from '../lib/skhappiness/shared-usage.mjs';
 const seed=JSON.parse(fs.readFileSync('share-report/usage-seed.json')),baseline=JSON.parse(gunzipSync(fs.readFileSync('share-report/data.json.gz')));
-const create=vm.runInNewContext(fs.readFileSync('share-report/replay.js','utf8')+';createRecordReplay;');
+const create=vm.runInNewContext(fs.readFileSync('share-report/usage-time.js','utf8')+fs.readFileSync('share-report/replay.js','utf8')+';createRecordReplay;');
 const summarize=vm.runInNewContext(fs.readFileSync('share-report/feature-metrics.js','utf8')+';featureSummary;');
 const data=structuredClone(baseline),engine=create(data),events=['2026-11-06','2026-11-07'].flatMap(d=>buildUsageDay(seed,d));
 for(const event of events){assert(engine.apply(event));assert(!engine.apply(event));}
+usage.refreshUsageTimes(data,Date.parse('2026-11-07T23:59:59+09:00')/1000);
 for(const p of data.patients){const s=p.usageStats,f=summarize(p);assert.equal(s.speakCount,p.speaks.length);assert.equal(p.daily.reduce((n,d)=>n+d.speakCount,0),s.speakCount);assert.equal(f.caregiverCalls.count,s.callCount);assert.equal(f.messaging.sent,s.messageSentCount);assert.equal(f.messaging.received,s.messageReceivedCount);assert.equal(f.iot.totalCount,s.iotCount);assert.equal(f.youtube.watchSeconds,s.youtubeWatchSeconds);assert.equal(p.sessions.reduce((n,x)=>n+x.duration,0),s.totalSessionSeconds);for(const d of p.daily){assert.equal(d.speakCount,d.dailyExpressionCount+d.basicCareExpressionCount+d.unclearExpressionCount);assert.equal(d.modeSeconds_keyboard+d.modeSeconds_shortcut+d.modeSeconds_function+d.modeSeconds_youtubePlay+d.modeSeconds_youtubeSurf,d.sessionSeconds);}for(const v of p.featureTelemetry.youtube.sessions.filter(v=>v.recordOrigin==='generated-usage')){assert.equal(v.watchSeconds+v.pausedSeconds,v.end.seconds-v.start.seconds);assert(!p.speaks.some(e=>e.sessionId===v.sessionId&&e.timestamp.seconds>=v.start.seconds&&e.timestamp.seconds<=v.end.seconds));}}
-const restored=structuredClone(baseline),second=create(restored);second.restore(engine.snapshot());assert.equal(JSON.stringify(restored),JSON.stringify(data));second.restore(engine.snapshot());assert.equal(JSON.stringify(restored),JSON.stringify(data));
+const restored=structuredClone(baseline),second=create(restored);second.restore(engine.snapshot());usage.refreshUsageTimes(restored,Date.parse('2026-11-07T23:59:59+09:00')/1000);assert.equal(JSON.stringify(restored),JSON.stringify(data));second.restore(engine.snapshot());usage.refreshUsageTimes(restored,Date.parse('2026-11-07T23:59:59+09:00')/1000);assert.equal(JSON.stringify(restored),JSON.stringify(data));
 let cursor='',seen=[];do{const f=readUsageFeed(seed,{now:Date.parse('2026-11-07T23:59:59+09:00'),after:cursor,limit:13});seen.push(...f.events);cursor=f.cursor;if(!f.hasMore)break;}while(true);assert.deepEqual(seen,events);
 const frozen=readUsageFeed(seed,{now:Date.parse('2026-11-06T10:00:00+09:00')});assert.deepEqual(frozen,readUsageFeed(seed,{now:Date.parse('2026-11-06T10:00:00+09:00')}));assert(frozen.events.every(e=>e.timestamp<=Date.parse(frozen.serverTime)/1000));
 assert.throws(()=>readUsageFeed(seed,{after:'bad'}));console.log(JSON.stringify({events:events.length,aggregates:true,idempotent:true,restore:true,pagination:true,commonServerClock:true,noVideoSpeechOverlap:true}));
@@ -29,3 +31,7 @@ console.log('Combined daily average, category records, weekly patterns and maxim
 
 for(const p of baseline.patients){assert.equal(p.periodStart,p.id==='SYN004'?'2026-05-17':'2026-08-01');assert.equal(p.daily[0].date,p.periodStart);assert.equal(p.speaks[0].date,p.periodStart);}
 assert.equal(baseline.meta.demoPeriod.start,'2026-05-17');console.log('Youngsu starts May 17; other profiles keep August 1');
+
+assert.deepEqual(usage.actionIntervals([1000,1300],0,86400),[[580,1720]]);assert.equal(usage.intervalSeconds(usage.actionIntervals([1000,1300],0,86400)),1140);
+for(const p of baseline.patients){assert(p.usageStats.appOpenDailyAverageSeconds>=12*3600&&p.usageStats.appOpenDailyAverageSeconds<=13*3600);assert(p.usageStats.activeDailyAverageSeconds>=5*3600&&p.usageStats.activeDailyAverageSeconds<=6*3600);for(const d of p.daily){assert(d.activeUseSeconds<=d.appOpenSeconds);assert.equal(d.totalUtteranceCount,p.speaks.filter(e=>e.date===d.date).length+p.featureTelemetry.messaging.events.filter(e=>e.date===d.date&&e.direction==='sent').length);}}
+console.log('7-minute windows merge once; open/active time separate; record rows equal every daily and total count');

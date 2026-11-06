@@ -1,0 +1,18 @@
+import fs from 'node:fs';import vm from 'node:vm';import assert from 'node:assert/strict';
+import {gunzipSync} from 'node:zlib';
+import {buildUsageDay,readUsageFeed} from '../lib/skhappiness/shared-usage.mjs';
+const seed=JSON.parse(fs.readFileSync('share-report/usage-seed.json')),baseline=JSON.parse(gunzipSync(fs.readFileSync('share-report/data.json.gz')));
+const create=vm.runInNewContext(fs.readFileSync('share-report/replay.js','utf8')+';createRecordReplay;');
+const summarize=vm.runInNewContext(fs.readFileSync('share-report/feature-metrics.js','utf8')+';featureSummary;');
+const data=structuredClone(baseline),engine=create(data),events=['2026-11-06','2026-11-07'].flatMap(d=>buildUsageDay(seed,d));
+for(const event of events){assert(engine.apply(event));assert(!engine.apply(event));}
+for(const p of data.patients){const s=p.usageStats,f=summarize(p);assert.equal(s.speakCount,p.speaks.length);assert.equal(p.daily.reduce((n,d)=>n+d.speakCount,0),s.speakCount);assert.equal(f.caregiverCalls.count,s.callCount);assert.equal(f.messaging.sent,s.messageSentCount);assert.equal(f.messaging.received,s.messageReceivedCount);assert.equal(f.iot.totalCount,s.iotCount);assert.equal(f.youtube.watchSeconds,s.youtubeWatchSeconds);assert.equal(p.sessions.reduce((n,x)=>n+x.duration,0),s.totalSessionSeconds);for(const d of p.daily){assert.equal(d.speakCount,d.dailyExpressionCount+d.basicCareExpressionCount+d.unclearExpressionCount);assert.equal(d.modeSeconds_keyboard+d.modeSeconds_shortcut+d.modeSeconds_function+d.modeSeconds_youtubePlay+d.modeSeconds_youtubeSurf,d.sessionSeconds);}for(const v of p.featureTelemetry.youtube.sessions.filter(v=>v.recordOrigin==='generated-usage')){assert.equal(v.watchSeconds+v.pausedSeconds,v.end.seconds-v.start.seconds);assert(!p.speaks.some(e=>e.sessionId===v.sessionId&&e.timestamp.seconds>=v.start.seconds&&e.timestamp.seconds<=v.end.seconds));}}
+const restored=structuredClone(baseline),second=create(restored);second.restore(engine.snapshot());assert.equal(JSON.stringify(restored),JSON.stringify(data));second.restore(engine.snapshot());assert.equal(JSON.stringify(restored),JSON.stringify(data));
+let cursor='',seen=[];do{const f=readUsageFeed(seed,{now:Date.parse('2026-11-07T23:59:59+09:00'),after:cursor,limit:13});seen.push(...f.events);cursor=f.cursor;if(!f.hasMore)break;}while(true);assert.deepEqual(seen,events);
+const frozen=readUsageFeed(seed,{now:Date.parse('2026-11-06T10:00:00+09:00')});assert.deepEqual(frozen,readUsageFeed(seed,{now:Date.parse('2026-11-06T10:00:00+09:00')}));assert(frozen.events.every(e=>e.timestamp<=Date.parse(frozen.serverTime)/1000));
+assert.throws(()=>readUsageFeed(seed,{after:'bad'}));console.log(JSON.stringify({events:events.length,aggregates:true,idempotent:true,restore:true,pagination:true,commonServerClock:true,noVideoSpeechOverlap:true}));
+
+const forbidden=new Set(['text','intendedText','draftText','shortcuts','expressionTopic']);function scan(value){if(!value||typeof value!=='object')return;for(const [key,child]of Object.entries(value)){assert(!forbidden.has(key),'sentence field '+key);scan(child);}}scan(data);scan(events);scan(seed);
+for(const p of baseline.patients)for(const d of p.daily.filter(d=>d.sessionSeconds>0))for(const key of ['youtubeWatchSeconds','youtubeSelectCount','iotCount','messageContactCount','messageSentCount','messageReceivedCount','callCount'])assert(d[key]>0,p.id+'/'+d.date+'/'+key);
+for(const p of data.patients){assert(p.name.endsWith('(가명)'));const d=p.daily.find(d=>d.date==='2026-11-06');assert(d.youtubeWatchSeconds>0);}
+console.log('Sentence privacy, aliases, and active-day coverage verified');

@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ['postgres'],
+  outputFileTracingIncludes: { '/share/skhappiness/**': ['./share-report/**/*'] },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "framerusercontent.com" },

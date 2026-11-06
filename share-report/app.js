@@ -114,11 +114,11 @@ function paintRows(){
  if(rows.length){$('#previous-page').addEventListener('click',()=>{page--;paintRows();});$('#next-page').addEventListener('click',()=>{page++;paintRows();});}
 }
 async function shareLink(){try{await navigator.clipboard.writeText(location.href);toast('현재 화면 링크를 복사했습니다.');}catch{toast('주소창의 링크를 복사해 주세요.');}}
-document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>data&&setView(b.dataset.view)));
+document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>data&&person&&setView(b.dataset.view)));
 $('#person-search').addEventListener('input',filterPeople);
 $('#mobile-back').addEventListener('click',()=>$('.shell').classList.add('list-open'));
 $('#share-link').addEventListener('click',shareLink);
-window.addEventListener('hashchange',()=>{if(data){readHash();page=0;renderPeople();render();}});
-window.addEventListener('resize',()=>{if(data&&view==='overview')renderOverview();});
+window.addEventListener('hashchange',()=>{if(data&&person){readHash();page=0;renderPeople();render();}});
+window.addEventListener('resize',()=>{if(data&&person&&view==='overview')renderOverview();});
 async function start(){try{const response=await fetch(REPORT_BASE+'/data.json',{cache:'no-store'});if(!response.ok)throw Error('Data unavailable');data=await response.json();await setupSharedUsage();readHash();renderPeople();render();updateHash();}catch{ $('#content').innerHTML='<div class="empty-state">데이터를 불러오지 못했습니다.<br>새로고침 후 다시 확인해 주세요.</div>';$('#person-list').textContent='불러오기 실패';}}
 start();

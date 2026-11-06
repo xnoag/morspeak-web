@@ -12,8 +12,10 @@ function planUsageDay(personId,date,times){
   if(!choices.length)break;const choice=choices[(hash+i*7)%choices.length],extension=Math.min(840,remaining,choice.gap),time=Math.floor(choice.end-420+extension);
   extra.push(time);active=actionIntervals([...times,...extra],zero);
  }
- let low=0,high=43200;for(let i=0;i<32;i++){const middle=(low+high)/2,expanded=unionIntervals(active.map(([a,b])=>[Math.max(zero,a-middle),Math.min(zero+86400,b+middle)]));if(intervalSeconds(expanded)<Math.max(targetOpen,intervalSeconds(active)))low=middle;else high=middle;}
- const openIntervals=unionIntervals(active.map(([a,b])=>[Math.max(zero,Math.floor(a-high)),Math.min(zero+86400,Math.ceil(b+high))]));return {extraActions:extra,openIntervals};
+ const openBase=active.map(interval=>[...interval]);
+ while(openBase.length>3){let closest=0;for(let i=1;i<openBase.length-1;i++)if(openBase[i+1][0]-openBase[i][1]<openBase[closest+1][0]-openBase[closest][1])closest=i;openBase.splice(closest,2,[openBase[closest][0],openBase[closest+1][1]]);}
+ let low=0,high=43200;for(let i=0;i<32;i++){const middle=(low+high)/2,expanded=unionIntervals(openBase.map(([a,b])=>[Math.max(zero,a-middle),Math.min(zero+86400,b+middle)]));if(intervalSeconds(expanded)<Math.max(targetOpen,intervalSeconds(openBase)))low=middle;else high=middle;}
+ const openIntervals=unionIntervals(openBase.map(([a,b])=>[Math.max(zero,Math.floor(a-high)),Math.min(zero+86400,Math.ceil(b+high))]));return {extraActions:extra,openIntervals};
 }
 function refreshUsageTimes(dataset,nowSeconds){
  for(const p of dataset.patients){const days=p.featureTelemetry.activity?.days||{};for(const d of p.daily){const zero=Date.parse(d.date+'T00:00:00+09:00')/1000,end=Math.min(nowSeconds,zero+86400),open=unionIntervals((days[d.date]?.openIntervals||[]).map(([a,b])=>[a,Math.min(b,end)]));const windows=actionIntervals(inputTimes(p,d.date),zero,end);const clipped=[];for(const [a,b]of windows)for(const [x,y]of open)if(Math.min(b,y)>Math.max(a,x))clipped.push([Math.max(a,x),Math.min(b,y)]);d.appOpenSeconds=intervalSeconds(open);d.activeUseSeconds=intervalSeconds(unionIntervals(clipped));d.spokenCount=d.speakCount;d.totalUtteranceCount=d.speakCount+d.messageSentCount;}

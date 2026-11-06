@@ -35,3 +35,6 @@ assert.equal(baseline.meta.demoPeriod.start,'2026-05-17');console.log('Youngsu s
 assert.deepEqual(usage.actionIntervals([1000,1300],0,86400),[[580,1720]]);assert.equal(usage.intervalSeconds(usage.actionIntervals([1000,1300],0,86400)),1140);
 for(const p of baseline.patients){assert(p.usageStats.appOpenDailyAverageSeconds>=12*3600&&p.usageStats.appOpenDailyAverageSeconds<=13*3600);assert(p.usageStats.activeDailyAverageSeconds>=5*3600&&p.usageStats.activeDailyAverageSeconds<=6*3600);for(const d of p.daily){assert(d.activeUseSeconds<=d.appOpenSeconds);assert.equal(d.totalUtteranceCount,p.speaks.filter(e=>e.date===d.date).length+p.featureTelemetry.messaging.events.filter(e=>e.date===d.date&&e.direction==='sent').length);}}
 console.log('7-minute windows merge once; open/active time separate; record rows equal every daily and total count');
+for(const p of baseline.patients)for(const day of Object.values(p.featureTelemetry.activity.days))assert(day.openIntervals.length<=3,'At most two middle gaps');
+for(let i=0;i<90;i++){const date=new Date(Date.UTC(2026,10,6+i)).toISOString().slice(0,10);for(const e of buildUsageDay(seed,date).filter(e=>e.kind==='availability')){assert(e.payload.openIntervals.length<=3);assert(usage.intervalSeconds(e.payload.openIntervals)<=13*3600+6);}}
+console.log('All historical and next 90 days have at most 2 middle open-time gaps');

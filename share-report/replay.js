@@ -12,7 +12,7 @@ function createRecordReplay(dataset){
  function daily(p,date){return p.daily.find(d=>d.date===date);}
  function sessionFor(p,d,event){const id=event.sessionId||`PLAY-SESSION-${event.date}-${p.id}`;let s=p.sessions.find(s=>s.id===id);if(!s){s={id,date:event.date,start:{seconds:(event.sessionStart??event.timestamp-61),nanoseconds:0},end:{seconds:(event.sessionStart??event.timestamp-61),nanoseconds:0},duration:0,isSynthetic:true,sourceType:'synthetic',recordOrigin:event.recordOrigin};p.sessions.push(s);}const end=Math.max(s.end.seconds,event.timestamp+1),delta=end-s.end.seconds;s.end.seconds=end;s.duration+=delta;d.sessionSeconds+=delta;d.modeSeconds_function+=delta;p.usageStats.totalSessionSeconds+=delta;return s;}
  function assignMode(d,key,seconds){const n=Math.min(d.modeSeconds_function,Math.max(0,seconds));d.modeSeconds_function-=n;d[key]=(d[key]||0)+n;}
- function updateAverages(p){const s=p.usageStats;p.activeDays=p.daily.filter(d=>d.sessionSeconds>0).length;s.dailySpeakAverage=s.speakCount/p.activeDays;s.speakAverageDays=p.activeDays;s.callDailyAverage=s.callCount/p.activeDays;s.callAverageDays=p.activeDays;s.dailyExpressionShare=s.dailyExpressionCount/s.speakCount;}
+ function updateAverages(p){const s=p.usageStats;p.activeDays=p.daily.filter(d=>d.sessionSeconds>0).length;s.spokenCount=s.speakCount;s.totalUtteranceCount=s.speakCount+s.messageSentCount;s.dailySpeakAverage=s.totalUtteranceCount/p.activeDays;s.speakAverageDays=p.activeDays;s.callDailyAverage=s.callCount/p.activeDays;s.callAverageDays=p.activeDays;s.dailyExpressionShare=s.dailyExpressionCount/s.speakCount;}
  function apply(event){
   if(!event||seen.has(event.id)||!['playback','generated-usage'].includes(event.recordOrigin))return false;
   const p=dataset.patients.find(p=>p.id===event.personId);if(!p)return false;prepare(event.timestamp);const d=daily(p,event.date);if(!d)return false;
@@ -33,7 +33,7 @@ function createRecordReplay(dataset){
    let video=p.featureTelemetry.youtube.sessions.find(v=>v.id===r.id);if(!video){video={id:r.id,date:r.date,sessionId:r.sessionId,start:{seconds:r.begin,nanoseconds:0},end:{seconds:r.begin,nanoseconds:0},watchSeconds:0,pausedSeconds:0,browseSeconds:0,isSynthetic:true,sourceType:'synthetic',recordOrigin:event.recordOrigin};p.featureTelemetry.youtube.sessions.push(video);d.youtubeSelectCount++;s.youtubeSelectCount++;}
    const interval=r.end-r.begin;video.end.seconds=r.end;video.watchSeconds+=r.watchSeconds;video.pausedSeconds+=r.pausedSeconds;d.youtubeWatchSeconds+=r.watchSeconds;s.youtubeWatchSeconds+=r.watchSeconds;assignMode(d,'modeSeconds_youtubePlay',interval);s.modeSeconds_youtubePlay+=interval;
   }
-  s.lastUpdated={seconds:event.timestamp,nanoseconds:0};updateAverages(p);seen.add(event.id);log.push(clone(event));cursor=Math.max(cursor,Number(event.id.split('-').at(-1))+1);
+  d.spokenCount=d.speakCount;d.totalUtteranceCount=d.speakCount+d.messageSentCount;s.lastUpdated={seconds:event.timestamp,nanoseconds:0};updateAverages(p);seen.add(event.id);log.push(clone(event));cursor=Math.max(cursor,Number(event.id.split('-').at(-1))+1);
   dataset.meta.sharedUsage={mode:'server-clock',isSynthetic:true,recordOrigin:event.recordOrigin,recordCount:log.length,lastRecordAt:event.timestamp};return true;
  }
  function reset(){for(const key of Object.keys(dataset))delete dataset[key];Object.assign(dataset,clone(base));log.length=0;seen.clear();cursor=0;initializeErrors();}

@@ -16,3 +16,16 @@ const forbidden=new Set(['text','intendedText','draftText','shortcuts','expressi
 for(const p of baseline.patients)for(const d of p.daily.filter(d=>d.sessionSeconds>0))for(const key of ['youtubeWatchSeconds','youtubeSelectCount','iotCount','messageContactCount','messageSentCount','messageReceivedCount','callCount'])assert(d[key]>0,p.id+'/'+d.date+'/'+key);
 for(const p of data.patients){assert(p.name.endsWith('(가명)'));const d=p.daily.find(d=>d.date==='2026-11-06');assert(d.youtubeWatchSeconds>0);}
 console.log('Sentence privacy, aliases, and active-day coverage verified');
+const {isRestDay}=await import('../lib/skhappiness/activity-pattern.mjs');
+const kstDate=seconds=>new Date((seconds+32400)*1000).toISOString().slice(0,10);
+for(const p of data.patients){
+ const s=p.usageStats;assert.equal(s.totalUtteranceCount,s.speakCount+s.messageSentCount);assert.equal(s.dailySpeakAverage,s.totalUtteranceCount/p.activeDays);assert.equal(p.speaks.length+p.featureTelemetry.messaging.events.filter(e=>e.direction==='sent').length,s.totalUtteranceCount);
+ let absent=0;for(const d of p.daily){absent=d.sessionSeconds?0:absent+1;assert(absent<=1,p.id+' consecutive absent days');assert.equal(d.sessionSeconds===0,isRestDay(p.id,d.date),p.id+'/'+d.date);assert.equal(d.totalUtteranceCount,d.speakCount+d.messageSentCount);}
+ for(const e of p.speaks){assert(['expression','request','response'].includes(e.utteranceCategory));assert.equal(kstDate(e.timestamp.seconds),e.date);const session=p.sessions.find(s=>s.id===e.sessionId);assert(session&&e.timestamp.seconds>=session.start.seconds&&e.timestamp.seconds<=session.end.seconds);}
+ for(const e of p.featureTelemetry.messaging.events){assert.equal(kstDate(e.timestamp.seconds),e.date);if(e.direction==='sent')assert(['expression','request','response'].includes(e.utteranceCategory));}
+}
+let absence=new Map(seed.people.map(p=>[p.id,0]));for(let i=0;i<90;i++){const date=new Date(Date.UTC(2026,10,6+i)).toISOString().slice(0,10),rows=buildUsageDay(seed,date);assert.deepEqual(rows,buildUsageDay(seed,date));for(const p of seed.people){const used=rows.some(e=>e.personId===p.id);assert.equal(!used,isRestDay(p.id,date));absence.set(p.id,used?0:absence.get(p.id)+1);assert(absence.get(p.id)<=1);}}
+console.log('Combined daily average, category records, weekly patterns and maximum 1-day absence verified');
+
+for(const p of baseline.patients){assert.equal(p.periodStart,p.id==='SYN004'?'2026-05-17':'2026-08-01');assert.equal(p.daily[0].date,p.periodStart);assert.equal(p.speaks[0].date,p.periodStart);}
+assert.equal(baseline.meta.demoPeriod.start,'2026-05-17');console.log('Youngsu starts May 17; other profiles keep August 1');

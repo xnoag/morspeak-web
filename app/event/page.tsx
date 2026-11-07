@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import styles from './event.module.css';
 
@@ -34,7 +35,15 @@ export default function EventPage() {
       <div className={styles.container}>
         <header className={styles.header}>
           <Link href="/" className={styles.brand} aria-label="모스픽 홈페이지">
-            morspeak<span aria-hidden="true">.</span>
+            <Image
+              src="/morspeak-share-logo-wordmark.png"
+              alt="Morspeak"
+              width={3584}
+              height={1256}
+              className={styles.logo}
+              priority
+              unoptimized
+            />
           </Link>
         </header>
         <main>
@@ -57,7 +66,7 @@ export default function EventPage() {
             ))}
           </ul>
         </main>
-        <footer className={styles.footer}>작은 움직임, 더 큰 가능성.</footer>
+        <footer className={styles.footer}>Small, Yet Significant</footer>
       </div>
     </div>
   );

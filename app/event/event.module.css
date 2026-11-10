@@ -1,0 +1,90 @@
+.page {
+  --event-bg: #fff;
+  --event-surface: #f5f5f7;
+  --event-hover: #e8e8ed;
+  --event-ink: #1d1d1f;
+  --event-secondary: #6e6e73;
+  min-height: 100svh;
+  background: var(--event-bg);
+  color: var(--event-ink);
+  font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'PretendardVariable', system-ui, sans-serif;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  color-scheme: light dark;
+}
+
+.container {
+  max-width: 608px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.header {
+  padding: 32px 0 64px;
+}
+
+.brand {
+  display: inline-block;
+  position: relative;
+  width: 160px;
+  height: 44px;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+/* 원본 투명 여백만 화면에서 제외하며 로고 파일과 비율을 보존한다. */
+.logo {
+  position: absolute;
+  width: 199px;
+  max-width: none;
+  height: auto;
+  left: -19.5px;
+  top: -16px;
+}
+.title { margin: 0; font-size: 2.5rem; font-weight: 600; line-height: 1.25; }
+.description { margin: 16px 0 32px; font-size: 1.0625rem; line-height: 1.6; color: var(--event-secondary); }
+.events { display: grid; gap: 16px; margin: 0; padding: 0; list-style: none; }
+
+.card {
+  display: block;
+  padding: 28px 32px;
+  border-radius: 28px;
+  background: var(--event-surface);
+  color: var(--event-ink);
+  text-decoration: none;
+  touch-action: manipulation;
+  transition: background-color 160ms ease;
+}
+
+.organizer { font-size: .875rem; line-height: 1.5; color: var(--event-secondary); }
+.eventTitle { margin: 8px 0 24px; font-size: 1.75rem; font-weight: 600; line-height: 1.25; }
+.action { display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 1rem; line-height: 1.5; }
+.action svg { flex-shrink: 0; }
+.footer { padding: 40px 0 max(32px, env(safe-area-inset-bottom)); color: var(--event-secondary); font-size: .875rem; line-height: 1.5; }
+.brand:focus-visible, .card:focus-visible { outline: 3px solid var(--event-ink); outline-offset: 5px; }
+.card:active { background: var(--event-hover); }
+
+@media (hover: hover) and (pointer: fine) {
+  .card:hover { background: var(--event-hover); }
+}
+
+@media (max-width: 480px) {
+  .header { padding: 24px 0 48px; }
+  .title { font-size: 2rem; }
+  .card { padding: 24px; }
+}
+
+@media (prefers-color-scheme: dark) {
+  .logo { filter: invert(1); }
+  .page {
+    --event-bg: #000;
+    --event-surface: #1d1d1f;
+    --event-hover: #333336;
+    --event-ink: #f5f5f7;
+    --event-secondary: #aeaeb2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card { transition: none; }
+}

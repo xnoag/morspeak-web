@@ -64,7 +64,7 @@ function ConditionalNote({ q, rows, answeredCount }: { q: SurveyQuestion; rows: 
   );
 }
 
-function SummaryQuestion({ q, rows }: { q: SurveyQuestion; rows: MindMapRow[] }) {
+export function SummaryQuestion({ q, rows }: { q: SurveyQuestion; rows: MindMapRow[] }) {
   if (q.type === 'text') {
     const answered = rows.filter((r) => typeof r.answers[q.id] === 'string' && (r.answers[q.id] as string).length > 0);
     return (

@@ -1,0 +1,8 @@
+Household expression context:
+NVIDIA, Nemotron-Personas-Korea
+https://huggingface.co/datasets/nvidia/Nemotron-Personas-Korea
+Dataset revision: ada0f5b53a38bb5a30cce09358adde883c1ab63a
+License: Creative Commons Attribution 4.0 International
+https://creativecommons.org/licenses/by/4.0/
+Changes: selected household contexts adapted into new communication expressions.
+Original persona rows and narratives are not redistributed in this site.

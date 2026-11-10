@@ -11,6 +11,7 @@ export default function robots(): MetadataRoute.Robots {
         '/tracking/',
         '/admin/',
         '/survey-admin/',
+        '/survey-share/',
         '/survey-mindmap/',
         '/waitlist/admin/',
         '/review/admin/',

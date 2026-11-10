@@ -1,0 +1,35 @@
+/* Gaon light application tokens. Scoped: map to the target app, do not replace globals. */
+.gaon-theme {
+  --gaon-frame: #f7f7f7;
+  --gaon-menu: #fdfdfd;
+  --gaon-surface: #fff;
+  --gaon-text: #282828;
+  --gaon-menu-text: #505050;
+  --gaon-muted: #666;
+  --gaon-line: #f2f2f2;
+  --gaon-selected: #f0f0f0;
+  --gaon-hover: rgb(0 0 0 / 3.5%);
+  --gaon-accent: #ff4800;
+  --gaon-badge-bg: #fff0e9;
+  --gaon-badge-text: #b73500;
+  --gaon-sent: #ffdfd1;
+  --gaon-font: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", system-ui, sans-serif;
+  --gaon-body-size: 14px;
+  --gaon-menu-size: 13px;
+  --gaon-caption-size: 11px;
+  --gaon-rail-width: 52px;
+  --gaon-menu-width: 238px;
+  --gaon-titlebar-height: 44px;
+  --gaon-workspace-radius: 18px;
+  --gaon-workspace-inset: 6px;
+  --gaon-menu-radius: 9px;
+  --gaon-workspace-shadow: 0 0 4px rgb(0 0 0 / 12%);
+  --gaon-profile-shadow: 0 4px 18px rgb(0 0 0 / 10%);
+  --gaon-motion-duration: 140ms;
+  color: var(--gaon-text);
+  font-family: var(--gaon-font);
+  font-size: var(--gaon-body-size);
+}
+@media (prefers-reduced-motion: reduce) {
+  .gaon-theme { --gaon-motion-duration: 0ms; }
+}

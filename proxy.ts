@@ -16,8 +16,12 @@ const PROTECTED_PREFIXES = [
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
 
+  // This report uses its own scrypt password and signed, path-scoped cookie.
+  // Keep all other tracking screens behind the existing admin authentication.
+  if (pathname === '/tracking/internal' || pathname.startsWith('/tracking/internal/')) return NextResponse.next()
+
   const isProtected =
-    PROTECTED_PREFIXES.some(p => pathname.startsWith(p)) && !pathname.startsWith('/tracking/login')
+    PROTECTED_PREFIXES.some(p => pathname.startsWith(p)) && !pathname.startsWith('/tracking/login') && pathname !== '/survey-admin/trends'
 
   if (isProtected) {
     const session = req.cookies.get('admin_session')

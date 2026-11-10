@@ -9,7 +9,7 @@ function planUsageDay(personId,date,times,options={}){
  // Per-profile normal days offset recurring short days. The overall means are
  // approximately 8 / 12 / 14 / 10 hours, with independent daily variation.
  const normalOpenHours={SYN001:7.9,SYN002:13.15,SYN003:14.6,SYN004:10.7};
- const targetActive=(options.shortDay?2.65+(hash%41)/100:5.05+(hash%56)/100)*3600,targetOpen=(options.shortDay?4.35+((hash>>>5)%91)/100:(normalOpenHours[personId]??12)+((hash>>>5)%241)/100-1.2)*3600,extra=[];let active=actionIntervals(times,zero);
+ const targetActive=(options.shortDay?2.65+(hash%41)/100:5.05+(hash%56)/100)*3600,targetOpen=(options.shortDay?4.35+((hash>>>5)%91)/100:(options.normalOpenHours??normalOpenHours[personId]??12)+((hash>>>5)%241)/100-1.2)*3600,extra=[];let active=actionIntervals(times,zero);
  for(let i=0;intervalSeconds(active)<targetActive&&i<100;i++){
   const remaining=targetActive-intervalSeconds(active),choices=active.map(([a,b],index)=>({index,end:b,gap:Math.max(0,Math.min(active[index+1]?.[0]??zero+22*3600,zero+22*3600)-b)})).filter(x=>x.gap>1);
   if(!choices.length)break;const choice=choices[(hash+i*7)%choices.length],extension=Math.min(840,remaining,choice.gap),time=Math.floor(choice.end-420+extension);

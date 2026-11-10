@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
  if (!Object.hasOwn(files, name)) return response('찾을 수 없습니다.', 404)
  const [file, type] = files[name]
  const ownFile = ['index.html', 'app.js', 'shared-usage-ui.js'].includes(file)
- const bytes = await readFile(path.join(ownFile ? privateDir : sharedDir, file))
+ const bytes = ownFile ? await readFile(path.join(privateDir, file)) : await readFile(path.join(sharedDir, file))
  let body: BodyInit = new Uint8Array(bytes)
  if (!name) body = bytes.toString('utf8').replace('<html lang="ko">', `<html lang="ko" data-report-base="${BASE}">`).replace(/(href|src)="\/(?!\/)/g, `$1="${BASE}/`)
  const res = response(body, 200, type)
